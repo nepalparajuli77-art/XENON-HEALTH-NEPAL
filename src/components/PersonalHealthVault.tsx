@@ -18,6 +18,7 @@ import {
   X
 } from 'lucide-react';
 import { Language, User, UserHealthRecord, UserVitals } from '../types';
+import { triggerHaptic } from '../utils/haptics';
 
 interface PersonalHealthVaultProps {
   currentUser: User | null;
@@ -195,6 +196,7 @@ export const PersonalHealthVault: React.FC<PersonalHealthVaultProps> = ({
 
   const handleSaveVitals = (e: React.FormEvent) => {
     e.preventDefault();
+    triggerHaptic('success');
     const vitalsData: UserVitals = {
       bp: bp.trim(),
       blood_sugar: bloodSugar.trim() ? `${bloodSugar.trim()} mg/dL` : undefined,
@@ -261,9 +263,9 @@ export const PersonalHealthVault: React.FC<PersonalHealthVaultProps> = ({
   const healthStatus = calculateHealthStatus();
 
   return (
-    <div className="rounded-[24px] bg-white dark:bg-[#0F172A] border border-slate-200/90 dark:border-slate-800 p-4 sm:p-6 shadow-sm w-full max-w-full">
+    <div className="rounded-[24px] liquid-glass-card border border-white/60 dark:border-white/10 p-4 sm:p-6 shadow-sm w-full max-w-full transition-all">
       {/* Header with Title and Mode Switcher */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200/60 dark:border-slate-800">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-red-600 to-blue-700 flex items-center justify-center text-white shadow-md shadow-red-600/20 shrink-0">
             <HeartPulse className="w-5 h-5 text-white" />
@@ -341,7 +343,7 @@ export const PersonalHealthVault: React.FC<PersonalHealthVaultProps> = ({
                 value={docTitle}
                 onChange={(e) => setDocTitle(e.target.value)}
                 placeholder={language === 'np' ? 'उदा: नर्भिक मुटु जाँच, ब्लड टेस्ट, छातीको एक्सरे' : 'e.g., Norvic Cardiology Report, Blood Test, Chest X-Ray'}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-xs font-medium text-slate-950 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-slate-950 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-red-500 shadow-2xs"
               />
             </div>
 
@@ -352,7 +354,7 @@ export const PersonalHealthVault: React.FC<PersonalHealthVaultProps> = ({
               <select
                 value={docCategory}
                 onChange={(e) => setDocCategory(e.target.value as UserHealthRecord['category'])}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-xs font-medium text-slate-950 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500 cursor-pointer"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-slate-950 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500 cursor-pointer shadow-2xs"
               >
                 <option value="Prescription">{language === 'np' ? 'प्रिस्क्रिप्शन (Prescription)' : 'Prescription'}</option>
                 <option value="Lab Report">{language === 'np' ? 'ल्याब रिपोर्ट (Lab Report)' : 'Lab Report'}</option>
@@ -416,7 +418,7 @@ export const PersonalHealthVault: React.FC<PersonalHealthVaultProps> = ({
               value={docNotes}
               onChange={(e) => setDocNotes(e.target.value)}
               placeholder={language === 'np' ? 'उदा: डाक्टरले दिनको २ पटक औषधि खान भन्नुभएको छ...' : 'e.g. Advised to repeat fasting blood test in 3 months...'}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-xs font-medium text-slate-950 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-slate-950 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-red-500 shadow-2xs"
             />
           </div>
 

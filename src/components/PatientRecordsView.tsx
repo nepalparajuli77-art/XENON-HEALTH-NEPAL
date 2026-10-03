@@ -24,6 +24,8 @@ import { Appointment, Prescription, Language, User as UserType } from '../types'
 import { t } from '../data/mockData';
 import { RecordsPrivacyLock } from './RecordsPrivacyLock';
 import { VitalsTelemetryTracker } from './VitalsTelemetryTracker';
+import { triggerHaptic } from '../utils/haptics';
+import { CheckSquare } from 'lucide-react';
 
 interface PatientRecordsViewProps {
   appointments: Appointment[];
@@ -149,7 +151,7 @@ export const PatientRecordsView: React.FC<PatientRecordsViewProps> = ({
   return (
     <div className="space-y-6">
       {/* Top Patient Profile Dossier Banner */}
-      <div className="rounded-[22px] bg-white dark:bg-[#0F172A] p-5 border border-black/[0.08] dark:border-white/[0.08] shadow-[0_2px_12px_rgba(0,0,0,0.04)] dark:shadow-none">
+      <div className="rounded-[24px] liquid-glass-card p-5 border border-white/60 dark:border-white/10 shadow-sm transition-all">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
             <div className="w-13 h-13 rounded-2xl bg-gradient-to-br from-red-600 to-blue-700 text-white border border-white/20 flex items-center justify-center text-2xl font-bold shadow-md shadow-red-600/20">
@@ -231,22 +233,28 @@ export const PatientRecordsView: React.FC<PatientRecordsViewProps> = ({
       {/* Primary Section Switcher Tabs */}
       <div className="flex items-center p-1.5 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
         <button
-          onClick={() => setActiveTab('vitals')}
+          onClick={() => {
+            triggerHaptic('light');
+            setActiveTab('vitals');
+          }}
           className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
             activeTab === 'vitals'
               ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs border border-slate-200 dark:border-slate-700'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
-          <Activity className="w-4 h-4 text-red-600" />
-          <span>{language === 'np' ? 'भाइटल टेलिमेट्री (Vitals Telemetry)' : 'Vitals Telemetry Tracker'}</span>
-          <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300 font-mono">
-            Live
+          <CheckSquare className="w-4 h-4 text-blue-600" />
+          <span>{language === 'np' ? 'भाइटल चेकलिस्ट (Vitals Checklist)' : 'Vitals Checklist & Log'}</span>
+          <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 font-mono">
+            Daily
           </span>
         </button>
 
         <button
-          onClick={() => setActiveTab('appointments')}
+          onClick={() => {
+            triggerHaptic('light');
+            setActiveTab('appointments');
+          }}
           className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
             activeTab === 'appointments'
               ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs border border-slate-200 dark:border-slate-700'
@@ -261,7 +269,10 @@ export const PatientRecordsView: React.FC<PatientRecordsViewProps> = ({
         </button>
 
         <button
-          onClick={() => setActiveTab('prescriptions')}
+          onClick={() => {
+            triggerHaptic('light');
+            setActiveTab('prescriptions');
+          }}
           className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
             activeTab === 'prescriptions'
               ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs border border-slate-200 dark:border-slate-700'

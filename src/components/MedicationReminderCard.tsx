@@ -261,7 +261,7 @@ export const MedicationReminderCard: React.FC<MedicationReminderCardProps> = ({
   };
 
   return (
-    <div className="rounded-[24px] bg-white dark:bg-[#0F172A] p-5 md:p-6 border border-slate-200/90 dark:border-slate-800 shadow-sm space-y-5 transition-colors">
+    <div className="rounded-[24px] liquid-glass-card p-5 md:p-6 border border-white/60 dark:border-white/10 shadow-sm space-y-5 transition-all">
       {/* Push Notification Simulator Banner Alert */}
       {activeAlertBanner && (
         <div className="rounded-2xl bg-gradient-to-r from-red-600 via-red-700 to-blue-700 p-0.5 shadow-lg animate-in slide-in-from-top-3 fade-in duration-300">

@@ -131,7 +131,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   return (
     <nav
       aria-label="Mobile Navigation"
-      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#090D1A]/95 border-t border-slate-200 dark:border-slate-800 backdrop-blur-xl shadow-2xl transition-all w-full max-w-full pb-safe"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-40 liquid-glass border-t border-white/60 dark:border-white/10 shadow-2xl transition-all w-full max-w-full pb-safe"
       style={{
         paddingBottom: 'max(0.6rem, env(safe-area-inset-bottom, 0.6rem))'
       }}

@@ -77,7 +77,28 @@ export default function App() {
 
   const [currentTab, setCurrentTab] = useState<string>(() => (currentUser ? 'dashboard' : 'xenon'));
   const [language, setLanguage] = useState<Language>('en');
-  const [isDark, setIsDark] = useState(false);
+  const [isDark, setIsDark] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('xenon_theme');
+      if (saved) return saved === 'dark';
+    } catch {}
+    return false; // Default to pristine light mode
+  });
+
+  // Sync theme with document element
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+      try {
+        localStorage.setItem('xenon_theme', 'dark');
+      } catch {}
+    } else {
+      document.documentElement.classList.remove('dark');
+      try {
+        localStorage.setItem('xenon_theme', 'light');
+      } catch {}
+    }
+  }, [isDark]);
 
   // Core Data Collections (Stateful with localStorage persistence)
   const [users, setUsers] = useState<User[]>(() => {
@@ -597,7 +618,14 @@ export default function App() {
   const activeUser = currentUser || INITIAL_USERS[0];
 
   return (
-    <div className={`min-h-screen w-full flex overflow-x-hidden relative font-sans transition-colors duration-200 ${isDark ? 'dark bg-[#070A12] text-white' : 'bg-slate-50 text-slate-900'}`}>
+    <div className={`min-h-screen w-full flex relative font-sans transition-colors duration-200 ${isDark ? 'dark bg-[#070A12] text-white' : 'bg-[#F8FAFC] text-slate-900'}`}>
+      {/* Ambient Liquid Glass Refraction Mesh Orbs */}
+      <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
+        <div className="absolute -top-40 -left-40 w-[32rem] h-[32rem] rounded-full bg-gradient-to-br from-rose-500/12 via-red-500/8 to-transparent blur-3xl opacity-80 dark:opacity-40" />
+        <div className="absolute top-1/4 right-0 w-[36rem] h-[36rem] rounded-full bg-gradient-to-bl from-blue-500/12 via-indigo-500/8 to-transparent blur-3xl opacity-80 dark:opacity-40" />
+        <div className="absolute -bottom-40 left-1/3 w-[34rem] h-[34rem] rounded-full bg-gradient-to-tr from-cyan-500/10 via-emerald-500/8 to-transparent blur-3xl opacity-70 dark:opacity-30" />
+      </div>
+
       {/* Desktop Vertical Sidebar */}
       <Sidebar
         currentTab={currentTab}

@@ -195,10 +195,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     <div className="space-y-5 sm:space-y-6 w-full max-w-full">
       {/* SECTION 1: User Info & Health Identity Card or Secure Sign-In Prompt */}
       {!currentUser ? (
-        <section className="relative overflow-hidden rounded-[26px] bg-gradient-to-br from-slate-900 via-[#0F172A] to-blue-950 text-white border border-slate-800 p-5 sm:p-7 shadow-xl w-full">
+        <section className="relative overflow-hidden rounded-[26px] liquid-glass-card border border-white/60 dark:border-white/10 p-5 sm:p-7 shadow-sm w-full transition-all">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-red-500/10 via-rose-500/5 to-blue-500/10 rounded-full blur-3xl pointer-events-none -z-10" />
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 sm:gap-6">
             <div className="flex items-start gap-4">
-              <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-red-600 to-blue-600 text-white flex items-center justify-center text-2xl font-black shadow-lg shadow-red-600/20 shrink-0 border border-white/10">
+              <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-red-600 to-blue-600 text-white flex items-center justify-center text-2xl font-black shadow-md shadow-red-600/20 shrink-0 border border-white/20">
                 <ShieldCheck className="w-7 h-7 text-white" />
               </div>
 
@@ -207,17 +208,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-red-600 text-white shadow-xs">
                     {language === 'np' ? 'सुरक्षित लगइन' : 'Sign In Required'}
                   </span>
-                  <span className="text-xs text-slate-400 font-medium">
+                  <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
                     {language === 'np' ? 'गोप्य स्वास्थ्य पोर्टल' : 'Confidential Medical Vault'}
                   </span>
                 </div>
 
-                <h2 className="text-base sm:text-xl font-black text-white mt-1">
+                <h2 className="text-base sm:text-xl font-black text-slate-900 dark:text-white mt-1">
                   {language === 'np'
                     ? 'आफ्नो स्वास्थ्य खातामा लगइन गर्नुहोस्'
                     : 'Sign in to access your Health Vault & OPD Services'}
                 </h2>
-                <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
+                <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 max-w-2xl leading-relaxed font-normal">
                   {language === 'np'
                     ? 'डाक्टरसँगको टेलिमेडिसिन परामर्श, निजी मेडिकल रिपोर्टहरू र डिजिटल प्रिस्क्रिप्सन सुरक्षित रूपमा हेर्न लगइन वा नयाँ दर्ता गर्नुहोस्।'
                     : 'Sign in with your phone, email, or practitioner PIN to access your personal medical records, active prescriptions, and direct specialist consultations.'}
@@ -229,7 +230,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div className="flex items-center gap-2.5 self-stretch sm:self-start lg:self-auto flex-wrap shrink-0">
               <button
                 onClick={() => onOpenAuth && onOpenAuth('login')}
-                className="flex-1 sm:flex-initial flex items-center justify-center gap-2 min-h-[44px] px-5 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-blue-600 hover:from-red-700 hover:to-blue-700 text-white text-xs font-black shadow-lg shadow-red-600/20 transition-all hover:scale-105 cursor-pointer"
+                className="flex-1 sm:flex-initial flex items-center justify-center gap-2 min-h-[44px] px-5 py-2.5 rounded-2xl bg-gradient-to-r from-red-600 to-blue-600 hover:from-red-700 hover:to-blue-700 text-white text-xs font-black shadow-md shadow-red-600/25 transition-all hover:scale-105 active:scale-95 cursor-pointer"
               >
                 <Lock className="w-4 h-4" />
                 <span>{language === 'np' ? 'खाता लगइन (Sign In)' : 'Sign In'}</span>
@@ -237,16 +238,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
               <button
                 onClick={() => onOpenAuth && onOpenAuth('register-patient')}
-                className="flex-1 sm:flex-initial flex items-center justify-center gap-2 min-h-[44px] px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20 transition-all cursor-pointer"
+                className="flex-1 sm:flex-initial flex items-center justify-center gap-2 min-h-[44px] px-4 py-2.5 rounded-2xl bg-white/80 dark:bg-white/10 hover:bg-white dark:hover:bg-white/20 text-slate-800 dark:text-white text-xs font-bold border border-slate-200 dark:border-white/15 transition-all active:scale-95 cursor-pointer shadow-xs"
               >
-                <UserPlus className="w-4 h-4" />
+                <UserPlus className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                 <span>{language === 'np' ? 'नयाँ दर्ता (Register)' : 'New Patient Register'}</span>
               </button>
             </div>
           </div>
         </section>
       ) : (
-        <section className="relative overflow-hidden rounded-[26px] bg-white dark:bg-[#0F172A] border border-slate-200/90 dark:border-slate-800 p-4 sm:p-6 shadow-sm w-full">
+        <section className="relative overflow-hidden rounded-[26px] liquid-glass-card border border-white/60 dark:border-white/10 p-4 sm:p-6 shadow-sm w-full">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-6">
             {/* User Profile Capsule */}
             <div className="flex items-start gap-3 sm:gap-4">
@@ -336,8 +337,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       )}
 
       {/* SECTION 2: "Only a little bit of advices" (Personalized & Curated Daily Health Nuggets) */}
-      <section className="rounded-[24px] bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 p-4 sm:p-6 shadow-xs w-full">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+      <section className="rounded-[24px] liquid-glass-card border border-white/60 dark:border-white/10 p-4 sm:p-6 shadow-sm w-full transition-all">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/60 dark:border-slate-800">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-red-600 text-white flex items-center justify-center shadow-xs shrink-0">
               <Lightbulb className="w-5 h-5 text-white" />
@@ -369,7 +370,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 className={`min-h-[34px] sm:min-h-[36px] px-3 py-1.5 rounded-xl text-[11px] font-bold capitalize transition-all cursor-pointer border whitespace-nowrap shrink-0 ${
                   adviceCategory === cat
                     ? 'bg-red-600 text-white border-red-600 shadow-xs'
-                    : 'bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                    : 'bg-white dark:bg-slate-800/80 text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-2xs'
                 }`}
               >
                 {cat}
@@ -434,9 +435,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* Right Col: Upcoming Consultations (6 cols) */}
-        <div className="lg:col-span-6 rounded-[22px] bg-white dark:bg-[#0F172A] p-4 sm:p-5 border border-slate-200/90 dark:border-slate-800 shadow-sm flex flex-col justify-between w-full">
+        <div className="lg:col-span-6 rounded-[24px] liquid-glass-card p-4 sm:p-5 border border-white/60 dark:border-white/10 shadow-sm flex flex-col justify-between w-full transition-all">
           <div>
-            <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-200/60 dark:border-slate-800">
               <h3 className="text-sm font-black text-slate-950 dark:text-white flex items-center gap-2">
                 <CalendarDays className="w-4 h-4 text-blue-600" />
                 <span>{t('upcomingConsultations', language)}</span>

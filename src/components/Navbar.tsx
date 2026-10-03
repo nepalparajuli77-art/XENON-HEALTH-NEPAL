@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { Language, User as UserType } from '../types';
 import { Logo } from './Logo';
+import { triggerHaptic } from '../utils/haptics';
 
 interface NavbarProps {
   currentTab: string;
@@ -121,7 +122,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   }, [currentTab, language, isDoctor]);
 
   return (
-    <header className="sticky top-0 z-20 w-full bg-white/95 dark:bg-[#090D1A]/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 transition-colors">
+    <header className="sticky top-0 z-20 w-full liquid-glass border-b border-white/60 dark:border-white/10 transition-colors">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14 sm:h-16 gap-3">
           {/* Left: Mobile Brand / Desktop Module Breadcrumb */}
@@ -150,7 +151,10 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
             {/* Quick Emergency 102 Button */}
             <button
-              onClick={() => setCurrentTab('emergency')}
+              onClick={() => {
+                triggerHaptic('emergency');
+                setCurrentTab('emergency');
+              }}
               className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500/10 hover:bg-red-500/15 text-red-600 dark:text-red-400 text-xs font-bold border border-red-500/20 transition-colors cursor-pointer"
             >
               <PhoneCall className="w-3.5 h-3.5" />
@@ -159,7 +163,10 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             {/* Language Switcher */}
             <button
-              onClick={() => setLanguage(language === 'en' ? 'np' : 'en')}
+              onClick={() => {
+                triggerHaptic('light');
+                setLanguage(language === 'en' ? 'np' : 'en');
+              }}
               className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-black/[0.04] hover:bg-black/[0.07] dark:bg-white/[0.06] dark:hover:bg-white/[0.1] text-slate-700 dark:text-slate-200 text-xs font-bold border border-black/[0.04] dark:border-white/[0.06] transition-colors cursor-pointer"
               title="Switch Language (English / नेपाली)"
             >
@@ -169,7 +176,10 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             {/* Dark Mode Switcher */}
             <button
-              onClick={() => setIsDark(!isDark)}
+              onClick={() => {
+                triggerHaptic('medium');
+                setIsDark(!isDark);
+              }}
               className="p-2 rounded-full bg-black/[0.04] hover:bg-black/[0.07] dark:bg-white/[0.06] dark:hover:bg-white/[0.1] text-slate-700 dark:text-slate-200 text-xs border border-black/[0.04] dark:border-white/[0.06] transition-colors cursor-pointer"
               title={isDark ? 'Light Mode' : 'Dark Mode'}
             >

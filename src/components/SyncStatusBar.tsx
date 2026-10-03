@@ -75,7 +75,7 @@ export const SyncStatusBar: React.FC<SyncStatusBarProps> = ({ onNotifyToast }) =
   const pendingMsgs = getPendingMessages();
 
   return (
-    <div className="w-full max-w-full bg-slate-50 dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-200 transition-all text-xs overflow-x-hidden">
+    <div className="w-full max-w-full liquid-glass border-b border-slate-200/80 dark:border-white/10 text-slate-800 dark:text-slate-200 transition-all text-xs overflow-x-hidden">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-1.5 sm:py-2 w-full">
         <div className="flex items-center justify-between gap-2">
           {/* Left: Compact Status Pill */}
