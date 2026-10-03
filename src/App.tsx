@@ -36,6 +36,7 @@ import {
   INITIAL_LAB_REPORTS
 } from './data/mockData';
 import { Doctor, Hospital, Appointment, Prescription, Language, User, LabReport } from './types';
+import { parseCurrentUrl, syncUrlWithState } from './utils/urlRouting';
 
 // Auto-complete appointments whose date has passed
 function syncAppointmentStatuses(apts: Appointment[]): Appointment[] {
@@ -55,6 +56,9 @@ function syncAppointmentStatuses(apts: Appointment[]): Appointment[] {
 }
 
 export default function App() {
+  // Parse dynamic URL parameters and path on initial load
+  const initialUrl = useMemo(() => parseCurrentUrl(), []);
+
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     try {
       const saved = localStorage.getItem('telemed_current_user');
@@ -75,8 +79,13 @@ export default function App() {
     return null;
   });
 
-  const [currentTab, setCurrentTab] = useState<string>(() => (currentUser ? 'dashboard' : 'xenon'));
-  const [language, setLanguage] = useState<Language>('en');
+  const [currentTab, setCurrentTab] = useState<string>(() => {
+    if (initialUrl.tab) {
+      return initialUrl.tab;
+    }
+    return currentUser ? 'dashboard' : 'xenon';
+  });
+  const [language, setLanguage] = useState<Language>(() => initialUrl.lang || 'en');
   const [isDark, setIsDark] = useState<boolean>(() => {
     try {
       const saved = localStorage.getItem('xenon_theme');
@@ -366,14 +375,70 @@ export default function App() {
       const adminAllowed = ['developer', 'xenon', 'emergency'];
       if (!adminAllowed.includes(currentTab)) {
         setCurrentTab('developer');
+        syncUrlWithState('developer', { lang: language });
       }
     } else if (currentUser?.role === 'doctor') {
       const docAllowed = ['doctors', 'doctor-dashboard', 'doctor-settings', 'xenon', 'emergency'];
       if (!docAllowed.includes(currentTab)) {
         setCurrentTab('doctors');
+        syncUrlWithState('doctors', { lang: language });
       }
     }
-  }, [currentUser, currentTab]);
+  }, [currentUser, currentTab, language]);
+
+  // Dynamic URL: Deep link resolution on initial mount
+  useEffect(() => {
+    if (initialUrl.doctorId) {
+      const matched = doctors.find((d) => d.id === initialUrl.doctorId);
+      if (matched) {
+        setSelectedDoctorForBooking(matched);
+        if (initialUrl.tab === 'book') {
+          setBookModalOpen(true);
+        }
+      }
+    }
+
+    if (initialUrl.authMode && !currentUser) {
+      setAuthModalMode(initialUrl.authMode);
+      setAuthModalOpen(true);
+    }
+
+    // Normalize initial URL in browser history
+    syncUrlWithState(currentTab, {
+      replace: true,
+      doctorId: initialUrl.doctorId,
+      authMode: initialUrl.authMode,
+      lang: language
+    });
+  }, []);
+
+  // Dynamic URL: Synchronize with browser Back and Forward navigation (popstate)
+  useEffect(() => {
+    const handlePopState = () => {
+      const parsed = parseCurrentUrl();
+      if (parsed.tab && parsed.tab !== currentTab) {
+        setCurrentTab(parsed.tab);
+      }
+      if (parsed.lang && parsed.lang !== language) {
+        setLanguage(parsed.lang);
+      }
+      if (parsed.authMode) {
+        setAuthModalMode(parsed.authMode);
+        setAuthModalOpen(true);
+      } else {
+        setAuthModalOpen(false);
+      }
+      if (parsed.doctorId) {
+        const matched = doctors.find((d) => d.id === parsed.doctorId);
+        if (matched) {
+          setSelectedDoctorForBooking(matched);
+        }
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [currentTab, language, doctors]);
 
   // Protected Navigation Interceptor: Automatically triggers AuthModal when accessing private account tabs
   const handleSelectTab = (tab: string) => {
@@ -382,10 +447,12 @@ export default function App() {
       if (!guestAllowed.includes(tab)) {
         setAuthModalMode('login');
         setAuthModalOpen(true);
+        syncUrlWithState(tab, { authMode: 'login', lang: language });
         showToast('Please sign in or register to access personal account features.');
         return;
       }
       setCurrentTab(tab);
+      syncUrlWithState(tab, { lang: language });
       return;
     }
 
@@ -394,9 +461,11 @@ export default function App() {
       if (!adminAllowed.includes(tab)) {
         showToast('Admin accounts are dedicated strictly to system operations & monitoring.');
         setCurrentTab('developer');
+        syncUrlWithState('developer', { lang: language });
         return;
       }
       setCurrentTab(tab);
+      syncUrlWithState(tab, { lang: language });
       return;
     }
 
@@ -405,9 +474,11 @@ export default function App() {
       if (!docAllowed.includes(tab)) {
         showToast('Doctor access is isolated to clinical workspace & practice management.');
         setCurrentTab('doctors');
+        syncUrlWithState('doctors', { lang: language });
         return;
       }
       setCurrentTab(tab);
+      syncUrlWithState(tab, { lang: language });
       return;
     }
 
@@ -415,29 +486,38 @@ export default function App() {
     if (tab === 'developer' || tab === 'doctor-settings') {
       showToast('Access restricted to verified administrators and medical practitioners.');
       setCurrentTab('dashboard');
+      syncUrlWithState('dashboard', { lang: language });
       return;
     }
 
     setCurrentTab(tab);
+    syncUrlWithState(tab, { lang: language });
+  };
+
+  const handleSetLanguage = (newLang: Language) => {
+    setLanguage(newLang);
+    syncUrlWithState(currentTab, { lang: newLang });
   };
 
   // Auth Handlers
   const handleOpenAuth = (mode: 'login' | 'register-doctor' | 'register-patient' = 'login') => {
     setAuthModalMode(mode);
     setAuthModalOpen(true);
+    syncUrlWithState(currentTab, { authMode: mode, lang: language });
+  };
+
+  const handleCloseAuth = () => {
+    setAuthModalOpen(false);
+    syncUrlWithState(currentTab, { lang: language });
   };
 
   const handleLoginSuccess = (user: User) => {
     markSiteOperated();
     setCurrentUser(user);
     setAuthModalOpen(false);
-    if (user.role === 'developer') {
-      setCurrentTab('developer');
-    } else if (user.role === 'doctor') {
-      setCurrentTab('doctors');
-    } else {
-      setCurrentTab('dashboard');
-    }
+    const targetTab = user.role === 'developer' ? 'developer' : user.role === 'doctor' ? 'doctors' : 'dashboard';
+    setCurrentTab(targetTab);
+    syncUrlWithState(targetTab, { lang: language });
     try {
       localStorage.setItem('telemed_current_user', JSON.stringify(user));
     } catch (e) {
@@ -457,6 +537,7 @@ export default function App() {
     }
     setAuthModalOpen(false);
     setCurrentTab('doctors');
+    syncUrlWithState('doctors', { lang: language });
     showToast(`Welcome Dr. ${doc.name.replace('Dr. ', '')}! Clinical workspace unlocked.`);
   };
 
@@ -485,6 +566,7 @@ export default function App() {
     setCurrentUser(newUser);
     setAuthModalOpen(false);
     setCurrentTab('doctors');
+    syncUrlWithState('doctors', { lang: language });
     try {
       localStorage.setItem('telemed_current_user', JSON.stringify(newUser));
     } catch (e) {
@@ -509,6 +591,7 @@ export default function App() {
     setCurrentUser(newPatient);
     setAuthModalOpen(false);
     setCurrentTab('dashboard');
+    syncUrlWithState('dashboard', { lang: language });
     try {
       localStorage.setItem('telemed_current_user', JSON.stringify(newPatient));
     } catch (e) {
@@ -548,6 +631,7 @@ export default function App() {
     setCurrentTab('xenon');
     setAuthModalMode('login');
     setAuthModalOpen(true);
+    syncUrlWithState('xenon', { authMode: 'login', lang: language });
     showToast('Signed out successfully. Please sign in or register to continue.');
   };
 
@@ -556,11 +640,19 @@ export default function App() {
     if (!currentUser) {
       setAuthModalMode('login');
       setAuthModalOpen(true);
+      syncUrlWithState(currentTab, { authMode: 'login', lang: language });
       showToast('Sign in required to schedule an OPD consultation.');
       return;
     }
-    setSelectedDoctorForBooking(doc || doctors[0]);
+    const chosen = doc || doctors[0];
+    setSelectedDoctorForBooking(chosen);
     setBookModalOpen(true);
+    syncUrlWithState('book', { doctorId: chosen.id, lang: language });
+  };
+
+  const handleCloseBookModal = () => {
+    setBookModalOpen(false);
+    syncUrlWithState(currentTab, { lang: language });
   };
 
   const handleConfirmBooking = (newApt: Appointment) => {
@@ -645,13 +737,14 @@ export default function App() {
           currentTab={currentTab}
           setCurrentTab={handleSelectTab}
           language={language}
-          setLanguage={setLanguage}
+          setLanguage={handleSetLanguage}
           isDark={isDark}
           setIsDark={setIsDark}
           currentUser={currentUser}
           onOpenAuth={handleOpenAuth}
           onLogout={handleLogout}
           onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
+          onNotifyToast={showToast}
         />
 
         {/* Offline-to-Online Background Sync Status Bar */}
@@ -808,7 +901,7 @@ export default function App() {
         doctors={doctors}
         currentUser={activeUser}
         language={language}
-        onClose={() => setBookModalOpen(false)}
+        onClose={handleCloseBookModal}
         onConfirmBooking={handleConfirmBooking}
       />
 
@@ -835,7 +928,7 @@ export default function App() {
       <AuthModal
         isOpen={authModalOpen}
         initialMode={authModalMode}
-        onClose={() => setAuthModalOpen(false)}
+        onClose={handleCloseAuth}
         onLoginSuccess={handleLoginSuccess}
         onDoctorLoginSuccess={handleDoctorLogin}
         onDoctorRegistered={handleDoctorRegistered}
