@@ -500,7 +500,7 @@ export default function App() {
   };
 
   // Auth Handlers
-  const handleOpenAuth = (mode: 'login' | 'register-doctor' | 'register-patient' = 'login') => {
+  const handleOpenAuth = (mode: 'login' | 'register-doctor' | 'register-patient' | 'doctor-login' = 'login') => {
     setAuthModalMode(mode);
     setAuthModalOpen(true);
     syncUrlWithState(currentTab, { authMode: mode, lang: language });
@@ -791,10 +791,11 @@ export default function App() {
                 onUpdateDoctorProfile={handleUpdateDoctor}
               />
             ) : (
-              <DoctorDirectoryView
+              <DoctorsView
                 doctors={doctors}
                 language={language}
                 onBookDoctor={(doc) => handleOpenBookModal(doc)}
+                onOpenDoctorRegister={() => handleOpenAuth('doctor-login')}
               />
             )
           )}

@@ -22,6 +22,8 @@ export const ROUTE_TAB_MAP: Record<string, string> = {
   lab: 'lab',
   xenon: 'xenon',
   emergency: 'emergency',
+  nmc: 'doctors',
+  'nmc-verification': 'doctors',
   altitude: 'offlineGuide',
   'offline-guide': 'offlineGuide',
   developer: 'developer'

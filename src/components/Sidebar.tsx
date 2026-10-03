@@ -13,7 +13,8 @@ import {
   Lock,
   FlaskConical,
   LayoutDashboard,
-  CheckSquare
+  CheckSquare,
+  ShieldCheck
 } from 'lucide-react';
 import { User, Language } from '../types';
 import { Logo } from './Logo';
@@ -187,6 +188,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
           icon: Stethoscope
         },
         {
+          id: 'doctors',
+          label: language === 'np' ? 'डाक्टर तथा NMC प्रमाणीकरण' : 'Doctors & NMC Verification',
+          shortLabel: 'NMC Verify',
+          icon: ShieldCheck,
+          badge: 'NMC'
+        },
+        {
           id: 'hospitals',
           label: language === 'np' ? 'अस्पताल तथा आईसीयू सूची' : 'Hospitals & ICU Directory',
           shortLabel: 'Hospitals',
@@ -234,6 +242,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
         shortLabel: 'SOS 102',
         icon: PhoneCall,
         alert: true
+      },
+      {
+        id: 'doctors',
+        label: language === 'np' ? 'डाक्टर तथा NMC प्रमाणीकरण' : 'Doctors & NMC Verification',
+        shortLabel: 'NMC Verify',
+        icon: ShieldCheck,
+        badge: 'NMC'
       },
       {
         id: 'hospitals',

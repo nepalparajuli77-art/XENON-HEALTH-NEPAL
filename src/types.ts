@@ -11,6 +11,32 @@ export type TabType =
   | 'offlineGuide'
   | 'labReports';
 
+export interface NmcQualification {
+  degree: string;
+  institution: string;
+  year: number;
+  country: string;
+}
+
+export interface NmcVerificationRecord {
+  nmc_number: string;
+  doctor_name: string;
+  doctor_name_np?: string;
+  gender?: 'Male' | 'Female' | 'Other';
+  registration_type: 'Specialist Registration (Permanent)' | 'General Medical Practitioner (Permanent)' | 'Provisional Registration';
+  council_status: 'ACTIVE_GOOD_STANDING' | 'SUSPENDED' | 'EXPIRED' | 'PROVISIONAL';
+  registered_specialty: string;
+  registered_specialty_np?: string;
+  registration_date: string;
+  valid_until: string;
+  qualifications: NmcQualification[];
+  primary_hospital?: string;
+  council_gazette_ref: string;
+  digital_seal_hash: string;
+  verified_at: string;
+  is_verified: boolean;
+}
+
 export interface Doctor {
   id: string;
   name: string;
@@ -28,6 +54,7 @@ export interface Doctor {
   languages: string[];
   schedule: string;
   pin?: string;
+  nmc_record?: NmcVerificationRecord;
 }
 
 export interface Hospital {
