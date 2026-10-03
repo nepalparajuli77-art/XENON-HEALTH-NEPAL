@@ -1,0 +1,18 @@
+# Robots.txt for XENON HEALTH Nepal (https://xenonhealth.org.np)
+User-agent: *
+Allow: /
+Allow: /dashboard
+Allow: /doctors
+Allow: /nmc
+Allow: /hospitals
+Allow: /emergency
+Allow: /altitude
+Allow: /records
+Allow: /lab
+Allow: /xenon
+
+# Disallow private developer operations from public indexation
+Disallow: /developer
+Disallow: /api/
+
+Sitemap: https://xenonhealth.org.np/sitemap.xml

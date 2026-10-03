@@ -3,18 +3,155 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>XENON HEALTH — Next-Gen Telemedicine &amp; AI Health Platform</title>
-    <meta name="description" content="Next-generation digital healthcare platform for Nepal featuring Xenon AI Clinical Triage, NMC-verified doctor appointments, hospital directory, and patient records." />
-    <meta property="og:title" content="XENON HEALTH — Next-Gen Telemedicine &amp; AI Health Platform" />
-    <meta property="og:description" content="Next-generation digital healthcare platform for Nepal featuring Xenon AI Clinical Triage, NMC-verified doctor appointments, hospital directory, and patient records." />
+    
+    <!-- Primary Page Title & Meta Description for Google Search Ranking -->
+    <title>XENON HEALTH — Next-Gen Telemedicine &amp; AI Health Platform Nepal</title>
+    <meta
+      name="description"
+      content="Next-generation digital healthcare & telemedicine platform for Nepal featuring Xenon AI Clinical Triage, doctor bookings, hospital directory, and patient health records."
+    />
+    <meta
+      name="keywords"
+      content="telemedicine Nepal, doctor consultation Kathmandu, Nepal Medical Council NMC verification, emergency 102 ambulance, ICU beds Nepal, online doctor appointment Nepal, high altitude sickness treatment, Dr Bhagwan Koirala, Dr Sanduk Ruit, digital prescription Nepal, Bir Hospital, TUTH Teaching Hospital"
+    />
+    <meta name="author" content="Xenon Health Nepal" />
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+    <meta name="googlebot" content="index, follow" />
+
+    <!-- Canonical URL & Multilingual Hreflang Tags -->
+    <link rel="canonical" href="https://xenonhealth.org.np/" />
+    <link rel="alternate" hreflang="en" href="https://xenonhealth.org.np/?lang=en" />
+    <link rel="alternate" hreflang="ne" href="https://xenonhealth.org.np/?lang=np" />
+    <link rel="alternate" hreflang="x-default" href="https://xenonhealth.org.np/" />
+
+    <!-- OpenGraph Social Share Card Tags -->
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="XENON HEALTH" />
+    <meta property="og:title" content="XENON HEALTH — Next-Gen Telemedicine &amp; AI Health Platform Nepal" />
+    <meta
+      property="og:description"
+      content="Next-generation digital healthcare & telemedicine platform for Nepal featuring Xenon AI Clinical Triage, doctor bookings, hospital directory, and patient health records."
+    />
+    <meta property="og:url" content="https://xenonhealth.org.np/" />
+    <meta property="og:image" content="/og-image.svg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="XENON HEALTH — Telemedicine &amp; NMC Doctor Verification Platform Nepal" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:locale:alternate" content="ne_NP" />
+
+    <!-- Twitter / X Card Tags -->
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="XENON HEALTH — Next-Gen Telemedicine &amp; AI Health Platform Nepal" />
+    <meta
+      name="twitter:description"
+      content="Next-generation digital healthcare & telemedicine platform for Nepal featuring Xenon AI Clinical Triage, doctor bookings, hospital directory, and patient health records."
+    />
+    <meta name="twitter:image" content="/og-image.svg" />
+    <meta name="twitter:creator" content="@XenonHealthNP" />
+
+    <!-- Web App & Theme Color -->
     <meta name="theme-color" content="#DC2626" />
     <link rel="manifest" href="/manifest.json" />
+
+    <!-- Schema.org 1: WebApplication & MedicalWebPage Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebApplication",
+          "@id": "https://xenonhealth.org.np/#app",
+          "name": "XENON HEALTH",
+          "url": "https://xenonhealth.org.np",
+          "description": "Next-generation digital healthcare & telemedicine platform for Nepal featuring Xenon AI Clinical Triage, doctor bookings, hospital directory, and patient health records.",
+          "applicationCategory": "HealthApplication",
+          "operatingSystem": "All, iOS, Android, Web",
+          "inLanguage": ["en", "ne"],
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "NPR",
+            "description": "Free 24/7 AI Triage, NMC Doctor Verification & Emergency Directory"
+          },
+          "featureList": [
+            "Nepal Medical Council (NMC) License Registry Verification",
+            "Xenon AI 24/7 Clinical Symptom Triage",
+            "Verified Specialist Doctor OPD Consultations",
+            "Live Kathmandu & Nepal Hospital ICU Bed Directory",
+            "Emergency SOS 102 Ambulance Hotline",
+            "Himalayan High Altitude Sickness (AMS/HAPE) Offline Guide",
+            "Tamper-evident Digital Prescriptions & Vitals Vault"
+          ]
+        },
+        {
+          "@type": "MedicalOrganization",
+          "@id": "https://xenonhealth.org.np/#organization",
+          "name": "Xenon Health Nepal",
+          "url": "https://xenonhealth.org.np",
+          "logo": "https://xenonhealth.org.np/og-image.svg",
+          "areaServed": {
+            "@type": "Country",
+            "name": "Nepal"
+          },
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Kathmandu",
+            "addressRegion": "Bagmati Province",
+            "addressCountry": "NP"
+          },
+          "contactPoint": {
+            "@type": "ContactPoint",
+            "telephone": "+977-1-102",
+            "contactType": "emergency",
+            "areaServed": "NP",
+            "availableLanguage": ["English", "Nepali"]
+          }
+        },
+        {
+          "@type": "FAQPage",
+          "@id": "https://xenonhealth.org.np/#faq",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "How do I verify a doctor's NMC registration number in Nepal?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "On Xenon Health, go to the NMC Council Verification Engine or click any doctor's badge. Enter their NMC number (e.g., 1042, 1120, 3812) to immediately view their official Council Standing, qualifications (MBBS, MD, MS), registered medical college, and digital seal."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "What is the emergency ambulance telephone number in Nepal?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "The national emergency ambulance hotline across Nepal is 102. Xenon Health provides instant one-tap 102 SOS dispatch with GPS coordinate transmission and Nepal Red Cross ambulance routing."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How can I book an online doctor video consultation in Nepal?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Patients can browse verified specialist doctors across cardiology, neurology, pediatrics, and gynecology on Xenon Health and book instant HD video consultations with NMC-certified practitioners."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How do you treat High Altitude Sickness (AMS, HAPE, HACE) in Nepal?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Immediate descent by 500-1000m is the definitive lifesaving treatment. Administer supplemental oxygen (4L/min), Acetazolamide (Diamox 250mg), and Nifedipine for HAPE or Dexamethasone for HACE as detailed in the Xenon Himalayan First Aid guide."
+              }
+            }
+          ]
+        }
+      ]
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-

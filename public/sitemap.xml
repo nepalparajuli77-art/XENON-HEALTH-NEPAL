@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://xenonhealth.org.np/</loc>
+    <lastmod>2026-10-03</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://xenonhealth.org.np/?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="ne" href="https://xenonhealth.org.np/?lang=np"/>
+  </url>
+  <url>
+    <loc>https://xenonhealth.org.np/doctors</loc>
+    <lastmod>2026-10-03</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.95</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://xenonhealth.org.np/doctors?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="ne" href="https://xenonhealth.org.np/doctors?lang=np"/>
+  </url>
+  <url>
+    <loc>https://xenonhealth.org.np/nmc</loc>
+    <lastmod>2026-10-03</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.95</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://xenonhealth.org.np/nmc?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="ne" href="https://xenonhealth.org.np/nmc?lang=np"/>
+  </url>
+  <url>
+    <loc>https://xenonhealth.org.np/emergency</loc>
+    <lastmod>2026-10-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://xenonhealth.org.np/emergency?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="ne" href="https://xenonhealth.org.np/emergency?lang=np"/>
+  </url>
+  <url>
+    <loc>https://xenonhealth.org.np/hospitals</loc>
+    <lastmod>2026-10-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://xenonhealth.org.np/hospitals?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="ne" href="https://xenonhealth.org.np/hospitals?lang=np"/>
+  </url>
+  <url>
+    <loc>https://xenonhealth.org.np/altitude</loc>
+    <lastmod>2026-10-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://xenonhealth.org.np/altitude?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="ne" href="https://xenonhealth.org.np/altitude?lang=np"/>
+  </url>
+  <url>
+    <loc>https://xenonhealth.org.np/records</loc>
+    <lastmod>2026-10-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>https://xenonhealth.org.np/lab</loc>
+    <lastmod>2026-10-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+  </url>
+</urlset>
