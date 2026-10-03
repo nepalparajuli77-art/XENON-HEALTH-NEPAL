@@ -1,0 +1,14 @@
+google-genai>=0.1.1
+edge-tts>=6.1.9
+pygame>=2.5.2
+speechrecognition>=3.10.0
+mediapipe>=0.10.9
+opencv-python>=4.8.0.76
+pyqt6>=6.5.0
+pyaudio>=0.2.14
+sounddevice>=0.4.6
+pycaw>=20240210
+comtypes>=1.2.0
+python-dotenv>=1.0.0
+numpy>=1.24.0
+bcrypt>=4.0.0

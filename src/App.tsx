@@ -1,0 +1,841 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import React, { useState, useEffect, useMemo } from 'react';
+import { Navbar } from './components/Navbar';
+import { Sidebar } from './components/Sidebar';
+import { DashboardView } from './components/DashboardView';
+import { DoctorDashboardView } from './components/DoctorDashboardView';
+import { DoctorDirectoryView } from './components/DoctorDirectoryView';
+import { DoctorPortalView } from './components/DoctorPortalView';
+import { DeveloperConsoleView } from './components/DeveloperConsoleView';
+import { DoctorsView } from './components/DoctorsView';
+import { HospitalsView } from './components/HospitalsView';
+import { PatientRecordsView } from './components/PatientRecordsView';
+import { EmergencyView } from './components/EmergencyView';
+import { XenonAiView } from './components/XenonAiView';
+import { LabReportsView } from './components/LabReportsView';
+import { OfflineGuideView } from './components/OfflineGuideView';
+import { BookModal } from './components/BookModal';
+import { ChatModal } from './components/ChatModal';
+import { IssueRxModal } from './components/IssueRxModal';
+import { VideoRoomModal } from './components/VideoRoomModal';
+import { AuthModal } from './components/AuthModal';
+import { SyncStatusBar } from './components/SyncStatusBar';
+import { MobileBottomNav } from './components/MobileBottomNav';
+import { initBackgroundSync } from './services/syncService';
+import {
+  INITIAL_DOCTORS,
+  INITIAL_HOSPITALS,
+  INITIAL_APPOINTMENTS,
+  INITIAL_PRESCRIPTIONS,
+  INITIAL_EMERGENCY_CONTACTS,
+  INITIAL_USERS,
+  INITIAL_LAB_REPORTS
+} from './data/mockData';
+import { Doctor, Hospital, Appointment, Prescription, Language, User, LabReport } from './types';
+
+// Auto-complete appointments whose date has passed
+function syncAppointmentStatuses(apts: Appointment[]): Appointment[] {
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+  return apts.map((apt) => {
+    if (apt.status === 'Cancelled' || apt.status === 'Completed') {
+      return apt;
+    }
+    // If appointment date is strictly before today's date string (YYYY-MM-DD), mark completed
+    if (apt.date && apt.date < todayStr) {
+      return { ...apt, status: 'Completed' as const };
+    }
+    return apt;
+  });
+}
+
+export default function App() {
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    try {
+      const saved = localStorage.getItem('telemed_current_user');
+      if (saved) {
+        const parsed = JSON.parse(saved) as User;
+        if (
+          parsed.username !== 'patient_bina' &&
+          parsed.full_name !== 'Bina Pokharel' &&
+          parsed.full_name !== 'Bina Pokhrel' &&
+          parsed.username !== 'user_patient_demo'
+        ) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to parse cached user', e);
+    }
+    return null;
+  });
+
+  const [currentTab, setCurrentTab] = useState<string>(() => (currentUser ? 'dashboard' : 'xenon'));
+  const [language, setLanguage] = useState<Language>('en');
+  const [isDark, setIsDark] = useState(false);
+
+  // Core Data Collections (Stateful with localStorage persistence)
+  const [users, setUsers] = useState<User[]>(() => {
+    try {
+      const saved = localStorage.getItem('xenon_users') || localStorage.getItem('telemed_users');
+      if (saved) {
+        const parsed = JSON.parse(saved) as User[];
+        // Filter out legacy mock accounts
+        const cleaned = parsed.filter(
+          (u) =>
+            u.username !== 'patient_bina' &&
+            u.full_name !== 'Bina Pokharel' &&
+            u.full_name !== 'Bina Pokhrel' &&
+            u.username !== 'user_patient_demo' &&
+            u.full_name !== 'Ram Sharan Parajuli'
+        );
+        // Ensure Nepal Parajuli is present
+        if (!cleaned.some((u) => u.username === 'nepal')) {
+          cleaned.unshift(INITIAL_USERS[0]);
+        }
+        // Ensure Developer is present
+        if (!cleaned.some((u) => u.username === 'developer' || u.role === 'developer')) {
+          cleaned.push(INITIAL_USERS[1]);
+        }
+        localStorage.setItem('xenon_users', JSON.stringify(cleaned));
+        return cleaned;
+      }
+    } catch (e) {
+      console.warn('Failed to parse cached users', e);
+    }
+    return INITIAL_USERS;
+  });
+
+  // Track whether site has already been operated
+  const [hasOperatedSite, setHasOperatedSite] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('telemed_site_operated') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const [doctors, setDoctors] = useState<Doctor[]>(() => {
+    try {
+      const saved = localStorage.getItem('telemed_doctors');
+      if (saved) {
+        const parsed = JSON.parse(saved) as Doctor[];
+        // Sync unique individual PINs for standard doctors if they still have the old generic PIN
+        const synced = parsed.map((doc) => {
+          const match = INITIAL_DOCTORS.find((d) => d.id === doc.id);
+          if (match && (!doc.pin || doc.pin === '1234')) {
+            return { ...doc, pin: match.pin };
+          }
+          return doc;
+        });
+        localStorage.setItem('telemed_doctors', JSON.stringify(synced));
+        return synced;
+      }
+    } catch (e) {
+      console.warn('Failed to parse cached doctors', e);
+    }
+    return INITIAL_DOCTORS;
+  });
+
+  const [hospitals] = useState<Hospital[]>(INITIAL_HOSPITALS);
+
+  const [appointments, setAppointments] = useState<Appointment[]>(() => {
+    try {
+      const saved = localStorage.getItem('telemed_appointments');
+      if (saved) {
+        const parsed = JSON.parse(saved) as Appointment[];
+        // Filter out any data of Bina Pokhrel and sync statuses
+        const cleaned = parsed.filter(
+          (a) =>
+            a.patient_username !== 'patient_bina' &&
+            a.patient_name !== 'Bina Pokharel' &&
+            a.patient_name !== 'Bina Pokhrel'
+        );
+        const synced = syncAppointmentStatuses(cleaned);
+        localStorage.setItem('telemed_appointments', JSON.stringify(synced));
+        return synced;
+      }
+    } catch (e) {
+      console.warn('Failed to parse cached appointments', e);
+    }
+    return syncAppointmentStatuses(INITIAL_APPOINTMENTS);
+  });
+
+  const [prescriptions, setPrescriptions] = useState<Prescription[]>(() => {
+    try {
+      const saved = localStorage.getItem('telemed_prescriptions');
+      if (saved) {
+        const parsed = JSON.parse(saved) as Prescription[];
+        const cleaned = parsed.filter(
+          (p) =>
+            p.patient_username !== 'patient_bina' &&
+            p.patient_name !== 'Bina Pokharel' &&
+            p.patient_name !== 'Bina Pokhrel'
+        );
+        localStorage.setItem('telemed_prescriptions', JSON.stringify(cleaned));
+        return cleaned;
+      }
+    } catch (e) {
+      console.warn('Failed to parse cached prescriptions', e);
+    }
+    return INITIAL_PRESCRIPTIONS;
+  });
+
+  const [labReports, setLabReports] = useState<LabReport[]>(() => {
+    try {
+      const saved = localStorage.getItem('xenon_custom_lab_reports');
+      if (saved) {
+        return JSON.parse(saved) as LabReport[];
+      }
+    } catch (e) {
+      console.warn('Failed to parse cached lab reports', e);
+    }
+    return INITIAL_LAB_REPORTS;
+  });
+
+  const handleAddLabReport = (newReport: LabReport) => {
+    setLabReports((prev) => {
+      const updated = [newReport, ...prev];
+      try {
+        localStorage.setItem('xenon_custom_lab_reports', JSON.stringify(updated));
+      } catch (e) {
+        console.warn(e);
+      }
+      return updated;
+    });
+    showToast(`Analyzed and archived report for ${newReport.test_name}!`);
+  };
+
+  const handleAddDoctor = (newDoc: Doctor) => {
+    setDoctors((prev) => {
+      const updated = [newDoc, ...prev];
+      try {
+        localStorage.setItem('telemed_doctors', JSON.stringify(updated));
+      } catch (e) {
+        console.warn(e);
+      }
+      return updated;
+    });
+  };
+
+  const handleUpdateDoctor = (updatedDoc: Doctor) => {
+    setDoctors((prev) => {
+      const updated = prev.map((d) => (d.id === updatedDoc.id ? updatedDoc : d));
+      try {
+        localStorage.setItem('telemed_doctors', JSON.stringify(updated));
+      } catch (e) {
+        console.warn(e);
+      }
+      return updated;
+    });
+  };
+
+  const handleDeleteDoctor = (doctorId: string) => {
+    setDoctors((prev) => {
+      const updated = prev.filter((d) => d.id !== doctorId);
+      try {
+        localStorage.setItem('telemed_doctors', JSON.stringify(updated));
+      } catch (e) {
+        console.warn(e);
+      }
+      return updated;
+    });
+  };
+
+  // Keep appointment statuses synced on schedule / mount
+  useEffect(() => {
+    setAppointments((prev) => {
+      const synced = syncAppointmentStatuses(prev);
+      try {
+        localStorage.setItem('telemed_appointments', JSON.stringify(synced));
+      } catch (e) {
+        console.warn(e);
+      }
+      return synced;
+    });
+  }, []);
+
+  // Initialize Service Worker and Offline-to-Online Background Sync
+  useEffect(() => {
+    initBackgroundSync((msg) => {
+      showToast(msg);
+    });
+
+    const handleSyncComplete = () => {
+      try {
+        const raw = localStorage.getItem('telemed_appointments');
+        if (raw) {
+          setAppointments(JSON.parse(raw));
+        }
+      } catch (err) {
+        console.warn(err);
+      }
+    };
+
+    window.addEventListener('xenon_sync_completed', handleSyncComplete);
+    return () => {
+      window.removeEventListener('xenon_sync_completed', handleSyncComplete);
+    };
+  }, []);
+
+  // Modal States
+  const [bookModalOpen, setBookModalOpen] = useState(false);
+  const [selectedDoctorForBooking, setSelectedDoctorForBooking] = useState<Doctor | null>(null);
+
+  const [chatModalOpen, setChatModalOpen] = useState(false);
+  const [selectedHospitalForChat, setSelectedHospitalForChat] = useState<Hospital | null>(null);
+
+  const [issueRxModalOpen, setIssueRxModalOpen] = useState(false);
+
+  const [videoModalOpen, setVideoModalOpen] = useState(false);
+  const [activeVideoAppointment, setActiveVideoAppointment] = useState<Appointment | null>(null);
+
+  // Auth Modal state - Automatically opens when visiting without an active session
+  const [authModalOpen, setAuthModalOpen] = useState<boolean>(() => !currentUser);
+  const [authModalMode, setAuthModalMode] = useState<'login' | 'register-doctor' | 'register-patient'>('login');
+
+  // Notification Toast State
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDark]);
+
+  const markSiteOperated = () => {
+    setHasOperatedSite(true);
+    try {
+      localStorage.setItem('telemed_site_operated', 'true');
+    } catch (e) {
+      console.warn(e);
+    }
+  };
+
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
+
+  // Active Doctor session resolution for strict clinical isolation
+  const activeDoctor = useMemo(() => {
+    if (currentUser?.role === 'doctor') {
+      const savedId = localStorage.getItem('xenon_logged_doctor_id');
+      return (
+        doctors.find((d) => d.id === savedId) ||
+        doctors.find((d) => d.name.toLowerCase().includes(currentUser.full_name.toLowerCase())) ||
+        doctors[0]
+      );
+    }
+    return null;
+  }, [currentUser, doctors]);
+
+  // Enforce role-based landing on role change or invalid active route
+  useEffect(() => {
+    if (currentUser?.role === 'developer') {
+      const adminAllowed = ['developer', 'xenon', 'emergency'];
+      if (!adminAllowed.includes(currentTab)) {
+        setCurrentTab('developer');
+      }
+    } else if (currentUser?.role === 'doctor') {
+      const docAllowed = ['doctors', 'doctor-dashboard', 'doctor-settings', 'xenon', 'emergency'];
+      if (!docAllowed.includes(currentTab)) {
+        setCurrentTab('doctors');
+      }
+    }
+  }, [currentUser, currentTab]);
+
+  // Protected Navigation Interceptor: Automatically triggers AuthModal when accessing private account tabs
+  const handleSelectTab = (tab: string) => {
+    if (!currentUser) {
+      const guestAllowed = ['xenon', 'emergency', 'hospitals', 'offlineGuide', 'book', 'doctors'];
+      if (!guestAllowed.includes(tab)) {
+        setAuthModalMode('login');
+        setAuthModalOpen(true);
+        showToast('Please sign in or register to access personal account features.');
+        return;
+      }
+      setCurrentTab(tab);
+      return;
+    }
+
+    if (currentUser.role === 'developer') {
+      const adminAllowed = ['developer', 'xenon', 'emergency'];
+      if (!adminAllowed.includes(tab)) {
+        showToast('Admin accounts are dedicated strictly to system operations & monitoring.');
+        setCurrentTab('developer');
+        return;
+      }
+      setCurrentTab(tab);
+      return;
+    }
+
+    if (currentUser.role === 'doctor') {
+      const docAllowed = ['doctors', 'doctor-dashboard', 'doctor-settings', 'xenon', 'emergency'];
+      if (!docAllowed.includes(tab)) {
+        showToast('Doctor access is isolated to clinical workspace & practice management.');
+        setCurrentTab('doctors');
+        return;
+      }
+      setCurrentTab(tab);
+      return;
+    }
+
+    // Patient Role
+    if (tab === 'developer' || tab === 'doctor-settings') {
+      showToast('Access restricted to verified administrators and medical practitioners.');
+      setCurrentTab('dashboard');
+      return;
+    }
+
+    setCurrentTab(tab);
+  };
+
+  // Auth Handlers
+  const handleOpenAuth = (mode: 'login' | 'register-doctor' | 'register-patient' = 'login') => {
+    setAuthModalMode(mode);
+    setAuthModalOpen(true);
+  };
+
+  const handleLoginSuccess = (user: User) => {
+    markSiteOperated();
+    setCurrentUser(user);
+    setAuthModalOpen(false);
+    if (user.role === 'developer') {
+      setCurrentTab('developer');
+    } else if (user.role === 'doctor') {
+      setCurrentTab('doctors');
+    } else {
+      setCurrentTab('dashboard');
+    }
+    try {
+      localStorage.setItem('telemed_current_user', JSON.stringify(user));
+    } catch (e) {
+      console.warn(e);
+    }
+    showToast(`Welcome, ${user.full_name}! Logged in as ${user.role}.`);
+  };
+
+  const handleDoctorLogin = (doc: Doctor, docUser: User) => {
+    markSiteOperated();
+    setCurrentUser(docUser);
+    try {
+      localStorage.setItem('telemed_current_user', JSON.stringify(docUser));
+      localStorage.setItem('xenon_logged_doctor_id', doc.id);
+    } catch (e) {
+      console.warn(e);
+    }
+    setAuthModalOpen(false);
+    setCurrentTab('doctors');
+    showToast(`Welcome Dr. ${doc.name.replace('Dr. ', '')}! Clinical workspace unlocked.`);
+  };
+
+  const handleDoctorRegistered = (newDoctor: Doctor, newUser: User) => {
+    markSiteOperated();
+    setDoctors((prev) => {
+      const updated = [newDoctor, ...prev];
+      try {
+        localStorage.setItem('telemed_doctors', JSON.stringify(updated));
+      } catch (e) {
+        console.warn(e);
+      }
+      return updated;
+    });
+
+    setUsers((prev) => {
+      const updated = [newUser, ...prev];
+      try {
+        localStorage.setItem('telemed_users', JSON.stringify(updated));
+      } catch (e) {
+        console.warn(e);
+      }
+      return updated;
+    });
+
+    setCurrentUser(newUser);
+    setAuthModalOpen(false);
+    setCurrentTab('doctors');
+    try {
+      localStorage.setItem('telemed_current_user', JSON.stringify(newUser));
+    } catch (e) {
+      console.warn(e);
+    }
+
+    showToast(`Doctor registration approved! Welcome, ${newDoctor.name} (${newDoctor.nmc_number}).`);
+  };
+
+  const handlePatientRegistered = (newPatient: User) => {
+    markSiteOperated();
+    setUsers((prev) => {
+      const updated = [newPatient, ...prev];
+      try {
+        localStorage.setItem('telemed_users', JSON.stringify(updated));
+      } catch (e) {
+        console.warn(e);
+      }
+      return updated;
+    });
+
+    setCurrentUser(newPatient);
+    setAuthModalOpen(false);
+    setCurrentTab('dashboard');
+    try {
+      localStorage.setItem('telemed_current_user', JSON.stringify(newPatient));
+    } catch (e) {
+      console.warn(e);
+    }
+
+    showToast(`Patient registered! Welcome, ${newPatient.full_name} (PID: ${newPatient.id}).`);
+  };
+
+  const handleUpdateUser = (updatedUser: User) => {
+    setCurrentUser(updatedUser);
+    setUsers((prev) => {
+      const updated = prev.map((u) => (u.id === updatedUser.id ? updatedUser : u));
+      try {
+        localStorage.setItem('xenon_users', JSON.stringify(updated));
+      } catch (e) {
+        console.warn(e);
+      }
+      return updated;
+    });
+    try {
+      localStorage.setItem('telemed_current_user', JSON.stringify(updatedUser));
+    } catch (e) {
+      console.warn(e);
+    }
+    showToast(`Health profile updated for ${updatedUser.full_name}!`);
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    try {
+      localStorage.removeItem('telemed_current_user');
+      localStorage.removeItem('xenon_logged_doctor_id');
+    } catch (e) {
+      console.warn(e);
+    }
+    setCurrentTab('xenon');
+    setAuthModalMode('login');
+    setAuthModalOpen(true);
+    showToast('Signed out successfully. Please sign in or register to continue.');
+  };
+
+  // Handlers
+  const handleOpenBookModal = (doc?: Doctor) => {
+    if (!currentUser) {
+      setAuthModalMode('login');
+      setAuthModalOpen(true);
+      showToast('Sign in required to schedule an OPD consultation.');
+      return;
+    }
+    setSelectedDoctorForBooking(doc || doctors[0]);
+    setBookModalOpen(true);
+  };
+
+  const handleConfirmBooking = (newApt: Appointment) => {
+    setAppointments((prev) => {
+      const updated = [newApt, ...prev];
+      try {
+        localStorage.setItem('telemed_appointments', JSON.stringify(updated));
+      } catch (e) {
+        console.warn(e);
+      }
+      return updated;
+    });
+    showToast(`Appointment confirmed with ${newApt.doctor_name} for ${newApt.date}!`);
+  };
+
+  const handleCancelAppointment = (appointmentId: string) => {
+    setAppointments((prev) => {
+      const updated = prev.map((apt) =>
+        apt.id === appointmentId ? { ...apt, status: 'Cancelled' as const } : apt
+      );
+      try {
+        localStorage.setItem('telemed_appointments', JSON.stringify(updated));
+      } catch (e) {
+        console.warn(e);
+      }
+      return updated;
+    });
+    showToast(`Appointment #${appointmentId.toUpperCase()} has been cancelled.`);
+  };
+
+  const handleOpenChat = (hosp: Hospital) => {
+    setSelectedHospitalForChat(hosp);
+    setChatModalOpen(true);
+  };
+
+  const handleOpenVideoRoom = (apt: Appointment) => {
+    setActiveVideoAppointment(apt);
+    setVideoModalOpen(true);
+  };
+
+  const handleSavePrescription = (newRx: Prescription) => {
+    setPrescriptions((prev) => {
+      const updated = [newRx, ...prev];
+      try {
+        localStorage.setItem('telemed_prescriptions', JSON.stringify(updated));
+      } catch (e) {
+        console.warn(e);
+      }
+      return updated;
+    });
+    showToast(`Digital Prescription #${newRx.id.toUpperCase()} successfully issued and signed!`);
+  };
+
+  // Safe fallback user for records and booking if logged out
+  const activeUser = currentUser || INITIAL_USERS[0];
+
+  return (
+    <div className={`min-h-screen w-full flex overflow-x-hidden relative font-sans transition-colors duration-200 ${isDark ? 'dark bg-[#070A12] text-white' : 'bg-slate-50 text-slate-900'}`}>
+      {/* Desktop Vertical Sidebar */}
+      <Sidebar
+        currentTab={currentTab}
+        onSelectTab={handleSelectTab}
+        currentUser={currentUser}
+        language={language}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        onOpenAuth={handleOpenAuth}
+        onLogout={handleLogout}
+      />
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0 min-h-screen w-full">
+        {/* Navigation Bar */}
+        <Navbar
+          currentTab={currentTab}
+          setCurrentTab={handleSelectTab}
+          language={language}
+          setLanguage={setLanguage}
+          isDark={isDark}
+          setIsDark={setIsDark}
+          currentUser={currentUser}
+          onOpenAuth={handleOpenAuth}
+          onLogout={handleLogout}
+          onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
+        />
+
+        {/* Offline-to-Online Background Sync Status Bar */}
+        <SyncStatusBar onNotifyToast={showToast} />
+
+        {/* Dynamic View Body */}
+        <main className="flex-1 flex flex-col w-full max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 pt-3 sm:pt-6 pb-mobile-nav">
+          {currentTab === 'dashboard' && (
+            <DashboardView
+              doctors={doctors}
+              hospitals={hospitals}
+              appointments={appointments}
+              prescriptions={prescriptions}
+              language={language}
+              onNavigate={handleSelectTab}
+              onBookClick={() => handleOpenBookModal()}
+              onOpenVideoRoom={handleOpenVideoRoom}
+              currentUser={currentUser}
+              onOpenAuth={handleOpenAuth}
+              onUpdateUser={handleUpdateUser}
+            />
+          )}
+
+          {currentTab === 'xenon' && (
+            <XenonAiView
+              language={language}
+              onBookDoctor={() => handleOpenBookModal()}
+              onNavigate={handleSelectTab}
+            />
+          )}
+
+          {/* DOCTOR WORKSPACE: Strictly isolated clinical dashboard for doctors, directory for patients */}
+          {(currentTab === 'doctors' || currentTab === 'doctor-dashboard' || currentTab === 'doctor-settings') && (
+            currentUser?.role === 'doctor' && activeDoctor ? (
+              <DoctorDashboardView
+                currentDoctor={activeDoctor}
+                appointments={appointments}
+                prescriptions={prescriptions}
+                labReports={labReports}
+                language={language}
+                onOpenVideoRoom={handleOpenVideoRoom}
+                onIssueRxClick={() => setIssueRxModalOpen(true)}
+                onNavigateToXenon={() => handleSelectTab('xenon')}
+                onUpdateDoctorProfile={handleUpdateDoctor}
+              />
+            ) : (
+              <DoctorDirectoryView
+                doctors={doctors}
+                language={language}
+                onBookDoctor={(doc) => handleOpenBookModal(doc)}
+              />
+            )
+          )}
+
+          {/* BOOK SPECIALIST FOR PATIENTS */}
+          {currentTab === 'book' && (
+            <DoctorDirectoryView
+              doctors={doctors}
+              language={language}
+              onBookDoctor={(doc) => handleOpenBookModal(doc)}
+            />
+          )}
+
+          {currentTab === 'developer' && (
+            <DeveloperConsoleView
+              doctors={doctors}
+              users={users}
+              appointments={appointments}
+              prescriptions={prescriptions}
+              language={language}
+              onAddDoctor={handleAddDoctor}
+              onUpdateDoctor={handleUpdateDoctor}
+              onDeleteDoctor={handleDeleteDoctor}
+              onUpdatePatient={handleUpdateUser}
+              onUpdateAppointment={(updatedApt) => {
+                setAppointments((prev) => {
+                  const updated = prev.map((a) => (a.id === updatedApt.id ? updatedApt : a));
+                  try {
+                    localStorage.setItem('telemed_appointments', JSON.stringify(updated));
+                  } catch (e) {
+                    console.warn(e);
+                  }
+                  return updated;
+                });
+                showToast(`Appointment #${updatedApt.id.toUpperCase()} updated successfully!`);
+              }}
+              onSwitchUserSession={(user) => {
+                setCurrentUser(user);
+                showToast(`Switched session to ${user.full_name} (${user.role})`);
+              }}
+              onNavigate={handleSelectTab}
+            />
+          )}
+
+          {currentTab === 'hospitals' && (
+            <HospitalsView
+              hospitals={hospitals}
+              language={language}
+              onOpenChat={handleOpenChat}
+            />
+          )}
+
+          {currentTab === 'records' && (
+            <PatientRecordsView
+              appointments={appointments}
+              prescriptions={prescriptions}
+              currentUser={activeUser}
+              language={language}
+              onOpenVideoRoom={handleOpenVideoRoom}
+              onIssueRxClick={() => setIssueRxModalOpen(true)}
+              onOpenPatientRegister={() => handleOpenAuth('register-patient')}
+              onCancelAppointment={handleCancelAppointment}
+              onOpenConsultation={() => handleOpenBookModal()}
+            />
+          )}
+
+          {currentTab === 'lab' && (
+            <LabReportsView
+              labReports={labReports}
+              onAddLabReport={handleAddLabReport}
+              language={language}
+            />
+          )}
+
+          {currentTab === 'offlineGuide' && (
+            <OfflineGuideView
+              language={language}
+            />
+          )}
+
+          {currentTab === 'emergency' && (
+            <EmergencyView
+              contacts={INITIAL_EMERGENCY_CONTACTS}
+              language={language}
+            />
+          )}
+        </main>
+
+        {/* Global Footer */}
+        <footer className="mt-auto shrink-0 border-t border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-[#090D1A]/95 py-4 transition-colors">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs text-slate-600 dark:text-slate-400 font-medium">
+            <p>
+              🇳🇵 <b>XENON HEALTH</b> — Clinical Telemedicine, AI Triage &amp; Vitals Telemetry Platform
+            </p>
+          </div>
+        </footer>
+      </div>
+
+
+      {/* Floating Action Modals */}
+      <BookModal
+        isOpen={bookModalOpen}
+        doctor={selectedDoctorForBooking}
+        doctors={doctors}
+        currentUser={activeUser}
+        language={language}
+        onClose={() => setBookModalOpen(false)}
+        onConfirmBooking={handleConfirmBooking}
+      />
+
+      <ChatModal
+        isOpen={chatModalOpen}
+        hospital={selectedHospitalForChat}
+        currentUser={activeUser}
+        onClose={() => setChatModalOpen(false)}
+      />
+
+      <IssueRxModal
+        isOpen={issueRxModalOpen}
+        currentUser={activeUser}
+        onClose={() => setIssueRxModalOpen(false)}
+        onSavePrescription={handleSavePrescription}
+      />
+
+      <VideoRoomModal
+        isOpen={videoModalOpen}
+        appointment={activeVideoAppointment}
+        onClose={() => setVideoModalOpen(false)}
+      />
+
+      <AuthModal
+        isOpen={authModalOpen}
+        initialMode={authModalMode}
+        onClose={() => setAuthModalOpen(false)}
+        onLoginSuccess={handleLoginSuccess}
+        onDoctorLoginSuccess={handleDoctorLogin}
+        onDoctorRegistered={handleDoctorRegistered}
+        onPatientRegistered={handlePatientRegistered}
+        hospitals={hospitals}
+        doctors={doctors}
+        existingUsers={users}
+        language={language}
+        isFirstVisit={false}
+        currentUser={currentUser}
+      />
+
+      {/* Native Thumb-Friendly Mobile Bottom Navigation Bar */}
+      <MobileBottomNav
+        currentTab={currentTab as any}
+        onSelectTab={(tab) => handleSelectTab(tab)}
+        language={language}
+        currentUser={currentUser}
+      />
+
+      {/* Toast Popup Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50 p-4 rounded-2xl bg-white dark:bg-[#1C1C1E] text-black dark:text-white text-xs font-bold shadow-2xl border border-black/10 dark:border-white/20 flex items-center gap-2.5 animate-in fade-in slide-in-from-bottom-3">
+          <span>✨</span>
+          <span className="text-black dark:text-white">{toastMessage}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+

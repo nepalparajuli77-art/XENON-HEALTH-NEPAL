@@ -1,0 +1,315 @@
+@import "tailwindcss";
+
+@theme {
+  --color-apple-canvas: #f8fafc;
+  --color-apple-card: #ffffff;
+  --color-apple-subtle: #f1f5f9;
+  --color-apple-border: rgba(0, 0, 0, 0.07);
+  --color-apple-border-dark: rgba(255, 255, 255, 0.08);
+  --shadow-apple-subtle: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02);
+  --shadow-apple-card: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 4px 12px 0 rgba(0, 0, 0, 0.03);
+  --shadow-apple-elevated: 0 8px 30px rgba(0, 0, 0, 0.06);
+}
+
+@layer base {
+  :root {
+    --ios-bg-light: #F8FAFC;
+    --ios-card-light: #FFFFFF;
+    --ios-bg-dark: #070A12;
+    --ios-card-dark: #0F172A;
+    --ios-card-secondary-dark: #1E293B;
+    --safe-area-top: env(safe-area-inset-top, 0px);
+    --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Refined Vertical Mode & Mobile Viewport */
+  html {
+    width: 100%;
+    max-width: 100vw;
+    min-height: 100%;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    width: 100%;
+    max-width: 100vw;
+    min-height: 100%;
+    min-height: 100dvh;
+    min-height: -webkit-fill-available;
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    touch-action: manipulation;
+    background-color: #f8fafc;
+    color: #0f172a;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #root {
+    width: 100%;
+    max-width: 100vw;
+    min-height: 100%;
+    min-height: 100dvh;
+    min-height: -webkit-fill-available;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Light mode: clean crisp slate-50 background */
+  html:not(.dark) {
+    color-scheme: light;
+    background-color: #f8fafc;
+  }
+
+  html:not(.dark) body {
+    background-color: #f8fafc;
+    color: #0f172a;
+  }
+
+  html:not(.dark) input::placeholder,
+  html:not(.dark) textarea::placeholder {
+    color: #64748b;
+    opacity: 0.8;
+  }
+
+  /* Dark mode: rich deep slate */
+  html.dark {
+    color-scheme: dark;
+    background-color: #070A12;
+  }
+
+  html.dark body {
+    background-color: #070A12;
+    color: #f8fafc;
+  }
+
+  html.dark input::placeholder,
+  html.dark textarea::placeholder {
+    color: #94a3b8;
+    opacity: 0.8;
+  }
+
+  /* Interactive button touch-action */
+  button, a, input, select, textarea {
+    touch-action: manipulation;
+  }
+
+  /* Mobile-first input sizing to avoid auto-zoom */
+  @media (max-width: 767px) {
+    input[type="text"],
+    input[type="number"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="password"],
+    input[type="search"],
+    select,
+    textarea {
+      font-size: 16px !important;
+    }
+  }
+}
+
+/* Apple-style card helper classes */
+.apple-card {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 4px 12px 0 rgba(0, 0, 0, 0.03);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+html.dark .apple-card {
+  background-color: #0f172a;
+  border-color: #1e293b;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.2);
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.25);
+  border-radius: 9999px;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.2);
+}
+
+/* Hide scrollbar for clean horizontal swiping on mobile */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Sidebar custom momentum scrollbar without visible thumb */
+.sidebar-scroll {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.sidebar-scroll::-webkit-scrollbar {
+  display: none;
+  width: 0px;
+  height: 0px;
+  background: transparent;
+}
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  display: none;
+  background: transparent;
+}
+
+/* Mobile-First Media Queries & Responsive Utilities */
+@media (max-width: 767px) {
+  /* Safe padding for bottom navigation */
+  .pb-mobile-nav {
+    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 1rem)) !important;
+  }
+
+  /* Enhanced touch target helper on mobile */
+  .touch-target-mobile {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Smooth momentum scroll container */
+  .scroll-touch-y {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* ==========================================================================
+   SPECIFIC MOBILE MEDIA QUERY OVERRIDES FOR DASHBOARD & MEDICAL RECORDS
+   ========================================================================== */
+
+@media (max-width: 640px) {
+  /* Main Container Spacing in Vertical Mobile View */
+  main {
+    padding-left: 0.875rem !important;
+    padding-right: 0.875rem !important;
+    padding-top: 0.75rem !important;
+    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 1.25rem)) !important;
+  }
+
+  /* Section Card Spacing & Touch Padding */
+  section,
+  .dashboard-section,
+  .records-section {
+    padding: 1rem !important;
+    border-radius: 1.25rem !important;
+    margin-bottom: 1rem !important;
+  }
+
+  /* Interactive Action Buttons Touch Target Minimums (44px) */
+  button:not(.inline-icon-btn),
+  a[role="button"] {
+    min-height: 44px;
+  }
+
+  /* Grid adaptations on mobile to prevent overlapping */
+  .grid-cols-2,
+  .grid-cols-3,
+  .grid-cols-4 {
+    gap: 0.625rem !important;
+  }
+
+  /* Patient Vitals & Metric Cards Vertical Breathing Room */
+  .vital-metric-card,
+  .telemetry-card {
+    padding: 0.75rem 0.875rem !important;
+    min-height: 5rem;
+  }
+
+  /* Hero Banner & NMC Clinician Header stacking */
+  .dashboard-hero-content {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.75rem !important;
+  }
+
+  /* Button Action Clusters: prevent button text truncation & overlap */
+  .action-btn-cluster {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+  }
+
+  .action-btn-cluster > button {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Compact Mobile Viewport (iPhone SE / 360px-480px screens) */
+  main {
+    padding-left: 0.625rem !important;
+    padding-right: 0.625rem !important;
+  }
+
+  /* Vitals Telemetry Metrics: stack cleanly if needed */
+  .vitals-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.5rem !important;
+  }
+
+  /* Prescription item card breathing room */
+  .rx-item-card {
+    padding: 0.875rem !important;
+    gap: 0.75rem !important;
+  }
+
+  /* Typography scale refinement for narrow vertical view */
+  h1 {
+    font-size: 1.25rem !important;
+    line-height: 1.75rem !important;
+  }
+
+  h2 {
+    font-size: 1.125rem !important;
+    line-height: 1.5rem !important;
+  }
+
+  h3 {
+    font-size: 1rem !important;
+    line-height: 1.375rem !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .pb-mobile-nav {
+    padding-bottom: 2.5rem;
+  }
+}
+
+/* Safe area padding utilities */
+.pb-safe {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 1rem));
+}
+.pt-safe {
+  padding-top: max(0.5rem, env(safe-area-inset-top, 0.5rem));
+}

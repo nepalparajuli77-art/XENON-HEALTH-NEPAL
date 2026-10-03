@@ -1,0 +1,32 @@
+<resources>
+    <string name="app_name">Telemed Nepal</string>
+    <string name="app_tagline">Smart Digital Telemedicine Portal for Nepal</string>
+    <string name="app_tagline_np">नेपालभर भरपर्दो, आधुनिक र डिजिटल स्वास्थ्य सेवा</string>
+    
+    <!-- Navigation -->
+    <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_doctors">Doctors</string>
+    <string name="nav_hospitals">Hospitals</string>
+    <string name="nav_records">Records</string>
+    <string name="nav_emergency">Emergency</string>
+    <string name="nav_xenon_ai">Xenon AI</string>
+    
+    <!-- Accessibility Descriptions -->
+    <string name="cd_app_logo">Telemed Nepal Logo</string>
+    <string name="cd_search">Search icon</string>
+    <string name="cd_filter">Filter icon</string>
+    <string name="cd_call">Call emergency helpline</string>
+    <string name="cd_video_call">Start encrypted video consultation</string>
+    <string name="cd_chat">Open live hospital helpdesk chat</string>
+    <string name="cd_user_avatar">User profile avatar</string>
+    <string name="cd_close">Close dialog</string>
+    <string name="cd_send_message">Send chat message</string>
+    <string name="cd_language_toggle">Switch language</string>
+    <string name="cd_theme_toggle">Toggle dark theme</string>
+    
+    <!-- Emergency -->
+    <string name="emergency_hotline_102">Call 102 (National Ambulance)</string>
+    <string name="emergency_police_100">Call 100 (Nepal Police)</string>
+    <string name="emergency_air_rescue">Air Ambulance / Helicopter Rescue</string>
+    <string name="emergency_drone_dispatch">Drone Medical Cargo Delivery</string>
+</resources>

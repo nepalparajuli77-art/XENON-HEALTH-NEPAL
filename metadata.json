@@ -1,0 +1,6 @@
+{
+  "name": "XENON HEALTH",
+  "description": "Next-generation digital healthcare & telemedicine platform for Nepal featuring Xenon AI Clinical Triage, doctor bookings, hospital directory, and patient health records.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

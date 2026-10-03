@@ -1,0 +1,19 @@
+{
+  "id": "/",
+  "name": "XENON HEALTH — Telemedicine Nepal",
+  "short_name": "XenonHealth",
+  "description": "Next-gen digital healthcare and AI clinical triage platform for Nepal with offline-to-online background sync.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#DC2626",
+  "background_color": "#0B1120",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ]
+}
