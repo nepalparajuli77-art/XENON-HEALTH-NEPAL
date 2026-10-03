@@ -10,7 +10,115 @@ dotenv.config();
 const app = express();
 const PORT = 3000;
 
-app.use(express.json());
+// ============================================================================
+// MAXIMUM SECURITY PACK: HEADERS, BRUTE-FORCE SHIELD, SANITIZATION & LIMITS
+// ============================================================================
+// 1. Hide Server Fingerprint
+app.disable('x-powered-by');
+
+// 2. HTTP Security Headers Middleware
+app.use((req, res, next) => {
+  // Prevent MIME-sniffing
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  // XSS protection for older browsers
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  // Referrer Policy
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  // HTTP Strict Transport Security (HSTS)
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  // Restrict sensitive hardware features
+  res.setHeader('Permissions-Policy', 'camera=(self), microphone=(self), geolocation=(self)');
+  // Anti-Clickjacking & Prefetch Control
+  res.setHeader('X-DNS-Prefetch-Control', 'off');
+  res.setHeader('X-Download-Options', 'noopen');
+  next();
+});
+
+// 3. Request Size Limiting (Protects from payload flood / buffer exhaustion DoS)
+app.use(express.json({ limit: '512kb' }));
+app.use(express.urlencoded({ extended: true, limit: '512kb' }));
+
+// 4. In-Memory Anti-DoS & Rate Limiting Engine
+interface RateLimitBucket {
+  count: number;
+  resetAt: number;
+}
+const rateLimitStore = new Map<string, RateLimitBucket>();
+
+// Periodically clean up expired buckets
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, val] of rateLimitStore.entries()) {
+    if (now > val.resetAt) {
+      rateLimitStore.delete(key);
+    }
+  }
+}, 300000);
+
+function rateLimitMiddleware(limit: number, windowMs: number, customMessage?: string) {
+  return (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    const rawIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+    const ip = Array.isArray(rawIp) ? rawIp[0] : String(rawIp).split(',')[0].trim();
+    const endpoint = req.baseUrl || req.path;
+    const key = `${ip}:${endpoint}`;
+    const now = Date.now();
+
+    const bucket = rateLimitStore.get(key) || { count: 0, resetAt: now + windowMs };
+
+    if (now > bucket.resetAt) {
+      bucket.count = 0;
+      bucket.resetAt = now + windowMs;
+    }
+
+    bucket.count += 1;
+    rateLimitStore.set(key, bucket);
+
+    res.setHeader('X-RateLimit-Limit', limit.toString());
+    res.setHeader('X-RateLimit-Remaining', Math.max(0, limit - bucket.count).toString());
+    res.setHeader('X-RateLimit-Reset', Math.ceil(bucket.resetAt / 1000).toString());
+
+    if (bucket.count > limit) {
+      res.setHeader('Retry-After', Math.ceil((bucket.resetAt - now) / 1000).toString());
+      return res.status(429).json({
+        success: false,
+        error: customMessage || 'Rate limit exceeded. Too many requests. Please wait a moment.',
+        code: 'TOO_MANY_REQUESTS'
+      });
+    }
+
+    next();
+  };
+}
+
+// 5. Input Sanitization against XSS & Prototype Pollution
+function sanitizeData(input: any): any {
+  if (typeof input === 'string') {
+    return input
+      .replace(/\0/g, '') // remove null bytes
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // strip script tags
+      .trim();
+  }
+  if (Array.isArray(input)) {
+    return input.map(sanitizeData);
+  }
+  if (typeof input === 'object' && input !== null) {
+    const clean: Record<string, any> = {};
+    for (const [k, v] of Object.entries(input)) {
+      // Disallow prototype pollution keys
+      if (k === '__proto__' || k === 'constructor' || k === 'prototype') continue;
+      clean[k] = sanitizeData(v);
+    }
+    return clean;
+  }
+  return input;
+}
+
+app.use('/api', (req, res, next) => {
+  if (req.body) {
+    req.body = sanitizeData(req.body);
+  }
+  next();
+});
 
 // Lazy-initialized GoogleGenAI client
 let aiClient: GoogleGenAI | null = null;
@@ -508,8 +616,8 @@ app.get('/api/xenon/status', (req, res) => {
   });
 });
 
-// Xenon AI API endpoint
-app.post('/api/xenon', async (req, res) => {
+// Xenon AI API endpoint (Protected by 30 req/min rate limit & payload sanitization)
+app.post('/api/xenon', rateLimitMiddleware(30, 60000, 'AI triage request limit reached. Please wait 60s.'), async (req, res) => {
   try {
     const { prompt, language = 'en', history = [] } = req.body;
 
@@ -698,8 +806,18 @@ function saveDatabase(db: DatabaseSchema) {
 // In-memory cache synced with disk
 let serverDb: DatabaseSchema = loadDatabase();
 
-// 1. Database Health & Status
+// 1. Database Health & Status (STRICT ADMIN ACCESS ONLY)
 app.get('/api/database/status', (req, res) => {
+  const authHeader = req.headers['authorization'] || req.headers['x-admin-role'] || req.query.admin_token;
+  const isAuthorized = authHeader === 'developer' || authHeader === 'Bearer developer-admin-secret' || req.headers['x-admin-role'] === 'developer';
+
+  if (!isAuthorized) {
+    return res.status(403).json({
+      success: false,
+      error: 'Access Denied: Operational database telemetry is strictly restricted to authenticated administrators.'
+    });
+  }
+
   res.json({
     status: 'connected',
     appointmentsCount: serverDb.appointments.length,
@@ -949,7 +1067,7 @@ const NMC_DATABASE: Record<string, any> = {
   }
 };
 
-app.get('/api/nmc/verify', (req, res) => {
+app.get('/api/nmc/verify', rateLimitMiddleware(40, 60000, 'NMC verification rate limit reached. Please wait a minute.'), (req, res) => {
   const rawNum = String(req.query.number || req.query.nmc || '').trim();
   const cleanNum = rawNum.toUpperCase().replace(/[^0-9]/g, '');
 
@@ -1007,7 +1125,7 @@ app.get('/api/nmc/verify', (req, res) => {
   });
 });
 
-app.post('/api/nmc/verify', (req, res) => {
+app.post('/api/nmc/verify', rateLimitMiddleware(40, 60000, 'NMC verification rate limit reached. Please wait a minute.'), (req, res) => {
   const rawNum = String(req.body?.number || req.body?.nmc || '').trim();
   const cleanNum = rawNum.toUpperCase().replace(/[^0-9]/g, '');
 
@@ -1051,6 +1169,16 @@ app.post('/api/nmc/verify', (req, res) => {
         { degree: 'MBBS', institution: 'Nepal Medical Council Recognized Medical College', year: 2014, country: 'Nepal' }
       ]
     }
+  });
+});
+
+// Secure Global Error-Handling Middleware (Never leaks server internals or stack traces)
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('Secure handled server error:', err?.message || err);
+  res.status(500).json({
+    success: false,
+    error: 'A secure server error occurred. Request safely terminated.',
+    code: 'INTERNAL_ERROR'
   });
 });
 

@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { ShieldCheck } from 'lucide-react';
 import { Navbar } from './components/Navbar';
 import { Sidebar } from './components/Sidebar';
 import { DashboardView } from './components/DashboardView';
@@ -747,8 +748,10 @@ export default function App() {
           onNotifyToast={showToast}
         />
 
-        {/* Offline-to-Online Background Sync Status Bar */}
-        <SyncStatusBar onNotifyToast={showToast} />
+        {/* Offline-to-Online Background Sync Status Bar: STRICTLY ADMIN DEVELOPER ONLY */}
+        {currentUser?.role === 'developer' && (
+          <SyncStatusBar onNotifyToast={showToast} />
+        )}
 
         {/* Dynamic View Body */}
         <main className="flex-1 flex flex-col w-full max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 pt-3 sm:pt-6 pb-mobile-nav">
@@ -810,34 +813,56 @@ export default function App() {
           )}
 
           {currentTab === 'developer' && (
-            <DeveloperConsoleView
-              doctors={doctors}
-              users={users}
-              appointments={appointments}
-              prescriptions={prescriptions}
-              language={language}
-              onAddDoctor={handleAddDoctor}
-              onUpdateDoctor={handleUpdateDoctor}
-              onDeleteDoctor={handleDeleteDoctor}
-              onUpdatePatient={handleUpdateUser}
-              onUpdateAppointment={(updatedApt) => {
-                setAppointments((prev) => {
-                  const updated = prev.map((a) => (a.id === updatedApt.id ? updatedApt : a));
-                  try {
-                    localStorage.setItem('telemed_appointments', JSON.stringify(updated));
-                  } catch (e) {
-                    console.warn(e);
-                  }
-                  return updated;
-                });
-                showToast(`Appointment #${updatedApt.id.toUpperCase()} updated successfully!`);
-              }}
-              onSwitchUserSession={(user) => {
-                setCurrentUser(user);
-                showToast(`Switched session to ${user.full_name} (${user.role})`);
-              }}
-              onNavigate={handleSelectTab}
-            />
+            currentUser?.role === 'developer' ? (
+              <DeveloperConsoleView
+                doctors={doctors}
+                users={users}
+                appointments={appointments}
+                prescriptions={prescriptions}
+                language={language}
+                onAddDoctor={handleAddDoctor}
+                onUpdateDoctor={handleUpdateDoctor}
+                onDeleteDoctor={handleDeleteDoctor}
+                onUpdatePatient={handleUpdateUser}
+                onUpdateAppointment={(updatedApt) => {
+                  setAppointments((prev) => {
+                    const updated = prev.map((a) => (a.id === updatedApt.id ? updatedApt : a));
+                    try {
+                      localStorage.setItem('telemed_appointments', JSON.stringify(updated));
+                    } catch (e) {
+                      console.warn(e);
+                    }
+                    return updated;
+                  });
+                  showToast(`Appointment #${updatedApt.id.toUpperCase()} updated successfully!`);
+                }}
+                onSwitchUserSession={(user) => {
+                  setCurrentUser(user);
+                  showToast(`Switched session to ${user.full_name} (${user.role})`);
+                }}
+                onNavigate={handleSelectTab}
+              />
+            ) : (
+              <div className="py-16 px-4 text-center max-w-lg mx-auto space-y-4">
+                <div className="w-16 h-16 mx-auto rounded-3xl bg-red-100 dark:bg-red-950/60 border border-red-200 dark:border-red-900/60 text-red-600 flex items-center justify-center shadow-lg">
+                  <ShieldCheck className="w-8 h-8" />
+                </div>
+                <h2 className="text-xl font-black text-slate-900 dark:text-white">
+                  {language === 'np' ? 'प्रशासक पहुँच प्रतिबन्धित' : 'Administrator Access Restricted'}
+                </h2>
+                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                  {language === 'np'
+                    ? 'विकासकर्ता तथा डाटाबेस कन्सोल आधिकारिक प्रशासकहरूका लागि मात्र उपलब्ध छ।'
+                    : 'Operational database records, system logs, and telemetry are strictly restricted to authorized administrators.'}
+                </p>
+                <button
+                  onClick={() => handleOpenAuth('login')}
+                  className="px-5 py-2.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold text-xs cursor-pointer shadow-md hover:bg-slate-800 transition-colors"
+                >
+                  {language === 'np' ? 'प्रशासक खातामा लगइन गर्नुहोस्' : 'Sign In as Administrator'}
+                </button>
+              </div>
+            )
           )}
 
           {currentTab === 'hospitals' && (

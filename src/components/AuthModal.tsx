@@ -120,12 +120,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [loading, setLoading] = useState(false);
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [lockoutExpiry, setLockoutExpiry] = useState<number | null>(null);
 
   if (!isOpen) return null;
 
   // Handle Standard Login (Patient or Developer Admin)
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (lockoutExpiry && Date.now() < lockoutExpiry) {
+      triggerHaptic('warning');
+      const rem = Math.ceil((lockoutExpiry - Date.now()) / 1000);
+      setError(`Security Lockout: Repeated failed attempts detected. Please wait ${rem} seconds.`);
+      return;
+    }
+
     setError('');
     setLoading(true);
 
@@ -141,6 +151,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           iden === 'dev@xenonhealth.org.np') &&
         pwd === '12admin34'
       ) {
+        setFailedAttempts(0);
+        setLockoutExpiry(null);
         const devUser: User = {
           id: 'usr_001',
           username: 'developer',
@@ -161,6 +173,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           iden === 'nepal parajuli') &&
         (pwd === 'aarav*3812' || pwd === '12admin34')
       ) {
+        setFailedAttempts(0);
+        setLockoutExpiry(null);
         const nepalUser: User = {
           id: 'usr_nepal',
           username: 'nepal',
@@ -187,18 +201,27 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       );
 
       if (matched && matched.password && matched.password === pwd) {
+        setFailedAttempts(0);
+        setLockoutExpiry(null);
         setLoading(false);
         onLoginSuccess(matched);
         return;
       }
 
-      // Failed
+      // Failed Authentication Attempt
       setLoading(false);
-      setError(
-        language === 'np'
-          ? 'गलत प्रयोगकर्ता नाम वा पासवर्ड। कृपया पुन: प्रयास गर्नुहोस् वा डाक्टर लगइन प्रयोग गर्नुहोस्।'
-          : 'Invalid credentials. If you are an NMC Doctor, please click "Enter as Doctor" above.'
-      );
+      const newFails = failedAttempts + 1;
+      setFailedAttempts(newFails);
+      if (newFails >= 5) {
+        setLockoutExpiry(Date.now() + 60000);
+        setError('Security Lockout: 5 failed attempts reached. Sign-in locked for 60 seconds.');
+      } else {
+        setError(
+          language === 'np'
+            ? `गलत प्रयोगकर्ता नाम वा पासवर्ड। बाँकी प्रयास: ${5 - newFails}।`
+            : `Invalid credentials. Attempts remaining before temporary lockout: ${5 - newFails}.`
+        );
+      }
     }, 400);
   };
 
@@ -206,6 +229,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const handleDoctorEnterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedDoctorForAuth) return;
+
+    if (lockoutExpiry && Date.now() < lockoutExpiry) {
+      triggerHaptic('warning');
+      const rem = Math.ceil((lockoutExpiry - Date.now()) / 1000);
+      setError(`Security Lockout: Repeated failed PIN attempts. Please wait ${rem} seconds.`);
+      return;
+    }
 
     setError('');
     setLoading(true);
@@ -216,6 +246,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setTimeout(() => {
       setLoading(false);
       if (entered === correctPin || entered === '12admin34') {
+        setFailedAttempts(0);
+        setLockoutExpiry(null);
         const docUser: User = {
           id: `usr_${selectedDoctorForAuth.id}`,
           username: selectedDoctorForAuth.name.toLowerCase().replace(/[^a-z0-9]/g, '_'),
@@ -245,11 +277,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           onLoginSuccess(docUser);
         }
       } else {
-        setError(
-          language === 'np'
-            ? 'गलत डाक्टर पिन कोड। कृपया पुन: प्रयास गर्नुहोस् वा रिसेट लिंक पठाउनुहोस्।'
-            : `Incorrect PIN for ${selectedDoctorForAuth.name}. Please enter your registered PIN or use "Forgot PIN".`
-        );
+        const newFails = failedAttempts + 1;
+        setFailedAttempts(newFails);
+        if (newFails >= 5) {
+          setLockoutExpiry(Date.now() + 60000);
+          setError('Security Lockout: 5 failed PIN attempts reached. Locked for 60 seconds.');
+        } else {
+          setError(
+            language === 'np'
+              ? `गलत डाक्टर पिन कोड। बाँकी प्रयास: ${5 - newFails}।`
+              : `Incorrect PIN for ${selectedDoctorForAuth.name}. Attempts remaining: ${5 - newFails}.`
+          );
+        }
       }
     }, 350);
   };
