@@ -403,10 +403,10 @@ export const XenonAiView: React.FC<XenonAiViewProps> = ({
     <div className="space-y-6 animate-fade-in max-w-5xl mx-auto">
       {/* Banner / Header with Nepal Flag Colors & Connection Status */}
       <div className="relative overflow-hidden rounded-[26px] bg-gradient-to-r from-red-600 via-blue-700 to-red-600 p-1 shadow-xl">
-        <div className="rounded-[24px] bg-white dark:bg-[#0F172A] p-6 transition-colors">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="relative">
+        <div className="rounded-[24px] bg-white dark:bg-[#0F172A] p-4 sm:p-6 transition-colors">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 min-w-0">
+              <div className="relative shrink-0">
                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-red-600 to-blue-700 p-0.5 shadow-md flex items-center justify-center">
                   <div className="w-full h-full rounded-[14px] bg-white dark:bg-[#1E293B] flex items-center justify-center">
                     <Sparkles className="w-7 h-7 text-red-600 dark:text-red-400 stroke-[2.2]" />
@@ -414,7 +414,7 @@ export const XenonAiView: React.FC<XenonAiViewProps> = ({
                 </div>
                 <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white dark:border-[#0F172A] animate-pulse" />
               </div>
-              <div>
+              <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h1 className="text-xl font-black tracking-tight text-slate-950 dark:text-white">
                     Xenon AI <span className="text-xs px-2.5 py-0.5 rounded-full bg-red-600 text-white font-bold">नेपाल</span>
@@ -427,7 +427,7 @@ export const XenonAiView: React.FC<XenonAiViewProps> = ({
                     Connected: {xenonStatus.model}
                   </span>
                 </div>
-                <p className="text-xs text-slate-700 dark:text-slate-300 font-medium mt-1">
+                <p className="text-xs text-slate-700 dark:text-slate-300 font-medium mt-1 leading-relaxed">
                   {language === 'np'
                     ? 'तार्किक आकस्मिक प्राथमिक उपचार, लक्षण मूल्याङ्कन र विशेषज्ञ रेफरल प्रणाली'
                     : 'Logical Emergency First-Aid, Clinical Symptom Evaluation & Nepal Hospital Triage'}
@@ -471,7 +471,7 @@ export const XenonAiView: React.FC<XenonAiViewProps> = ({
       {/* Main Chat Box Container */}
       <div className="rounded-[26px] bg-white dark:bg-[#0F172A] border-2 border-blue-600/20 dark:border-blue-500/30 shadow-xl overflow-hidden flex flex-col h-[650px] transition-colors">
         {/* Messages Stage */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50 dark:bg-[#0B1120]">
+        <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 space-y-4 bg-slate-50 dark:bg-[#0B1120]">
           {messages.map((m) => {
             const isUser = m.sender === 'user';
             return (
@@ -486,7 +486,7 @@ export const XenonAiView: React.FC<XenonAiViewProps> = ({
                 )}
 
                 <div
-                  className={`max-w-[85%] rounded-2xl p-4 shadow-sm space-y-3 ${
+                  className={`max-w-[80%] sm:max-w-[85%] rounded-2xl p-3 sm:p-4 shadow-sm space-y-3 ${
                     isUser
                       ? 'bg-blue-700 text-white font-medium rounded-tr-xs'
                       : 'bg-white dark:bg-[#1E293B] text-slate-950 dark:text-white border border-slate-200 dark:border-slate-700 rounded-tl-xs'
