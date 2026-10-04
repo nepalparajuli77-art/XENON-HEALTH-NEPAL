@@ -400,7 +400,7 @@ export const XenonAiView: React.FC<XenonAiViewProps> = ({
   };
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-5xl mx-auto">
+    <div className="space-y-6 animate-fade-in max-w-5xl mx-auto px-3 sm:px-0">
       {/* Banner / Header with Nepal Flag Colors & Connection Status */}
       <div className="relative overflow-hidden rounded-[26px] bg-gradient-to-r from-red-600 via-blue-700 to-red-600 p-1 shadow-xl">
         <div className="rounded-[24px] bg-white dark:bg-[#0F172A] p-4 sm:p-6 transition-colors">
@@ -469,7 +469,7 @@ export const XenonAiView: React.FC<XenonAiViewProps> = ({
       </div>
 
       {/* Main Chat Box Container */}
-      <div className="rounded-[26px] bg-white dark:bg-[#0F172A] border-2 border-blue-600/20 dark:border-blue-500/30 shadow-xl overflow-hidden flex flex-col h-[650px] transition-colors">
+      <div className="rounded-[26px] bg-white dark:bg-[#0F172A] border-2 border-blue-600/20 dark:border-blue-500/30 shadow-xl overflow-hidden flex flex-col h-[600px] sm:h-[650px] transition-colors">
         {/* Messages Stage */}
         <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 space-y-4 bg-slate-50 dark:bg-[#0B1120]">
           {messages.map((m) => {
