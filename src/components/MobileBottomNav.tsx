@@ -9,7 +9,8 @@ import {
   Activity,
   Code,
   KeyRound,
-  Building2
+  Building2,
+  Navigation
 } from 'lucide-react';
 
 interface MobileBottomNavProps {
@@ -113,6 +114,11 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
         label: 'Xenon AI',
         icon: Sparkles,
         isSpecial: true
+      },
+      {
+        id: 'locationMedevac',
+        label: 'GPS Medevac',
+        icon: Navigation
       },
       {
         id: 'emergency',

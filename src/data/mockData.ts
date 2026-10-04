@@ -1,4 +1,4 @@
-import { Doctor, Hospital, Appointment, Prescription, EmergencyContact, User, Language, FamilyMember, LabReport } from '../types';
+import { Doctor, Hospital, Appointment, Prescription, EmergencyContact, User, Language, FamilyMember, LabReport, MedevacBase } from '../types';
 
 export const INITIAL_USERS: User[] = [
   {
@@ -731,6 +731,105 @@ export const INITIAL_HOSPITALS: Hospital[] = [
     open_247: true,
     rating: 4.5,
     description: "Central national infectious disease center offering 24/7 rabies post-exposure vaccines and anti-snake venom."
+  }
+];
+
+export const NEPAL_MEDEVAC_BASES: MedevacBase[] = [
+  {
+    id: "medevac_001",
+    name: "Nepal Army Air Operations Directorate (Central Airbase)",
+    name_np: "नेपाली सेना हवाई महानिर्देशनालय (केन्द्रीय हेलिप्याड)",
+    type: "Nepal Army Air Force",
+    base_location: "Tribhuvan International Airport Airbase, Kathmandu",
+    district: "Kathmandu",
+    lat: 27.6966,
+    lng: 85.3591,
+    hotline: "+977-01-4246950",
+    operational_ceiling_m: 6500,
+    aircraft: "Mi-17 V5 & Bell 407GXi Rescue Helicopters",
+    avg_speed_kmh: 240,
+    description: "National 24/7 emergency military medevac command with high-altitude winch rescue capability.",
+    description_np: "उच्च हिमाली तथा दुर्गम क्षेत्रका लागि २४ सै घण्टा तयारी अवस्थामा रहेको सैनिक हवाई उद्धार कमाण्ड।"
+  },
+  {
+    id: "medevac_002",
+    name: "DJI FlyCart 30 Medical Drone Dispatch Hub",
+    name_np: "DJI FlyCart 30 भारी मेडिकल ड्रोन हब",
+    type: "DJI FlyCart 30 Drone Cargo",
+    base_location: "Central Medical Logistics Center, Kathmandu / Valley Hub",
+    district: "Kathmandu",
+    lat: 27.7172,
+    lng: 85.3240,
+    hotline: "+977-01-5970102",
+    operational_ceiling_m: 6000,
+    aircraft: "DJI FlyCart 30 Heavy Payload Autonomous Medical Drone",
+    avg_speed_kmh: 72,
+    description: "Autonomous heavy cargo medical drone delivering blood packs, snake antivenom, and critical emergency Rx up to 40kg payload.",
+    description_np: "४० किलोसम्म औषधी, रगत र एन्टिभेनम दुर्गम तथा सडकविहीन क्षेत्रमा द्रुत गतिमा एयर-ड्रप गर्ने स्वचालित ड्रोन।"
+  },
+  {
+    id: "medevac_003",
+    name: "Himalayan Rescue Association (HRA) Alpine Base",
+    name_np: "हिमालयन रेस्क्यु एसोसिएसन (HRA) मनाङ-अन्नपूर्ण एयरबेस",
+    type: "HRA Alpine Air Rescue",
+    base_location: "Manang Rescue Post & Annapurna Base Station",
+    district: "Manang",
+    lat: 28.6655,
+    lng: 84.0210,
+    hotline: "+977-01-4440292",
+    operational_ceiling_m: 7000,
+    aircraft: "Eurocopter AS350 B3e (Squirrel B3)",
+    avg_speed_kmh: 220,
+    description: "Specialized high-altitude mountain sickness (AMS/HAPE/HACE) rescue and medical evacuation airbase.",
+    description_np: "हिमाली लेक लाग्ने (AMS) र पदयात्रा दुर्घटनाका लागि समर्पित एयर एम्बुलेन्स सेवा।"
+  },
+  {
+    id: "medevac_004",
+    name: "Pokhara Regional Air Ambulance Base",
+    name_np: "पोखरा क्षेत्रीय हवाई उद्धार सेन्टर",
+    type: "Nepal Army Air Force",
+    base_location: "Pokhara International Airport Helipad",
+    district: "Pokhara",
+    lat: 28.2005,
+    lng: 83.9820,
+    hotline: "+977-061-520000",
+    operational_ceiling_m: 6000,
+    aircraft: "Airbus H125 & Bell 206 Rescue Heli",
+    avg_speed_kmh: 230,
+    description: "Western Nepal regional medevac dispatch covering Kaski, Mustang, Manang, and Myagdi districts.",
+    description_np: "पश्चिम नेपालका लागि पोखरास्थित आपतकालीन हेलिकप्टर उद्धार हब।"
+  },
+  {
+    id: "medevac_005",
+    name: "Surkhet Karnali Medevac Dispatch Hub",
+    name_np: "सुर्खेत कर्णाली आपतकालीन हवाई उद्धार हब",
+    type: "Nepal Army Air Force",
+    base_location: "Surkhet Airport Military Airbase",
+    district: "Surkhet",
+    lat: 28.5875,
+    lng: 81.6360,
+    hotline: "+977-083-520100",
+    operational_ceiling_m: 6000,
+    aircraft: "Nepal Army Mi-17 & Skylane Fixed Wing Air Ambulance",
+    avg_speed_kmh: 240,
+    description: "Karnali & Sudurpashchim province emergency medevac hub for remote pregnant maternal and trauma cases.",
+    description_np: "कर्णाली र सुदूरपश्चिमका दुर्गम जिल्लाहरूका लागि राष्ट्रपति महिला उत्थान तथा सैनिक हवाई उद्धार हब।"
+  },
+  {
+    id: "medevac_006",
+    name: "Lukla Khumbu Alpine Heli Base",
+    name_np: "लुक्ला खुम्बु एभरेस्ट एयर रेस्क्यु हब",
+    type: "Private Air Ambulance",
+    base_location: "Tenzing-Hillary Lukla Airport Helipad",
+    district: "Solukhumbu",
+    lat: 27.6869,
+    lng: 86.7290,
+    hotline: "+977-038-540022",
+    operational_ceiling_m: 7500,
+    aircraft: "Eurocopter AS350 B3 Alpine Specialist",
+    avg_speed_kmh: 220,
+    description: "Everest Khumbu region emergency high-ceiling medical evacuation helicopter dispatch.",
+    description_np: "सगरमाथा खुम्बु क्षेत्रका लागि समर्पित उच्च उचाइको हेलिकप्टर रेस्क्यु।"
   }
 ];
 

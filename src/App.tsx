@@ -17,6 +17,7 @@ import { HospitalsView } from './components/HospitalsView';
 import { PatientRecordsView } from './components/PatientRecordsView';
 import { EmergencyView } from './components/EmergencyView';
 import { XenonAiView } from './components/XenonAiView';
+import { LocationMedevacView } from './components/LocationMedevacView';
 import { LabReportsView } from './components/LabReportsView';
 import { OfflineGuideView } from './components/OfflineGuideView';
 import { BookModal } from './components/BookModal';
@@ -994,6 +995,14 @@ export default function App() {
               hospitals={hospitals}
               language={language}
               onOpenChat={handleOpenChat}
+            />
+          )}
+
+          {currentTab === 'locationMedevac' && (
+            <LocationMedevacView
+              language={language}
+              onBookDoctor={(hospId) => handleOpenBookModal()}
+              onNavigate={handleSelectTab}
             />
           )}
 

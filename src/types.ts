@@ -6,6 +6,7 @@ export type TabType =
   | 'xenon'
   | 'emergency'
   | 'hospitals'
+  | 'locationMedevac'
   | 'records'
   | 'developer'
   | 'offlineGuide'
@@ -96,6 +97,25 @@ export interface Hospital {
   open_247: boolean;
   rating: number;
   description: string;
+  lat?: number;
+  lng?: number;
+}
+
+export interface MedevacBase {
+  id: string;
+  name: string;
+  name_np: string;
+  type: 'Nepal Army Air Force' | 'DJI FlyCart 30 Drone Cargo' | 'HRA Alpine Air Rescue' | 'Private Air Ambulance';
+  base_location: string;
+  district: string;
+  lat: number;
+  lng: number;
+  hotline: string;
+  operational_ceiling_m: number;
+  aircraft: string;
+  avg_speed_kmh: number;
+  description: string;
+  description_np: string;
 }
 
 export interface Medicine {

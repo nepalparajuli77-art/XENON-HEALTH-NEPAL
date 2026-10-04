@@ -14,6 +14,7 @@ import {
   FlaskConical,
   LayoutDashboard,
   CheckSquare,
+  Navigation,
   ShieldCheck
 } from 'lucide-react';
 import { User, Language } from '../types';
@@ -255,6 +256,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
         label: language === 'np' ? 'अस्पताल तथा आईसीयू सूची' : 'Hospitals & ICU Directory',
         shortLabel: 'Hospitals',
         icon: Building2
+      },
+      {
+        id: 'locationMedevac',
+        label: language === 'np' ? 'जीपीएस लोकेशन तथा एयर रेस्क्यु' : 'Location & Medevac Radar',
+        shortLabel: 'Medevac Radar',
+        icon: Navigation,
+        badge: 'GPS'
       },
       {
         id: 'offlineGuide',

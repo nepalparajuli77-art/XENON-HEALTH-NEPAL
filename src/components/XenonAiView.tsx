@@ -16,7 +16,8 @@ import {
   Activity,
   Zap,
   Wifi,
-  Radio
+  Radio,
+  LocateFixed
 } from 'lucide-react';
 import { Language } from '../types';
 
@@ -445,6 +446,16 @@ export const XenonAiView: React.FC<XenonAiViewProps> = ({
                 <Radio className={`w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 ${checkingStatus ? 'animate-spin' : ''}`} />
                 <span>{checkingStatus ? 'Pinging...' : 'Ping Xenon'}</span>
               </button>
+
+              {onNavigate && (
+                <button
+                  onClick={() => onNavigate('locationMedevac')}
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 sm:py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/30 transition-all cursor-pointer"
+                >
+                  <LocateFixed className="w-3.5 h-3.5 text-white" />
+                  <span className="text-white">{language === 'np' ? 'जीपीएस र Medevac' : 'GPS & Medevac Radar'}</span>
+                </button>
+              )}
 
               <a
                 href="tel:102"
