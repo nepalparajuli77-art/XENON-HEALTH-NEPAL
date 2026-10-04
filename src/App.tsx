@@ -848,7 +848,7 @@ export default function App() {
         )}
 
         {/* Dynamic View Body */}
-        <main className="flex-1 flex flex-col w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 sm:pt-6 pb-mobile-nav">
+        <main className="flex-1 flex flex-col w-full min-w-0 max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8 pt-3 sm:pt-6 pb-mobile-nav overflow-x-hidden">
           {currentTab === 'dashboard' && (
             <DashboardView
               doctors={doctors}

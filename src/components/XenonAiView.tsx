@@ -400,34 +400,34 @@ export const XenonAiView: React.FC<XenonAiViewProps> = ({
   };
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-5xl mx-auto px-3 sm:px-0">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in max-w-5xl mx-auto px-1 sm:px-0 w-full min-w-0 overflow-hidden">
       {/* Banner / Header with Nepal Flag Colors & Connection Status */}
-      <div className="relative overflow-hidden rounded-[26px] bg-gradient-to-r from-red-600 via-blue-700 to-red-600 p-1 shadow-xl">
-        <div className="rounded-[24px] bg-white dark:bg-[#0F172A] p-4 sm:p-6 transition-colors">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 min-w-0">
+      <div className="relative overflow-hidden rounded-[22px] sm:rounded-[26px] bg-gradient-to-r from-red-600 via-blue-700 to-red-600 p-1 shadow-xl w-full min-w-0">
+        <div className="rounded-[20px] sm:rounded-[24px] bg-white dark:bg-[#0F172A] p-3.5 sm:p-6 transition-colors w-full min-w-0">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4 w-full min-w-0">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 min-w-0 flex-1 w-full">
               <div className="relative shrink-0">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-red-600 to-blue-700 p-0.5 shadow-md flex items-center justify-center">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-red-600 to-blue-700 p-0.5 shadow-md flex items-center justify-center">
                   <div className="w-full h-full rounded-[14px] bg-white dark:bg-[#1E293B] flex items-center justify-center">
-                    <Sparkles className="w-7 h-7 text-red-600 dark:text-red-400 stroke-[2.2]" />
+                    <Sparkles className="w-6 h-6 sm:w-7 sm:h-7 text-red-600 dark:text-red-400 stroke-[2.2]" />
                   </div>
                 </div>
-                <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white dark:border-[#0F172A] animate-pulse" />
+                <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-emerald-500 border-2 border-white dark:border-[#0F172A] animate-pulse" />
               </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-xl font-black tracking-tight text-slate-950 dark:text-white">
-                    Xenon AI <span className="text-xs px-2.5 py-0.5 rounded-full bg-red-600 text-white font-bold">नेपाल</span>
+              <div className="min-w-0 flex-1 w-full">
+                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap min-w-0">
+                  <h1 className="text-lg sm:text-xl font-black tracking-tight text-slate-950 dark:text-white flex items-center gap-1.5 flex-wrap">
+                    Xenon AI <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-red-600 text-white font-bold shrink-0">नेपाल</span>
                   </h1>
-                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-900 dark:text-blue-200 font-bold border border-blue-200 dark:border-blue-800">
+                  <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-900 dark:text-blue-200 font-bold border border-blue-200 dark:border-blue-800 shrink-0">
                     Clinical Intelligence
                   </span>
-                  <span className="inline-flex items-center gap-1.5 text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-300 font-bold border border-emerald-200 dark:border-emerald-800">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                    Connected: {xenonStatus.model}
+                  <span className="inline-flex items-center gap-1.5 text-[10px] sm:text-[11px] px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-300 font-bold border border-emerald-200 dark:border-emerald-800 shrink-0 max-w-full truncate">
+                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 animate-ping shrink-0" />
+                    <span className="truncate">Connected: {xenonStatus.model}</span>
                   </span>
                 </div>
-                <p className="text-xs text-slate-700 dark:text-slate-300 font-medium mt-1 leading-relaxed">
+                <p className="text-[11px] sm:text-xs text-slate-700 dark:text-slate-300 font-medium mt-1 leading-relaxed">
                   {language === 'np'
                     ? 'तार्किक आकस्मिक प्राथमिक उपचार, लक्षण मूल्याङ्कन र विशेषज्ञ रेफरल प्रणाली'
                     : 'Logical Emergency First-Aid, Clinical Symptom Evaluation & Nepal Hospital Triage'}
@@ -435,12 +435,12 @@ export const XenonAiView: React.FC<XenonAiViewProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap shrink-0">
               <button
                 onClick={checkConnection}
                 disabled={checkingStatus}
                 title="Test live connection to Xenon & Gemini Engine"
-                className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold border border-slate-300 dark:border-slate-700 cursor-pointer transition-all"
+                className="flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold border border-slate-300 dark:border-slate-700 cursor-pointer transition-all"
               >
                 <Radio className={`w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 ${checkingStatus ? 'animate-spin' : ''}`} />
                 <span>{checkingStatus ? 'Pinging...' : 'Ping Xenon'}</span>
@@ -448,7 +448,7 @@ export const XenonAiView: React.FC<XenonAiViewProps> = ({
 
               <a
                 href="tel:102"
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-md shadow-red-600/30 transition-all cursor-pointer"
+                className="flex items-center gap-1.5 px-3.5 py-1.5 sm:py-2 rounded-full bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-md shadow-red-600/30 transition-all cursor-pointer"
               >
                 <PhoneCall className="w-3.5 h-3.5 text-white" />
                 <span className="text-white">Call 102</span>
@@ -457,7 +457,7 @@ export const XenonAiView: React.FC<XenonAiViewProps> = ({
               {onBookDoctor && (
                 <button
                   onClick={onBookDoctor}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold shadow-md shadow-blue-700/30 transition-all cursor-pointer"
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 sm:py-2 rounded-full bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold shadow-md shadow-blue-700/30 transition-all cursor-pointer"
                 >
                   <Calendar className="w-3.5 h-3.5 text-white" />
                   <span className="text-white">Book Doctor</span>
@@ -469,24 +469,24 @@ export const XenonAiView: React.FC<XenonAiViewProps> = ({
       </div>
 
       {/* Main Chat Box Container */}
-      <div className="rounded-[26px] bg-white dark:bg-[#0F172A] border-2 border-blue-600/20 dark:border-blue-500/30 shadow-xl overflow-hidden flex flex-col h-[600px] sm:h-[650px] transition-colors">
+      <div className="rounded-[22px] sm:rounded-[26px] bg-white dark:bg-[#0F172A] border-2 border-blue-600/20 dark:border-blue-500/30 shadow-xl overflow-hidden flex flex-col h-[550px] sm:h-[650px] transition-colors w-full min-w-0">
         {/* Messages Stage */}
-        <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 space-y-4 bg-slate-50 dark:bg-[#0B1120]">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 bg-slate-50 dark:bg-[#0B1120] w-full min-w-0">
           {messages.map((m) => {
             const isUser = m.sender === 'user';
             return (
               <div
                 key={m.id}
-                className={`flex gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}
+                className={`flex gap-2.5 sm:gap-3 min-w-0 w-full ${isUser ? 'justify-end' : 'justify-start'}`}
               >
                 {!isUser && (
-                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-red-600 to-blue-700 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-sm">
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-red-600 to-blue-700 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-sm">
                     X
                   </div>
                 )}
 
                 <div
-                  className={`max-w-[80%] sm:max-w-[85%] rounded-2xl p-3 sm:p-4 shadow-sm space-y-3 ${
+                  className={`max-w-[82%] sm:max-w-[85%] rounded-2xl p-3 sm:p-4 shadow-sm space-y-2.5 sm:space-y-3 min-w-0 break-words ${
                     isUser
                       ? 'bg-blue-700 text-white font-medium rounded-tr-xs'
                       : 'bg-white dark:bg-[#1E293B] text-slate-950 dark:text-white border border-slate-200 dark:border-slate-700 rounded-tl-xs'
@@ -600,9 +600,9 @@ export const XenonAiView: React.FC<XenonAiViewProps> = ({
         </div>
 
         {/* Quick Clinical Prompts Bar */}
-        <div className="px-6 py-3 bg-white dark:bg-[#131C31] border-t border-slate-200 dark:border-slate-800 overflow-x-auto">
-          <div className="flex items-center gap-2 min-w-max">
-            <span className="text-[11px] font-bold text-red-600 dark:text-red-400 flex items-center gap-1">
+        <div className="px-3 sm:px-6 py-2.5 bg-white dark:bg-[#131C31] border-t border-slate-200 dark:border-slate-800 overflow-x-auto w-full min-w-0">
+          <div className="flex items-center gap-2 w-max max-w-full">
+            <span className="text-[11px] font-bold text-red-600 dark:text-red-400 flex items-center gap-1 shrink-0">
               <Flame className="w-3.5 h-3.5" /> Quick Triage:
             </span>
             {quickPrompts.map((qp, i) => (
@@ -610,7 +610,7 @@ export const XenonAiView: React.FC<XenonAiViewProps> = ({
                 key={i}
                 type="button"
                 onClick={() => handleSend(qp.prompt)}
-                className="px-3 py-1.5 rounded-full text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 cursor-pointer transition-colors"
+                className="px-3 py-1.5 rounded-full text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 cursor-pointer transition-colors shrink-0"
               >
                 {qp.label}
               </button>
