@@ -23,7 +23,8 @@ import {
   Mountain,
   FlaskConical,
   Share2,
-  Check
+  Check,
+  RotateCw
 } from 'lucide-react';
 import { Language, User as UserType } from '../types';
 import { Logo } from './Logo';
@@ -138,7 +139,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <header className="sticky top-0 z-20 w-full liquid-glass border-b border-white/60 dark:border-white/10 transition-colors">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14 sm:h-16 gap-3">
           {/* Left: Mobile Brand / Desktop Module Breadcrumb */}
           <div className="flex items-center gap-3 min-w-0">
@@ -189,25 +190,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className="font-mono uppercase">{language}</span>
             </button>
 
-            {/* Dynamic URL Copy & Share Button */}
-            <button
-              onClick={handleCopyCurrentUrl}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-black/[0.04] hover:bg-black/[0.07] dark:bg-white/[0.06] dark:hover:bg-white/[0.1] text-slate-700 dark:text-slate-200 text-xs font-bold border border-black/[0.04] dark:border-white/[0.06] transition-colors cursor-pointer"
-              title="Copy dynamic link to this page"
-            >
-              {copiedUrl ? (
-                <>
-                  <Check className="w-3.5 h-3.5 text-emerald-500" />
-                  <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">Copied!</span>
-                </>
-              ) : (
-                <>
-                  <Share2 className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-                  <span className="hidden sm:inline text-[11px]">Share</span>
-                </>
-              )}
-            </button>
-
             {/* Dark Mode Switcher */}
             <button
               onClick={() => {
@@ -218,6 +200,23 @@ export const Navbar: React.FC<NavbarProps> = ({
               title={isDark ? 'Light Mode' : 'Dark Mode'}
             >
               {isDark ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-slate-600" />}
+            </button>
+
+            {/* Vertical / Landscape Orientation Switcher */}
+            <button
+              onClick={() => {
+                triggerHaptic('medium');
+                if (onToggleSidebar) {
+                  onToggleSidebar();
+                }
+                if (onNotifyToast) {
+                  onNotifyToast('Toggled Vertical / Landscape Navigation Pod Layout');
+                }
+              }}
+              className="p-2 rounded-full bg-black/[0.04] hover:bg-black/[0.07] dark:bg-white/[0.06] dark:hover:bg-white/[0.1] text-slate-700 dark:text-slate-200 text-xs border border-black/[0.04] dark:border-white/[0.06] transition-colors cursor-pointer"
+              title="Toggle Vertical Pod / Landscape Sidebar View"
+            >
+              <RotateCw className="w-3.5 h-3.5 text-blue-500" />
             </button>
 
             {/* User Profile Capsule or Sign In Trigger */}

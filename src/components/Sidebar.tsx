@@ -343,7 +343,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onClick={() => handleTabClick(item.id, item.alert)}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-xs transition-all duration-200 cursor-pointer text-left relative overflow-hidden group ${
                 isActive
-                  ? 'bg-gradient-to-r from-red-600 via-rose-600 to-blue-600 text-white font-black shadow-lg shadow-red-500/25 border border-white/30'
+                  ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-950 font-black shadow-md border border-slate-800 dark:border-white/20'
                   : item.alert
                   ? 'text-red-700 dark:text-rose-400 font-black bg-red-500/10 hover:bg-red-500/20 border border-red-500/30'
                   : 'text-slate-800 dark:text-slate-200 font-bold hover:text-slate-950 dark:hover:text-white hover:bg-slate-900/[0.05] dark:hover:bg-white/10 hover:border-slate-300/80 dark:hover:border-white/10 border border-transparent shadow-2xs hover:shadow-xs'
@@ -408,7 +408,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               triggerHaptic('light');
               onOpenAuth('login');
             }}
-            className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-2xl bg-gradient-to-r from-red-600 to-blue-600 hover:from-red-700 hover:to-blue-700 text-white text-xs font-bold shadow-md shadow-red-500/20 border border-white/30 transition-all active:scale-95 cursor-pointer ${
+            className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-2xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white text-xs font-bold shadow-md border border-slate-700 dark:border-white/10 transition-all active:scale-95 cursor-pointer ${
               collapsed ? 'justify-center px-2' : ''
             }`}
             title="Sign In"

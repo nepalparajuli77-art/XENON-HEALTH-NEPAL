@@ -60,7 +60,7 @@ export const HospitalsView: React.FC<HospitalsViewProps> = ({
               onClick={() => setSelectedDistrict(d)}
               className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                 selectedDistrict === d
-                  ? 'bg-gradient-to-r from-red-600 to-blue-700 text-white shadow-sm shadow-red-600/20'
+                  ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-sm'
                   : 'bg-[#F1F5F9] dark:bg-[#1E293B] text-black dark:text-white hover:bg-neutral-200 dark:hover:bg-[#283548] border border-black/5 dark:border-white/5'
               }`}
             >
@@ -86,7 +86,7 @@ export const HospitalsView: React.FC<HospitalsViewProps> = ({
                 {/* Header */}
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-red-600 to-blue-700 text-white flex items-center justify-center text-xl font-bold shadow-sm shadow-red-600/20 border border-white/20 shrink-0">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-900 dark:bg-slate-800 text-white flex items-center justify-center text-xl font-bold shadow-sm border border-white/10 shrink-0">
                       🏥
                     </div>
                     <div>
@@ -211,7 +211,7 @@ export const HospitalsView: React.FC<HospitalsViewProps> = ({
 
                 <button
                   onClick={() => onOpenChat(hosp)}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-full bg-gradient-to-r from-red-600 to-blue-700 hover:from-red-700 hover:to-blue-800 text-white font-bold text-xs shadow-sm shadow-red-600/20 transition-all cursor-pointer"
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-full bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
                 >
                   <MessageSquare className="w-4 h-4 text-white" />
                   <span>{t('liveChat', language)}</span>

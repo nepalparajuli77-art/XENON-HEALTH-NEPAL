@@ -41,7 +41,7 @@ export const EmergencyView: React.FC<EmergencyViewProps> = ({
       <div className="rounded-[22px] bg-white dark:bg-[#0F172A] p-6 border border-black/[0.08] dark:border-white/[0.08] shadow-[0_2px_12px_rgba(0,0,0,0.04)] dark:shadow-none">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="p-3.5 rounded-2xl bg-gradient-to-br from-red-600 to-blue-700 text-white shadow-md shadow-red-600/20 shrink-0 border border-white/20">
+            <div className="p-3.5 rounded-2xl bg-slate-900 dark:bg-slate-800 text-white shadow-md shrink-0 border border-white/10">
               <ShieldAlert className="w-8 h-8 stroke-[2.2]" />
             </div>
             <div>
@@ -57,7 +57,7 @@ export const EmergencyView: React.FC<EmergencyViewProps> = ({
           <div className="flex items-center gap-2">
             <a
               href="tel:102"
-              className="flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-black text-sm shadow-md shadow-red-600/30 transition-all cursor-pointer animate-pulse"
+              className="flex items-center gap-2 px-6 py-3 rounded-full bg-red-600 hover:bg-red-700 text-white font-black text-sm shadow-md transition-all cursor-pointer animate-pulse"
             >
               <PhoneCall className="w-4 h-4 text-white" />
               <span>Call Ambulance: 102</span>
@@ -67,7 +67,7 @@ export const EmergencyView: React.FC<EmergencyViewProps> = ({
       </div>
 
       {/* High-Altitude Air Ambulance & DJI FlyCart 30 Mission Control Section */}
-      <div className="relative overflow-hidden rounded-[26px] bg-gradient-to-br from-slate-900 via-blue-950 to-red-950 text-white p-6 shadow-xl border border-blue-500/30">
+      <div className="relative overflow-hidden rounded-[26px] bg-slate-900 text-white p-6 shadow-xl border border-slate-800">
         <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
           <Plane className="w-64 h-64 text-white" />
         </div>

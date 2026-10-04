@@ -26,6 +26,7 @@ import { VideoRoomModal } from './components/VideoRoomModal';
 import { AuthModal } from './components/AuthModal';
 import { SyncStatusBar } from './components/SyncStatusBar';
 import { MobileBottomNav } from './components/MobileBottomNav';
+import { motion, AnimatePresence } from 'framer-motion';
 import { initBackgroundSync } from './services/syncService';
 import {
   INITIAL_DOCTORS,
@@ -60,25 +61,7 @@ export default function App() {
   // Parse dynamic URL parameters and path on initial load
   const initialUrl = useMemo(() => parseCurrentUrl(), []);
 
-  const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    try {
-      const saved = localStorage.getItem('telemed_current_user');
-      if (saved) {
-        const parsed = JSON.parse(saved) as User;
-        if (
-          parsed.username !== 'patient_bina' &&
-          parsed.full_name !== 'Bina Pokharel' &&
-          parsed.full_name !== 'Bina Pokhrel' &&
-          parsed.username !== 'user_patient_demo'
-        ) {
-          return parsed;
-        }
-      }
-    } catch (e) {
-      console.warn('Failed to parse cached user', e);
-    }
-    return null;
-  });
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   const [currentTab, setCurrentTab] = useState<string>(() => {
     if (initialUrl.tab) {
@@ -94,6 +77,39 @@ export default function App() {
     } catch {}
     return false; // Default to pristine light mode
   });
+
+  // Universal Auto-Backup Interceptor: Intercepts all database and telemetry saves
+  useEffect(() => {
+    try {
+      const originalSetItem = localStorage.setItem;
+      let backupTimeout: any = null;
+
+      localStorage.setItem = function(key, value) {
+        originalSetItem.apply(this, arguments as any);
+
+        if (
+          key.startsWith('telemed_') ||
+          key.startsWith('xenon_')
+        ) {
+          if (key !== 'xenon_auto_backups_history' && key !== 'xenon_theme') {
+            if (backupTimeout) clearTimeout(backupTimeout);
+            backupTimeout = setTimeout(() => {
+              import('./services/backupService').then(({ captureBackupSnapshot }) => {
+                captureBackupSnapshot('Auto-Save', `System snapshot secured after saving "${key}"`);
+              });
+            }, 600);
+          }
+        }
+      };
+
+      return () => {
+        localStorage.setItem = originalSetItem;
+        if (backupTimeout) clearTimeout(backupTimeout);
+      };
+    } catch (e) {
+      console.warn('Failed to install auto-backup interceptor', e);
+    }
+  }, []);
 
   // Sync theme with document element
   useEffect(() => {
@@ -156,11 +172,15 @@ export default function App() {
       const saved = localStorage.getItem('telemed_doctors');
       if (saved) {
         const parsed = JSON.parse(saved) as Doctor[];
-        // Sync unique individual PINs for standard doctors if they still have the old generic PIN
+        // Sync unique individual PINs and official verified real NMC numbers
         const synced = parsed.map((doc) => {
           const match = INITIAL_DOCTORS.find((d) => d.id === doc.id);
-          if (match && (!doc.pin || doc.pin === '1234')) {
-            return { ...doc, pin: match.pin };
+          if (match) {
+            return {
+              ...doc,
+              nmc_number: match.nmc_number,
+              pin: (!doc.pin || doc.pin === '1234') ? match.pin : doc.pin
+            };
           }
           return doc;
         });
@@ -291,7 +311,7 @@ export default function App() {
     });
   }, []);
 
-  // Initialize Service Worker and Offline-to-Online Background Sync
+  // Initialize Service Worker, Offline-to-Online Background Sync, and fetch state from backend
   useEffect(() => {
     initBackgroundSync((msg) => {
       showToast(msg);
@@ -301,7 +321,13 @@ export default function App() {
       try {
         const raw = localStorage.getItem('telemed_appointments');
         if (raw) {
-          setAppointments(JSON.parse(raw));
+          const parsed = JSON.parse(raw);
+          // Sort chronologically (latest date & time first)
+          const sorted = parsed.sort((a: Appointment, b: Appointment) => {
+            if (a.date !== b.date) return b.date.localeCompare(a.date);
+            return b.time.localeCompare(a.time);
+          });
+          setAppointments(sorted);
         }
       } catch (err) {
         console.warn(err);
@@ -309,6 +335,44 @@ export default function App() {
     };
 
     window.addEventListener('xenon_sync_completed', handleSyncComplete);
+
+    // Initial fetch from backend to keep in sync and prevent data from reverting to local defaults
+    const fetchBackendData = async () => {
+      try {
+        const res = await fetch('/api/appointments');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && Array.isArray(data.appointments)) {
+            setAppointments((prev) => {
+              const backendApts: Appointment[] = data.appointments;
+              const mergedMap = new Map<string, Appointment>();
+              
+              // Local items as baseline
+              prev.forEach((a) => mergedMap.set(a.id, a));
+              // Backend as source of truth
+              backendApts.forEach((a) => mergedMap.set(a.id, a));
+              
+              const merged = Array.from(mergedMap.values());
+              const synced = syncAppointmentStatuses(merged);
+              
+              // Sort chronologically (latest date & time first)
+              const sorted = synced.sort((a, b) => {
+                if (a.date !== b.date) return b.date.localeCompare(a.date);
+                return b.time.localeCompare(a.time);
+              });
+
+              localStorage.setItem('telemed_appointments', JSON.stringify(sorted));
+              return sorted;
+            });
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to sync initial appointments with backend:', err);
+      }
+    };
+
+    fetchBackendData();
+
     return () => {
       window.removeEventListener('xenon_sync_completed', handleSyncComplete);
     };
@@ -671,9 +735,21 @@ export default function App() {
 
   const handleCancelAppointment = (appointmentId: string) => {
     setAppointments((prev) => {
-      const updated = prev.map((apt) =>
-        apt.id === appointmentId ? { ...apt, status: 'Cancelled' as const } : apt
-      );
+      const updated = prev.map((apt) => {
+        if (apt.id === appointmentId) {
+          const cancelledApt = { ...apt, status: 'Cancelled' as const };
+          // Immediately POST the cancellation to the backend database
+          fetch('/api/appointments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(cancelledApt)
+          }).catch((err) => {
+            console.warn('Failed to sync cancelled appointment with backend:', err);
+          });
+          return cancelledApt;
+        }
+        return apt;
+      });
       try {
         localStorage.setItem('telemed_appointments', JSON.stringify(updated));
       } catch (e) {
@@ -710,14 +786,32 @@ export default function App() {
   // Safe fallback user for records and booking if logged out
   const activeUser = currentUser || INITIAL_USERS[0];
 
+  // Automatic orientation / landscape mode handler
+  useEffect(() => {
+    const handleOrientationOrResize = () => {
+      const isLandscape = window.innerWidth > window.innerHeight && window.innerHeight < 600;
+      if (isLandscape && window.innerWidth < 1024) {
+        setSidebarCollapsed(true);
+      }
+    };
+    handleOrientationOrResize();
+    window.addEventListener('resize', handleOrientationOrResize);
+    window.addEventListener('orientationchange', handleOrientationOrResize);
+    return () => {
+      window.removeEventListener('resize', handleOrientationOrResize);
+      window.removeEventListener('orientationchange', handleOrientationOrResize);
+    };
+  }, []);
+
   return (
-    <div className={`min-h-screen w-full flex relative font-sans transition-colors duration-200 ${isDark ? 'dark bg-[#070A12] text-white' : 'bg-[#F8FAFC] text-slate-900'}`}>
-      {/* Ambient Liquid Glass Refraction Mesh Orbs */}
-      <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
-        <div className="absolute -top-40 -left-40 w-[32rem] h-[32rem] rounded-full bg-gradient-to-br from-rose-500/12 via-red-500/8 to-transparent blur-3xl opacity-80 dark:opacity-40" />
-        <div className="absolute top-1/4 right-0 w-[36rem] h-[36rem] rounded-full bg-gradient-to-bl from-blue-500/12 via-indigo-500/8 to-transparent blur-3xl opacity-80 dark:opacity-40" />
-        <div className="absolute -bottom-40 left-1/3 w-[34rem] h-[34rem] rounded-full bg-gradient-to-tr from-cyan-500/10 via-emerald-500/8 to-transparent blur-3xl opacity-70 dark:opacity-30" />
-      </div>
+    <div className={`min-h-screen w-full flex justify-center transition-colors duration-200 ${isDark ? 'dark bg-[#03060E]' : 'bg-[#E2E8F0]'}`}>
+      <div className={`w-full max-w-[1440px] min-h-screen flex relative font-sans shadow-2xl border-x border-slate-200/50 dark:border-slate-800/50 ${isDark ? 'bg-[#070A12] text-white' : 'bg-[#F8FAFC] text-slate-900'}`}>
+        {/* Ambient Liquid Glass Refraction Mesh Orbs */}
+        <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
+          <div className="absolute -top-32 -left-32 w-[38rem] h-[38rem] rounded-full bg-gradient-to-br from-blue-400/20 via-indigo-500/15 to-purple-500/10 blur-3xl opacity-90 dark:opacity-30" />
+          <div className="absolute top-1/3 -right-32 w-[40rem] h-[40rem] rounded-full bg-gradient-to-bl from-cyan-400/20 via-sky-500/15 to-blue-600/10 blur-3xl opacity-85 dark:opacity-25" />
+          <div className="absolute -bottom-32 left-1/4 w-[36rem] h-[36rem] rounded-full bg-gradient-to-tr from-teal-400/15 via-emerald-400/10 to-indigo-500/15 blur-3xl opacity-80 dark:opacity-25" />
+        </div>
 
       {/* Desktop Vertical Sidebar */}
       <Sidebar
@@ -754,7 +848,7 @@ export default function App() {
         )}
 
         {/* Dynamic View Body */}
-        <main className="flex-1 flex flex-col w-full max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 pt-3 sm:pt-6 pb-mobile-nav">
+        <main className="flex-1 flex flex-col w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 sm:pt-6 pb-mobile-nav">
           {currentTab === 'dashboard' && (
             <DashboardView
               doctors={doctors}
@@ -768,6 +862,26 @@ export default function App() {
               currentUser={currentUser}
               onOpenAuth={handleOpenAuth}
               onUpdateUser={handleUpdateUser}
+              onUpdateAppointment={(updatedApt) => {
+                setAppointments((prev) => {
+                  const updated = prev.map((a) => (a.id === updatedApt.id ? updatedApt : a));
+                  try {
+                    localStorage.setItem('telemed_appointments', JSON.stringify(updated));
+                  } catch (e) {
+                    console.warn(e);
+                  }
+                  return updated;
+                });
+                
+                // Immediately POST the updated appointment to the backend database
+                fetch('/api/appointments', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(updatedApt)
+                }).catch((err) => {
+                  console.warn('Failed to sync updated appointment with backend:', err);
+                });
+              }}
             />
           )}
 
@@ -824,18 +938,28 @@ export default function App() {
                 onUpdateDoctor={handleUpdateDoctor}
                 onDeleteDoctor={handleDeleteDoctor}
                 onUpdatePatient={handleUpdateUser}
-                onUpdateAppointment={(updatedApt) => {
-                  setAppointments((prev) => {
-                    const updated = prev.map((a) => (a.id === updatedApt.id ? updatedApt : a));
-                    try {
-                      localStorage.setItem('telemed_appointments', JSON.stringify(updated));
-                    } catch (e) {
-                      console.warn(e);
-                    }
-                    return updated;
-                  });
-                  showToast(`Appointment #${updatedApt.id.toUpperCase()} updated successfully!`);
-                }}
+                 onUpdateAppointment={(updatedApt) => {
+                   setAppointments((prev) => {
+                     const updated = prev.map((a) => (a.id === updatedApt.id ? updatedApt : a));
+                     try {
+                       localStorage.setItem('telemed_appointments', JSON.stringify(updated));
+                     } catch (e) {
+                       console.warn(e);
+                     }
+                     return updated;
+                   });
+
+                   // Immediately POST the updated appointment to the backend database
+                   fetch('/api/appointments', {
+                     method: 'POST',
+                     headers: { 'Content-Type': 'application/json' },
+                     body: JSON.stringify(updatedApt)
+                   }).catch((err) => {
+                     console.warn('Failed to sync updated appointment with backend:', err);
+                   });
+
+                   showToast(`Appointment #${updatedApt.id.toUpperCase()} updated successfully!`);
+                 }}
                 onSwitchUserSession={(user) => {
                   setCurrentUser(user);
                   showToast(`Switched session to ${user.full_name} (${user.role})`);
@@ -976,12 +1100,21 @@ export default function App() {
       />
 
       {/* Toast Popup Notification */}
-      {toastMessage && (
-        <div className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50 p-4 rounded-2xl bg-white dark:bg-[#1C1C1E] text-black dark:text-white text-xs font-bold shadow-2xl border border-black/10 dark:border-white/20 flex items-center gap-2.5 animate-in fade-in slide-in-from-bottom-3">
-          <span>✨</span>
-          <span className="text-black dark:text-white">{toastMessage}</span>
-        </div>
-      )}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+            className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50 p-4 rounded-2xl bg-white dark:bg-[#1C1C1E] text-black dark:text-white text-xs font-bold shadow-2xl border border-black/10 dark:border-white/20 flex items-center gap-2.5"
+          >
+            <span>✨</span>
+            <span className="text-black dark:text-white">{toastMessage}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      </div>
     </div>
   );
 }

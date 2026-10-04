@@ -155,11 +155,11 @@ html.dark .apple-card {
 
 /* Liquid Glass & Specular Gradient Design System */
 .liquid-glass {
-  background: rgba(255, 255, 255, 0.78);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05), inset 0 1px 1px 0 rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.62);
+  backdrop-filter: blur(24px) saturate(210%);
+  -webkit-backdrop-filter: blur(24px) saturate(210%);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.08), inset 0 1.5px 1px 0 rgba(255, 255, 255, 1), inset 0 -1px 1px 0 rgba(0, 0, 0, 0.03);
 }
 
 html.dark .liquid-glass {
@@ -171,11 +171,11 @@ html.dark .liquid-glass {
 }
 
 .liquid-glass-sidebar {
-  background: rgba(255, 255, 255, 0.82);
-  backdrop-filter: blur(28px) saturate(190%);
-  -webkit-backdrop-filter: blur(28px) saturate(190%);
-  border-right: 1px solid rgba(226, 232, 240, 0.95);
-  box-shadow: 4px 0 32px 0 rgba(15, 23, 42, 0.04), inset -1px 0 0 0 rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.68);
+  backdrop-filter: blur(28px) saturate(220%);
+  -webkit-backdrop-filter: blur(28px) saturate(220%);
+  border-right: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 6px 0 32px 0 rgba(15, 23, 42, 0.06), inset -1px 0 1px 0 rgba(255, 255, 255, 0.95);
 }
 
 html.dark .liquid-glass-sidebar {
@@ -187,11 +187,18 @@ html.dark .liquid-glass-sidebar {
 }
 
 .liquid-glass-card {
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
-  border: 1px solid rgba(226, 232, 240, 0.95);
-  box-shadow: 0 4px 24px -2px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.02), inset 0 1px 1px 0 rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.68);
+  backdrop-filter: blur(20px) saturate(200%);
+  -webkit-backdrop-filter: blur(20px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 12px 32px -8px rgba(15, 23, 42, 0.07), 0 4px 12px -2px rgba(15, 23, 42, 0.03), inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 1);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.liquid-glass-card:hover {
+  background: rgba(255, 255, 255, 0.82);
+  border-color: rgba(255, 255, 255, 1);
+  box-shadow: 0 18px 44px -10px rgba(15, 23, 42, 0.12), inset 0 2px 2px 0 rgba(255, 255, 255, 1);
 }
 
 html.dark .liquid-glass-card {
@@ -200,6 +207,11 @@ html.dark .liquid-glass-card {
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.5), inset 0 1px 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+html.dark .liquid-glass-card:hover {
+  background: rgba(15, 23, 42, 0.95);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .liquid-gradient-glow {
@@ -367,4 +379,64 @@ html.dark .liquid-glass-card {
 }
 .pt-safe {
   padding-top: max(0.5rem, env(safe-area-inset-top, 0.5rem));
+}
+
+/* ==========================================================================
+   LANDSCAPE & ORIENTATION SWITCH CSS OVERRIDES
+   ========================================================================== */
+
+/* Landscape Mode Adjustments for Mobile & Tablet Viewports */
+@media (orientation: landscape) and (max-height: 620px) {
+  /* Prevent modals from cutting off top or bottom in landscape orientation */
+  .fixed.inset-0 {
+    align-items: flex-start !important;
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+    overflow-y: auto !important;
+  }
+
+  .fixed.inset-0 > div {
+    max-height: 94vh !important;
+    overflow-y: auto !important;
+    margin-top: auto !important;
+    margin-bottom: auto !important;
+  }
+
+  /* Compact top header in short landscape mode */
+  header, nav {
+    padding-top: 0.35rem !important;
+    padding-bottom: 0.35rem !important;
+  }
+
+  /* Compact mobile bottom nav bar in landscape mode */
+  .mobile-bottom-nav,
+  nav[aria-label="Mobile Navigation"] {
+    height: 3.25rem !important;
+    padding-top: 0.25rem !important;
+    padding-bottom: 0.25rem !important;
+  }
+
+  .mobile-bottom-nav span,
+  nav[aria-label="Mobile Navigation"] span {
+    font-size: 9px !important;
+  }
+
+  /* Reduce bottom margin in landscape view so main canvas uses maximum vertical height */
+  main {
+    padding-bottom: 4rem !important;
+  }
+
+  /* Sticky sidebar in landscape view fits smoothly with vertical scrolling */
+  aside {
+    max-height: 100vh !important;
+    overflow-y: auto !important;
+  }
+}
+
+/* Short height screens fallback */
+@media (max-height: 520px) {
+  .modal-scroll-area {
+    max-height: calc(100vh - 60px) !important;
+    overflow-y: auto !important;
+  }
 }

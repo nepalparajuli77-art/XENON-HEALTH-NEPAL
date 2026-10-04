@@ -113,7 +113,7 @@ export const ChatModal: React.FC<ChatModalProps> = ({
         {/* Header */}
         <div className="p-4 bg-white dark:bg-[#0F172A] text-black dark:text-white border-b border-black/[0.08] dark:border-white/[0.08] flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-red-600 to-blue-700 text-white flex items-center justify-center text-xl font-bold shadow-md shadow-red-600/20 border border-white/20 shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-slate-900 dark:bg-slate-800 text-white flex items-center justify-center text-xl font-bold shadow-md border border-white/10 shrink-0">
               🏥
             </div>
             <div>
@@ -176,7 +176,7 @@ export const ChatModal: React.FC<ChatModalProps> = ({
                 <div
                   className={`max-w-[80%] p-3.5 rounded-2xl text-xs leading-relaxed font-medium shadow-xs ${
                     isUser
-                      ? 'bg-gradient-to-r from-red-600 to-blue-700 text-white shadow-sm shadow-red-600/20 rounded-br-xs'
+                      ? 'bg-slate-900 text-white dark:bg-slate-800 shadow-xs rounded-br-xs'
                       : 'bg-white dark:bg-[#1E293B] text-black dark:text-white border border-black/[0.08] dark:border-white/[0.08] rounded-bl-xs'
                   }`}
                 >
@@ -249,7 +249,7 @@ export const ChatModal: React.FC<ChatModalProps> = ({
           />
           <button
             onClick={() => handleSend()}
-            className="p-2.5 rounded-full bg-gradient-to-r from-red-600 to-blue-700 hover:from-red-700 hover:to-blue-800 text-white shadow-md shadow-red-600/20 transition-all cursor-pointer"
+            className="p-2.5 rounded-full bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 text-white shadow-md transition-all cursor-pointer"
           >
             <Send className="w-4 h-4 text-white" />
           </button>

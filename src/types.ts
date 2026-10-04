@@ -35,6 +35,28 @@ export interface NmcVerificationRecord {
   digital_seal_hash: string;
   verified_at: string;
   is_verified: boolean;
+  gateway_latency_ms?: number;
+  verification_source?: 'nmc_official_live_gateway' | 'nmc_statutory_registry';
+  official_portal_url?: string;
+}
+
+export interface NmcGatewayHealth {
+  status: 'ONLINE' | 'DEGRADED' | 'OFFLINE';
+  isOnline: boolean;
+  latencyMs: number;
+  endpoint: string;
+  officialUrl: string;
+  lastChecked: string;
+}
+
+export interface NmcLiveValidationResponse {
+  success: boolean;
+  verified?: boolean;
+  record?: NmcVerificationRecord;
+  error?: string;
+  source?: 'nmc_official_live_gateway' | 'nmc_statutory_registry' | 'nmc_cache';
+  gatewayLatencyMs?: number;
+  timestamp: string;
 }
 
 export interface Doctor {

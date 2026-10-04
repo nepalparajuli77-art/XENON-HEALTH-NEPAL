@@ -42,7 +42,99 @@ interface DashboardViewProps {
   currentUser?: User | null;
   onOpenAuth?: (mode?: 'login' | 'register-doctor' | 'register-patient') => void;
   onUpdateUser?: (updatedUser: User) => void;
+  onUpdateAppointment?: (updatedApt: Appointment) => void;
 }
+
+// Interactive & Animated Appointment Status Badge with pulse transitions
+const AppointmentStatusBadge: React.FC<{
+  apt: Appointment;
+  onUpdateAppointment?: (updatedApt: Appointment) => void;
+  onOpenVideoRoom?: (apt: Appointment) => void;
+}> = ({ apt, onUpdateAppointment, onOpenVideoRoom }) => {
+  const [isRecentlyUpdated, setIsRecentlyUpdated] = useState(false);
+  const prevStatusRef = React.useRef(apt.status);
+
+  React.useEffect(() => {
+    if (prevStatusRef.current !== apt.status) {
+      if (apt.status === 'Confirmed' || apt.status === 'Completed') {
+        setIsRecentlyUpdated(true);
+        const timer = setTimeout(() => setIsRecentlyUpdated(false), 3500);
+        prevStatusRef.current = apt.status;
+        return () => clearTimeout(timer);
+      }
+      prevStatusRef.current = apt.status;
+    }
+  }, [apt.status]);
+
+  const handleCycleStatus = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!onUpdateAppointment) return;
+    const cycleMap: Record<string, 'Pending' | 'Confirmed' | 'Completed' | 'Cancelled'> = {
+      Pending: 'Confirmed',
+      Confirmed: 'Completed',
+      Completed: 'Pending',
+      Cancelled: 'Pending'
+    };
+    const nextStatus = cycleMap[apt.status] || 'Confirmed';
+    onUpdateAppointment({ ...apt, status: nextStatus });
+  };
+
+  const getBadgeStyle = () => {
+    switch (apt.status) {
+      case 'Confirmed':
+        return 'bg-emerald-50 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-700/80 shadow-xs';
+      case 'Completed':
+        return 'bg-blue-50 dark:bg-blue-950/80 text-blue-800 dark:text-blue-200 border-blue-300 dark:border-blue-700/80 shadow-xs';
+      case 'Cancelled':
+        return 'bg-rose-50 dark:bg-rose-950/80 text-rose-800 dark:text-rose-200 border-rose-300 dark:border-rose-700/80 shadow-xs';
+      case 'Pending':
+      default:
+        return 'bg-amber-50 dark:bg-amber-950/80 text-amber-800 dark:text-amber-200 border-amber-300 dark:border-amber-700/80 shadow-xs';
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      {apt.type.includes('Video') && apt.status === 'Confirmed' && onOpenVideoRoom && (
+        <button
+          onClick={() => onOpenVideoRoom(apt)}
+          className="px-2.5 py-1 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 text-white font-bold text-[11px] shadow-xs cursor-pointer flex items-center gap-1 transition-all active:scale-95"
+          title="Join live telemedicine video conference"
+        >
+          <Video className="w-3 h-3 text-emerald-400" />
+          <span>Join</span>
+        </button>
+      )}
+
+      <button
+        onClick={handleCycleStatus}
+        title={onUpdateAppointment ? "Click status to cycle (Pending → Confirmed → Completed)" : undefined}
+        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black border transition-all duration-500 cursor-pointer ${getBadgeStyle()} ${
+          isRecentlyUpdated
+            ? 'animate-pulse ring-2 ring-emerald-500/60 shadow-md scale-105'
+            : 'hover:scale-102'
+        }`}
+      >
+        {apt.status === 'Confirmed' && (
+          <span className="relative flex h-2 w-2 shrink-0">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+        )}
+
+        {apt.status === 'Completed' && (
+          <CheckCircle2 className="w-3 h-3 text-blue-600 dark:text-blue-400 shrink-0" />
+        )}
+
+        {apt.status === 'Pending' && (
+          <Clock className="w-3 h-3 text-amber-600 dark:text-amber-400 animate-pulse shrink-0" />
+        )}
+
+        <span className="capitalize">{apt.status}</span>
+      </button>
+    </div>
+  );
+};
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
   doctors,
@@ -55,21 +147,88 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onOpenVideoRoom,
   currentUser,
   onOpenAuth,
-  onUpdateUser
+  onUpdateUser,
+  onUpdateAppointment
 }) => {
   // Advice carousel index
   const [adviceIndex, setAdviceIndex] = useState(0);
   const [adviceCategory, setAdviceCategory] = useState<'all' | 'altitude' | 'cardio' | 'nutrition' | 'wellness'>('all');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
 
+  // Safe fallback display user
+  const activeUser = currentUser || {
+    id: 'usr_nepal',
+    username: 'nepal',
+    role: 'patient' as const,
+    full_name: 'Nepal Parajuli',
+    phone: '+977-9841234567',
+    email: 'nepal.parajuli.77@gmail.com',
+    blood_group: 'O+',
+    age: 28,
+    gender: 'Male',
+    district: 'Kathmandu',
+    emergency_contact: '+977-9841234567',
+    allergies: []
+  };
+
   // Profile Edit Local State
-  const [editFullName, setEditFullName] = useState(currentUser?.full_name || '');
-  const [editBloodGroup, setEditBloodGroup] = useState(currentUser?.blood_group || 'O+');
-  const [editAge, setEditAge] = useState(currentUser?.age?.toString() || '28');
-  const [editGender, setEditGender] = useState(currentUser?.gender || 'Male');
-  const [editDistrict, setEditDistrict] = useState(currentUser?.district || 'Kathmandu');
-  const [editEmergencyPhone, setEditEmergencyPhone] = useState(currentUser?.emergency_contact || '+977-9841234567');
-  const [editAllergies, setEditAllergies] = useState(currentUser?.allergies?.join(', ') || 'None');
+  const [editFullName, setEditFullName] = useState(currentUser?.full_name || activeUser.full_name);
+  const [editBloodGroup, setEditBloodGroup] = useState(currentUser?.blood_group || activeUser.blood_group || 'O+');
+  const [editAge, setEditAge] = useState((currentUser?.age || activeUser.age || 28).toString());
+  const [editGender, setEditGender] = useState(currentUser?.gender || activeUser.gender || 'Male');
+  const [editDistrict, setEditDistrict] = useState(currentUser?.district || activeUser.district || 'Kathmandu');
+  const [editEmergencyPhone, setEditEmergencyPhone] = useState(currentUser?.emergency_contact || activeUser.emergency_contact || '+977-9841234567');
+  const [editAllergies, setEditAllergies] = useState(currentUser?.allergies?.join(', ') || activeUser.allergies?.join(', ') || '');
+
+  // Keep inputs strictly in sync when currentUser changes or when user opens the Edit Profile modal
+  React.useEffect(() => {
+    const userToSync = currentUser || activeUser;
+    setEditFullName(userToSync.full_name || '');
+    setEditBloodGroup(userToSync.blood_group || 'O+');
+    setEditAge((userToSync.age || 28).toString());
+    setEditGender(userToSync.gender || 'Male');
+    setEditDistrict(userToSync.district || 'Kathmandu');
+    setEditEmergencyPhone(userToSync.emergency_contact || '+977-9841234567');
+    setEditAllergies(userToSync.allergies?.join(', ') || '');
+  }, [currentUser, isEditingProfile]);
+
+  const handleSaveProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    const base = currentUser || activeUser;
+
+    const updatedUser: User = {
+      ...base,
+      full_name: editFullName.trim() || base.full_name,
+      blood_group: editBloodGroup,
+      age: parseInt(editAge) || base.age || 28,
+      gender: editGender,
+      district: editDistrict.trim() || base.district || 'Kathmandu',
+      emergency_contact: editEmergencyPhone.trim() || base.emergency_contact || '+977-9841234567',
+      allergies: editAllergies.split(',').map((s) => s.trim()).filter(Boolean)
+    };
+
+    if (onUpdateUser) {
+      onUpdateUser(updatedUser);
+    }
+
+    try {
+      localStorage.setItem('telemed_current_user', JSON.stringify(updatedUser));
+      const savedUsers = localStorage.getItem('xenon_users') || localStorage.getItem('telemed_users');
+      if (savedUsers) {
+        const parsed = JSON.parse(savedUsers) as User[];
+        const exists = parsed.some((u) => u.id === updatedUser.id);
+        const updatedList = exists
+          ? parsed.map((u) => (u.id === updatedUser.id ? updatedUser : u))
+          : [updatedUser, ...parsed];
+        localStorage.setItem('xenon_users', JSON.stringify(updatedList));
+        localStorage.setItem('telemed_users', JSON.stringify(updatedList));
+      }
+    } catch (e) {
+      console.warn(e);
+    }
+
+    setIsEditingProfile(false);
+  };
 
   // Curated Minimalist Nepal Health Advices
   const healthAdvices = [
@@ -133,55 +292,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   const handleNextAdvice = () => {
     setAdviceIndex((prev) => (prev + 1) % filteredAdvices.length);
-  };
-
-  const handleSaveProfile = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentUser) return;
-
-    const updatedUser: User = {
-      ...currentUser,
-      full_name: editFullName.trim() || currentUser.full_name,
-      blood_group: editBloodGroup,
-      age: parseInt(editAge) || currentUser.age || 28,
-      gender: editGender,
-      district: editDistrict.trim(),
-      emergency_contact: editEmergencyPhone.trim(),
-      allergies: editAllergies.split(',').map((s) => s.trim()).filter(Boolean)
-    };
-
-    if (onUpdateUser) {
-      onUpdateUser(updatedUser);
-    }
-
-    try {
-      localStorage.setItem('telemed_current_user', JSON.stringify(updatedUser));
-      const savedUsers = localStorage.getItem('xenon_users') || localStorage.getItem('telemed_users');
-      if (savedUsers) {
-        const parsed = JSON.parse(savedUsers) as User[];
-        const updatedList = parsed.map((u) => (u.id === updatedUser.id ? updatedUser : u));
-        localStorage.setItem('xenon_users', JSON.stringify(updatedList));
-      }
-    } catch (e) {
-      console.warn(e);
-    }
-
-    setIsEditingProfile(false);
-  };
-
-  // Safe fallback display user
-  const activeUser = currentUser || {
-    id: 'guest_user',
-    username: 'guest',
-    role: 'patient' as const,
-    full_name: language === 'np' ? 'अतिथि बिरामी' : 'Guest Patient',
-    phone: '+977-98XXXXXXXX',
-    email: 'patient@xenonhealth.org.np',
-    blood_group: 'O+',
-    age: 28,
-    gender: 'Male',
-    district: 'Kathmandu',
-    emergency_contact: '102 (National Ambulance)'
   };
 
   const timeGreeting = () => {
@@ -488,19 +598,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       </div>
                     </div>
 
-                    {apt.type.includes('Video') && apt.status === 'Confirmed' ? (
-                      <button
-                        onClick={() => onOpenVideoRoom(apt)}
-                        className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-red-600 to-blue-700 hover:from-red-700 hover:to-blue-800 text-white font-bold text-xs shadow-xs cursor-pointer flex items-center gap-1"
-                      >
-                        <Video className="w-3.5 h-3.5" />
-                        <span>Join</span>
-                      </button>
-                    ) : (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                        {apt.status}
-                      </span>
-                    )}
+                    <AppointmentStatusBadge
+                      apt={apt}
+                      onUpdateAppointment={onUpdateAppointment}
+                      onOpenVideoRoom={onOpenVideoRoom}
+                    />
                   </div>
                 ))}
               </div>

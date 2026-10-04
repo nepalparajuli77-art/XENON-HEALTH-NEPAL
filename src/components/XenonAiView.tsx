@@ -65,8 +65,8 @@ export const XenonAiView: React.FC<XenonAiViewProps> = ({
     node: string;
   }>({
     connected: true,
-    engine: 'Google Gemini (gemini-3.1-flash-lite)',
-    model: 'gemini-3.1-flash-lite',
+    engine: 'Google Gemini (gemini-3.8-flash)',
+    model: 'gemini-3.8-flash',
     assistant_name: 'Xenon',
     node: 'Kathmandu Central Node'
   });
@@ -81,8 +81,8 @@ export const XenonAiView: React.FC<XenonAiViewProps> = ({
         const data = await res.json();
         setXenonStatus({
           connected: data.connected ?? true,
-          engine: data.engine ?? 'Google Gemini (gemini-3.1-flash-lite)',
-          model: data.model ?? 'gemini-3.1-flash-lite',
+          engine: data.engine ?? 'Google Gemini (gemini-3.8-flash)',
+          model: data.model ?? 'gemini-3.8-flash',
           assistant_name: data.assistant_name ?? 'Xenon',
           node: data.node ?? 'Kathmandu Central Node'
         });

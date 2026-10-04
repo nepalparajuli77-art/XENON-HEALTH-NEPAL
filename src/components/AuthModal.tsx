@@ -24,7 +24,7 @@ import {
 import { User, Doctor, Language, NmcVerificationRecord } from '../types';
 import { addActivityLog } from '../data/activityService';
 import { NmcVerificationModal } from './NmcVerificationModal';
-import { verifyNmcNumber } from '../services/nmcVerificationService';
+import { validateDoctorNmcRealTime } from '../services/nmcLiveVerificationService';
 import { triggerHaptic } from '../utils/haptics';
 
 interface AuthModalProps {
@@ -52,7 +52,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onPatientRegistered,
   doctors = [],
   language,
-  existingUsers = []
+  existingUsers = [],
+  currentUser
 }) => {
   const [activeTab, setActiveTab] = useState<'login' | 'doctor-login' | 'register-patient'>('login');
 
@@ -91,7 +92,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const handleVerifyDoctorNmc = async (nmcNumber: string) => {
     triggerHaptic('medium');
     setIsVerifyingNmc(true);
-    const res = await verifyNmcNumber(nmcNumber);
+    const res = await validateDoctorNmcRealTime(nmcNumber);
     setIsVerifyingNmc(false);
     if (res.success && res.record) {
       triggerHaptic('success');
@@ -413,27 +414,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   );
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="w-full max-w-lg rounded-t-[32px] sm:rounded-3xl bg-white dark:bg-[#0F172A] border-t sm:border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-2xl animate-in fade-in relative max-h-[92vh] overflow-y-auto pb-8 sm:pb-6">
+    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4 sm:p-6">
+      <div className="w-full max-w-lg rounded-3xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-2xl animate-in fade-in relative max-h-[92vh] overflow-y-auto">
         {/* Mobile Pull Handle Indicator */}
         <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto mb-3 sm:hidden shrink-0" />
 
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
-        >
-          <X className="w-4 h-4" />
-        </button>
+        {currentUser && (
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
 
         {/* Modal Header */}
         <div className="flex items-center gap-3 mb-4">
-          <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black shadow-md shrink-0 ${
-            activeTab === 'doctor-login'
-              ? 'bg-gradient-to-br from-blue-600 to-indigo-700 text-white shadow-blue-600/20'
-              : activeTab === 'register-patient'
-              ? 'bg-gradient-to-br from-emerald-600 to-teal-700 text-white shadow-emerald-600/20'
-              : 'bg-gradient-to-br from-red-600 to-blue-700 text-white shadow-red-600/20'
-          }`}>
+          <div className="w-11 h-11 rounded-2xl bg-slate-900 dark:bg-slate-800 text-white flex items-center justify-center font-black shadow-md shrink-0">
             {activeTab === 'doctor-login' ? (
               <Stethoscope className="w-5 h-5" />
             ) : activeTab === 'register-patient' ? (
@@ -610,15 +607,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </button>
             </div>
 
-            {/* Credential hint note (NO PLAINTEXT PASSWORDS DISPLAYED) */}
-            <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 text-[11px] text-slate-500 space-y-1">
-              <div className="font-bold text-slate-700 dark:text-slate-300">Authorized Accounts:</div>
-              <div>• <b>Developer Admin</b>: username <span className="font-mono text-purple-600 dark:text-purple-400 font-bold">developer</span></div>
-              <div>• <b>Nepal Parajuli (Patient)</b>: username <span className="font-mono text-red-600 dark:text-red-400 font-bold">nepal</span></div>
-              <div className="text-[10px] text-slate-400 pt-1 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-between">
-                <span>Account Recovery Dispatch:</span>
-                <span className="font-mono text-blue-600 dark:text-blue-400 font-bold">nepal.parajuli.77@gmail.com</span>
-              </div>
+            {/* Secure Area Indicator */}
+            <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 text-[11px] text-slate-500 flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>This is a secure medical terminal. All login events are audited and encrypted.</span>
             </div>
           </form>
         )}
@@ -869,7 +861,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 required
                 value={patName}
                 onChange={(e) => setPatName(e.target.value)}
-                placeholder="e.g. Ramesh Thapa or Anita Sharma"
+                placeholder="e.g. Bikram Thapa or Anita Sharma"
                 className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-950 dark:text-white font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
               />
             </div>

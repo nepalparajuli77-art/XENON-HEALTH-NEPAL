@@ -109,7 +109,7 @@ export const BookModal: React.FC<BookModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-3">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-gradient-to-br from-red-600 to-blue-700 text-white shadow-md shadow-red-600/20 border border-white/20">
+            <div className="p-2.5 rounded-2xl bg-slate-900 dark:bg-slate-800 text-white shadow-md border border-white/10">
               <Calendar className="w-5 h-5 stroke-[2.2] text-white" />
             </div>
             <div>
@@ -155,7 +155,7 @@ export const BookModal: React.FC<BookModalProps> = ({
               <button
                 type="button"
                 onClick={proceedWithBooking}
-                className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-red-600 to-blue-700 text-white font-black shadow-sm hover:brightness-110"
+                className="px-4 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold shadow-sm"
               >
                 Confirm Appointment in Demo Mode
               </button>
@@ -338,7 +338,7 @@ export const BookModal: React.FC<BookModalProps> = ({
             </button>
             <button
               type="submit"
-              className="px-6 py-2.5 rounded-full bg-gradient-to-r from-red-600 to-blue-700 hover:from-red-700 hover:to-blue-800 text-white font-bold shadow-md shadow-red-600/20 transition-all cursor-pointer"
+              className="px-6 py-2.5 rounded-full bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white font-bold shadow-md transition-all cursor-pointer"
             >
               Confirm Appointment
             </button>

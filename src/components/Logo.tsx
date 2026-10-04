@@ -14,11 +14,11 @@ export const Logo: React.FC<LogoProps> = ({
   showBadge = true
 }) => {
   return (
-    <div className={`flex items-center gap-3 select-none ${className}`}>
+    <div className={`inline-flex items-center gap-3 select-none whitespace-nowrap ${className}`}>
       {/* Modern Futuristic Xenon Medical Tech Icon */}
       <div
         style={{ width: size, height: size }}
-        className="relative shrink-0 rounded-2xl bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 p-[1.5px] shadow-lg shadow-red-950/20 group cursor-pointer transition-transform duration-300 hover:scale-105"
+        className="relative shrink-0 rounded-2xl bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 p-[1.5px] shadow-lg shadow-red-950/20 group cursor-pointer transition-transform duration-300 hover:scale-105 flex items-center justify-center"
       >
         {/* Outer glowing border ring */}
         <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-red-500 via-rose-600 to-blue-600 opacity-90 transition-opacity group-hover:opacity-100" />
@@ -86,8 +86,8 @@ export const Logo: React.FC<LogoProps> = ({
 
       {/* Brand Text Identity */}
       {showText && (
-        <div className="flex flex-col">
-          <div className="flex items-center gap-1.5">
+        <div className="flex flex-col justify-center leading-tight">
+          <div className="flex items-center gap-1.5 leading-none">
             <span className="font-black text-lg tracking-tight bg-gradient-to-r from-slate-950 via-slate-900 to-slate-800 dark:from-white dark:via-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
               XENON
             </span>
@@ -95,12 +95,12 @@ export const Logo: React.FC<LogoProps> = ({
               HEALTH
             </span>
             {showBadge && (
-              <span className="text-[10px] font-black tracking-wider px-1.5 py-0.5 rounded-md bg-gradient-to-r from-red-600 to-blue-700 text-white shadow-xs uppercase">
+              <span className="text-[10px] font-black tracking-wider px-1.5 py-0.5 rounded-md bg-gradient-to-r from-red-600 to-blue-700 text-white shadow-xs uppercase leading-none">
                 नेपाल
               </span>
             )}
           </div>
-          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 tracking-wide uppercase hidden sm:block">
+          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 tracking-wide uppercase mt-0.5 hidden sm:block">
             AI Telemedicine Platform
           </span>
         </div>

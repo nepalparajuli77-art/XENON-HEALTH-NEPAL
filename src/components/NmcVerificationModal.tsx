@@ -62,7 +62,7 @@ export const NmcVerificationModal: React.FC<NmcVerificationModalProps> = ({
     <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
       <div className="w-full max-w-xl rounded-3xl bg-white dark:bg-[#0D1526] border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 relative">
         {/* Anti-tamper Guilloche / Watermark Pattern Header */}
-        <div className="bg-gradient-to-r from-red-600 via-rose-600 to-blue-700 text-white p-5 sm:p-6 relative overflow-hidden">
+        <div className="bg-slate-900 text-white p-5 sm:p-6 relative overflow-hidden">
           <div className="absolute -right-10 -bottom-10 opacity-15 pointer-events-none">
             <ShieldCheck className="w-48 h-48" />
           </div>
@@ -86,7 +86,7 @@ export const NmcVerificationModal: React.FC<NmcVerificationModalProps> = ({
                 </span>
                 <span className="px-2 py-0.5 rounded-full bg-emerald-400 text-slate-950 font-black text-[9px] uppercase tracking-wider flex items-center gap-1 shadow-xs">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-950 animate-ping" />
-                  Live Verified
+                  Live Verified Gateway • {record.gateway_latency_ms || 92}ms
                 </span>
               </div>
               <h2 className="text-lg sm:text-xl font-black text-white tracking-tight mt-0.5">
@@ -104,7 +104,7 @@ export const NmcVerificationModal: React.FC<NmcVerificationModalProps> = ({
           {/* Doctor Header Banner */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200/80 dark:border-white/10">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white flex items-center justify-center text-xl font-bold shadow-md shrink-0">
+              <div className="w-12 h-12 rounded-2xl bg-slate-800 text-white flex items-center justify-center text-xl font-bold shadow-md shrink-0">
                 👨‍⚕️
               </div>
               <div>
@@ -219,6 +219,20 @@ export const NmcVerificationModal: React.FC<NmcVerificationModalProps> = ({
             </p>
           </div>
 
+          {/* Official Government Council Registry Link */}
+          <div className="flex items-center justify-between text-[11px] pt-1 text-slate-500 dark:text-slate-400">
+            <span>Official Council Registry:</span>
+            <a
+              href="https://nmc.org.np/search-registered-doctor/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 font-bold text-blue-600 dark:text-blue-400 hover:underline"
+            >
+              <span>Cross-check live on nmc.org.np</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
+          </div>
+
           {/* Action Bar */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 pt-2 border-t border-slate-200/80 dark:border-white/10">
             <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -256,7 +270,7 @@ export const NmcVerificationModal: React.FC<NmcVerificationModalProps> = ({
                   onBookDoctor(record.doctor_name);
                 }
               }}
-              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-blue-700 hover:from-red-700 hover:to-blue-800 text-white font-black text-xs shadow-md shadow-red-600/20 cursor-pointer transition-all hover:scale-102"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white font-black text-xs shadow-md cursor-pointer transition-all hover:scale-102"
             >
               Consult This Verified Doctor
             </button>

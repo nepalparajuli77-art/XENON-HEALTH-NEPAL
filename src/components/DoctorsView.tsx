@@ -196,7 +196,7 @@ export const DoctorsView: React.FC<DoctorsViewProps> = ({
                     onClick={() => setSelectedSpecialty(spec)}
                     className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                       active
-                        ? 'bg-gradient-to-r from-red-600 to-blue-700 text-white shadow-sm shadow-red-600/20'
+                        ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-sm'
                         : 'bg-[#F1F5F9] dark:bg-[#1E293B] text-black dark:text-white hover:bg-neutral-200 dark:hover:bg-[#283548] border border-black/5 dark:border-white/5'
                     }`}
                   >
@@ -218,7 +218,7 @@ export const DoctorsView: React.FC<DoctorsViewProps> = ({
                   {/* Doctor Top Info */}
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-red-600 to-blue-700 text-white flex items-center justify-center text-xl font-bold shadow-sm shadow-red-600/20 border border-white/20">
+                      <div className="w-12 h-12 rounded-2xl bg-slate-900 dark:bg-slate-800 text-white flex items-center justify-center text-xl font-bold shadow-sm border border-white/10">
                         👨‍⚕️
                       </div>
                       <div>
@@ -292,7 +292,7 @@ export const DoctorsView: React.FC<DoctorsViewProps> = ({
                 <div className="mt-4 pt-3 border-t border-black/5 dark:border-white/5">
                   <button
                     onClick={() => onBookDoctor(doc)}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-full bg-gradient-to-r from-red-600 to-blue-700 hover:from-red-700 hover:to-blue-800 text-white font-bold text-xs shadow-sm shadow-red-600/20 transition-all cursor-pointer"
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-full bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
                   >
                     <CalendarPlus className="w-4 h-4 text-white" />
                     <span>{t('bookNow', language)}</span>

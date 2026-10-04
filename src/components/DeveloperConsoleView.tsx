@@ -28,11 +28,17 @@ import {
   Check,
   Zap,
   Filter,
-  FileText
+  FileText,
+  Database,
+  Download,
+  UploadCloud,
+  RotateCcw,
+  History
 } from 'lucide-react';
 import { Doctor, User, Appointment, Prescription, Language, ActivityLog } from '../types';
 import { getActivityLogs, saveActivityLogs, addActivityLog } from '../data/activityService';
 import { Logo } from './Logo';
+import { BackupsConsoleTabView } from './BackupsConsoleTabView';
 
 interface DeveloperConsoleViewProps {
   doctors: Doctor[];
@@ -63,7 +69,7 @@ export const DeveloperConsoleView: React.FC<DeveloperConsoleViewProps> = ({
   onSwitchUserSession,
   onNavigate
 }) => {
-  const [activeTab, setActiveTab] = useState<'activity' | 'doctors' | 'patients' | 'appointments'>('activity');
+  const [activeTab, setActiveTab] = useState<'activity' | 'doctors' | 'patients' | 'appointments' | 'backups'>('activity');
   const [searchQuery, setSearchQuery] = useState('');
   const [toastMessage, setToastMessage] = useState('');
 
@@ -78,8 +84,6 @@ export const DeveloperConsoleView: React.FC<DeveloperConsoleViewProps> = ({
   const [editingPatient, setEditingPatient] = useState<User | null>(null);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
   const [showAddDoctorModal, setShowAddDoctorModal] = useState(false);
-  const [showCredentialDocModal, setShowCredentialDocModal] = useState(false);
-  const [copiedDoc, setCopiedDoc] = useState(false);
 
   // New Doctor Form State
   const [newDocName, setNewDocName] = useState('');
@@ -331,7 +335,7 @@ export const DeveloperConsoleView: React.FC<DeveloperConsoleViewProps> = ({
   return (
     <div className="space-y-6 animate-in fade-in max-w-7xl mx-auto px-2 sm:px-4">
       {/* Modern High-Tech Brand Header & Overview */}
-      <div className="rounded-[24px] bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-5 sm:p-6 shadow-xl border border-indigo-900/50 flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+      <div className="rounded-[24px] bg-slate-900 text-white p-5 sm:p-6 shadow-xl border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
         <div className="flex items-center gap-4">
           <Logo size={48} showBadge={false} />
           <div>
@@ -350,14 +354,6 @@ export const DeveloperConsoleView: React.FC<DeveloperConsoleViewProps> = ({
         </div>
 
         <div className="flex items-center gap-2 self-start md:self-auto flex-wrap">
-          <button
-            onClick={() => setShowCredentialDocModal(true)}
-            className="min-h-[42px] px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold shadow-md shadow-slate-900/40 flex items-center gap-1.5 transition-all cursor-pointer border border-slate-700"
-          >
-            <FileText className="w-4 h-4 text-emerald-400" />
-            <span>Accounts &amp; Credentials Doc</span>
-          </button>
-
           <button
             onClick={() => setShowBroadcastModal(true)}
             className="min-h-[42px] px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-600/30 flex items-center gap-1.5 transition-all cursor-pointer"
@@ -425,6 +421,18 @@ export const DeveloperConsoleView: React.FC<DeveloperConsoleViewProps> = ({
           >
             <Calendar className="w-4 h-4" />
             <span>Appointments ({appointments.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('backups')}
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap min-h-[40px] ${
+              activeTab === 'backups'
+                ? 'bg-amber-600 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <Database className="w-4 h-4" />
+            <span>Auto-Backups & Recovery</span>
           </button>
         </div>
 
@@ -590,7 +598,7 @@ export const DeveloperConsoleView: React.FC<DeveloperConsoleViewProps> = ({
             </div>
             <button
               onClick={() => setShowAddDoctorModal(true)}
-              className="min-h-[40px] px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white text-xs font-bold shadow-md shadow-blue-600/25 flex items-center gap-1.5 transition-all cursor-pointer self-start sm:self-auto shrink-0"
+              className="min-h-[40px] px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white text-xs font-bold shadow-md flex items-center gap-1.5 transition-all cursor-pointer self-start sm:self-auto shrink-0"
             >
               <Plus className="w-4 h-4" />
               <span>+ Add New Doctor</span>
@@ -950,6 +958,13 @@ export const DeveloperConsoleView: React.FC<DeveloperConsoleViewProps> = ({
             </div>
           )}
         </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 4: SYSTEM BACKUPS & DATA RECOVERY PANEL */}
+      {/* ========================================================================= */}
+      {activeTab === 'backups' && (
+        <BackupsConsoleTabView showToast={showToast} />
       )}
 
       {/* ========================================================================= */}
@@ -1527,194 +1542,6 @@ export const DeveloperConsoleView: React.FC<DeveloperConsoleViewProps> = ({
         </div>
       )}
 
-      {/* Google Docs Styled Accounts & Credentials Dossier Modal */}
-      {showCredentialDocModal && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
-          <div className="w-full max-w-4xl rounded-3xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 max-h-[92vh] overflow-y-auto space-y-5 text-xs">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-black shadow-md shadow-blue-600/20">
-                  <FileText className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
-                    <span>Google Docs: Xenon Health Accounts &amp; Credentials Dossier</span>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
-                      Confidential
-                    </span>
-                  </h3>
-                  <p className="text-[11px] text-slate-500">
-                    Master reference of all usernames, passwords, doctor PINs, and recovery channels.
-                  </p>
-                </div>
-              </div>
-
-              <button
-                onClick={() => setShowCredentialDocModal(false)}
-                className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Google Docs Document Preview Box */}
-            <div className="p-5 rounded-2xl bg-[#F8FAFC] dark:bg-[#0B1120] border border-slate-200 dark:border-slate-800 font-mono text-[11px] space-y-4">
-              <div className="border-b border-slate-200 dark:border-slate-800 pb-3 flex items-center justify-between flex-wrap gap-2 text-slate-600 dark:text-slate-400">
-                <span>DOC TITLE: XENON_HEALTH_CREDENTIALS_MASTER.gdoc</span>
-                <span>ADMIN RECOVERY: nepal.parajuli.77@gmail.com</span>
-              </div>
-
-              {/* 1. Core Users */}
-              <div className="space-y-2">
-                <div className="font-bold text-xs text-slate-900 dark:text-white uppercase tracking-wider font-sans flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-purple-600" />
-                  <span>1. Core Administrative &amp; Patient Accounts</span>
-                </div>
-                <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0F172A]">
-                  <table className="w-full text-left">
-                    <thead>
-                      <tr className="bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-b border-slate-200 dark:border-slate-800 text-[10px] uppercase">
-                        <th className="p-2.5">Role</th>
-                        <th className="p-2.5">Name</th>
-                        <th className="p-2.5">Username</th>
-                        <th className="p-2.5">Password</th>
-                        <th className="p-2.5">Recovery Email</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                      <tr>
-                        <td className="p-2.5 font-bold text-purple-600">developer (admin)</td>
-                        <td className="p-2.5">Developer Operations</td>
-                        <td className="p-2.5 font-bold">developer</td>
-                        <td className="p-2.5 font-bold text-blue-600">12admin34</td>
-                        <td className="p-2.5 text-slate-500">developer@xenonhealth.org.np</td>
-                      </tr>
-                      <tr>
-                        <td className="p-2.5 font-bold text-emerald-600">patient</td>
-                        <td className="p-2.5">Nepal Parajuli</td>
-                        <td className="p-2.5 font-bold">nepal</td>
-                        <td className="p-2.5 font-bold text-blue-600">aarav*3812</td>
-                        <td className="p-2.5 text-blue-600 font-bold">nepal.parajuli.77@gmail.com</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* 2. Doctors & Distinct PINs */}
-              <div className="space-y-2 pt-2">
-                <div className="font-bold text-xs text-slate-900 dark:text-white uppercase tracking-wider font-sans flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-blue-600" />
-                  <span>2. Registered Doctors &amp; Individual PIN Registry ({doctors.length} Doctors)</span>
-                </div>
-                <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0F172A] max-h-72 overflow-y-auto">
-                  <table className="w-full text-left">
-                    <thead>
-                      <tr className="bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-b border-slate-200 dark:border-slate-800 text-[10px] uppercase sticky top-0">
-                        <th className="p-2.5">Doctor Name</th>
-                        <th className="p-2.5">NMC License</th>
-                        <th className="p-2.5">Specialty</th>
-                        <th className="p-2.5">Hospital</th>
-                        <th className="p-2.5">Individual PIN</th>
-                        <th className="p-2.5">Fee (NPR)</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                      {doctors.map((doc) => (
-                        <tr key={doc.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/60">
-                          <td className="p-2.5 font-bold text-slate-900 dark:text-white">{doc.name}</td>
-                          <td className="p-2.5 text-blue-600 font-bold">{doc.nmc_number}</td>
-                          <td className="p-2.5 text-slate-600 dark:text-slate-300">{doc.specialty}</td>
-                          <td className="p-2.5 text-slate-500">{doc.hospital}</td>
-                          <td className="p-2.5 font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/30">
-                            {doc.pin || '1234'}
-                          </td>
-                          <td className="p-2.5 font-bold text-slate-900 dark:text-white">{doc.fee_npr}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* 3. Custom Registered Patients */}
-              {patientUsers.filter((p) => p.username !== 'nepal').length > 0 && (
-                <div className="space-y-2 pt-2">
-                  <div className="font-bold text-xs text-slate-900 dark:text-white uppercase tracking-wider font-sans flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-600" />
-                    <span>3. Newly Registered Patient Accounts</span>
-                  </div>
-                  <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0F172A]">
-                    <table className="w-full text-left">
-                      <thead>
-                        <tr className="bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-b border-slate-200 dark:border-slate-800 text-[10px] uppercase">
-                          <th className="p-2.5">Name</th>
-                          <th className="p-2.5">Username</th>
-                          <th className="p-2.5">Phone</th>
-                          <th className="p-2.5">Password</th>
-                          <th className="p-2.5">District</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                        {patientUsers
-                          .filter((p) => p.username !== 'nepal')
-                          .map((pat) => (
-                            <tr key={pat.id}>
-                              <td className="p-2.5 font-bold text-slate-900 dark:text-white">{pat.full_name}</td>
-                              <td className="p-2.5">{pat.username}</td>
-                              <td className="p-2.5">{pat.phone}</td>
-                              <td className="p-2.5 font-bold text-blue-600">{pat.password || '••••••••'}</td>
-                              <td className="p-2.5 text-slate-500">{pat.district || 'Kathmandu'}</td>
-                            </tr>
-                          ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Modal Footer Controls */}
-            <div className="flex items-center justify-between gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  const docText = `
-# XENON HEALTH — OFFICIAL SYSTEM CREDENTIALS & ACCOUNTS DOSSIER
-Generated for: nepal.parajuli.77@gmail.com
-Classification: Administrative Master File
-
-## 1. Core Accounts
-- Developer Admin: Username: developer | Password: 12admin34 | Role: developer | Email: developer@xenonhealth.org.np
-- Patient Account: Username: nepal | Password: aarav*3812 | Role: patient | Email: nepal.parajuli.77@gmail.com | Phone: +977-9841234567
-
-## 2. Doctors Directory & Individual PINs
-${doctors.map((d) => `- ${d.name} (${d.nmc_number}) | Specialty: ${d.specialty} | Hospital: ${d.hospital} | PIN: ${d.pin || '1234'} | Fee: NPR ${d.fee_npr}`).join('\n')}
-
-## 3. Account Recovery Channel
-All PIN and password reset tokens are sent to: nepal.parajuli.77@gmail.com
-                  `.trim();
-                  navigator.clipboard.writeText(docText);
-                  setCopiedDoc(true);
-                  setTimeout(() => setCopiedDoc(false), 3000);
-                }}
-                className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-md shadow-blue-600/20"
-              >
-                <CheckCircle2 className="w-4 h-4" />
-                <span>{copiedDoc ? 'Copied to Clipboard!' : 'Copy Document to Clipboard'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShowCredentialDocModal(false)}
-                className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs cursor-pointer"
-              >
-                Close Dossier
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 p-3.5 rounded-2xl bg-slate-900 text-white border border-slate-800 text-xs font-bold shadow-2xl flex items-center gap-2 animate-in fade-in">
           <span>✨</span>
