@@ -194,16 +194,74 @@ export const PersonalHealthVault: React.FC<PersonalHealthVaultProps> = ({
     }, 600);
   };
 
+  const [vitalsErrors, setVitalsErrors] = useState<Record<string, string>>({});
+
   const handleSaveVitals = (e: React.FormEvent) => {
     e.preventDefault();
+    setVitalsErrors({});
+
+    const errors: Record<string, string> = {};
+    const bpParts = bp.trim().split('/');
+    let sys = 120;
+    let dia = 80;
+
+    if (bpParts.length === 2) {
+      sys = Number(bpParts[0].trim());
+      dia = Number(bpParts[1].trim());
+      if (isNaN(sys) || sys < 60 || sys > 260) {
+        errors.bp = language === 'np' ? 'सिस्टोलिक रक्तचाप ६०-२६० बीच हुनुपर्छ।' : 'Systolic BP must be between 60-260.';
+      }
+      if (isNaN(dia) || dia < 30 || dia > 160) {
+        errors.bp = language === 'np' ? 'डायस्टोलिक रक्तचाप ३०-१६० बीच हुनुपर्छ।' : 'Diastolic BP must be between 30-160.';
+      }
+      if (!isNaN(sys) && !isNaN(dia) && dia >= sys) {
+        errors.bp = language === 'np' ? 'डायस्टोलिक मान सिस्टोलिकभन्दा कम हुनुपर्छ।' : 'Diastolic must be strictly less than systolic.';
+      }
+    } else if (bp.trim()) {
+      errors.bp = language === 'np' ? 'रक्तचाप ढाँचा "१२०/८०" (Systolic/Diastolic) हुनुपर्छ।' : 'BP format must be "Systolic/Diastolic" (e.g. 120/80).';
+    }
+
+    const spo2Num = Number(spO2.trim().replace('%', ''));
+    if (spO2.trim() && (isNaN(spo2Num) || spo2Num < 50 || spo2Num > 100)) {
+      errors.spO2 = language === 'np' ? 'SpO2 ५०-१००% बीच हुनुपर्छ।' : 'SpO2 must be between 50-100%.';
+    }
+
+    const hrNum = Number(heartRate.trim().replace('bpm', ''));
+    if (heartRate.trim() && (isNaN(hrNum) || hrNum < 30 || hrNum > 220)) {
+      errors.heartRate = language === 'np' ? 'मुटुको चाल ३०-२२० bpm बीच हुनुपर्छ।' : 'Heart rate must be between 30-220 bpm.';
+    }
+
+    const gluNum = Number(bloodSugar.trim().replace('mg/dL', ''));
+    if (bloodSugar.trim() && (isNaN(gluNum) || gluNum < 20 || gluNum > 600)) {
+      errors.bloodSugar = language === 'np' ? 'ग्लुकोज २०-६०० mg/dL बीच हुनुपर्छ।' : 'Blood glucose must be between 20-600 mg/dL.';
+    }
+
+    const tempNum = Number(temperature.trim().replace('°F', ''));
+    if (temperature.trim() && (isNaN(tempNum) || tempNum < 90.0 || tempNum > 108.0)) {
+      errors.temperature = language === 'np' ? 'तापक्रम ९०.०-१०८.० °F बीच हुनुपर्छ।' : 'Temperature must be between 90.0-108.0 °F.';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setVitalsErrors(errors);
+      triggerHaptic('warning');
+      return;
+    }
+
     triggerHaptic('success');
+    const cleanBp = bp.trim() || `${sys}/${dia}`;
+    const cleanSugar = bloodSugar.trim() ? `${bloodSugar.trim().replace(/[^0-9.]/g, '')} mg/dL` : '95 mg/dL';
+    const cleanSpo2 = spO2.trim() ? `${spO2.trim().replace(/[^0-9.]/g, '')}%` : '98%';
+    const cleanHr = heartRate.trim() ? `${heartRate.trim().replace(/[^0-9.]/g, '')} bpm` : '72 bpm';
+    const cleanWeight = weightKg.trim() ? weightKg.trim().replace(/[^0-9.]/g, '') : '65';
+    const cleanTemp = temperature.trim() ? `${temperature.trim().replace(/[^0-9.]/g, '')} °F` : '98.4 °F';
+
     const vitalsData: UserVitals = {
-      bp: bp.trim(),
-      blood_sugar: bloodSugar.trim() ? `${bloodSugar.trim()} mg/dL` : undefined,
-      sp_o2: spO2.trim() ? `${spO2.trim()}%` : undefined,
-      heart_rate: heartRate.trim() ? `${heartRate.trim()} bpm` : undefined,
-      weight_kg: weightKg.trim(),
-      temperature: temperature.trim() ? `${temperature.trim()} °F` : undefined,
+      bp: cleanBp,
+      blood_sugar: cleanSugar,
+      sp_o2: cleanSpo2,
+      heart_rate: cleanHr,
+      weight_kg: cleanWeight,
+      temperature: cleanTemp,
       last_updated: new Date().toISOString()
     };
 
@@ -211,8 +269,59 @@ export const PersonalHealthVault: React.FC<PersonalHealthVaultProps> = ({
       onUpdateUserVitals(vitalsData);
     }
 
-    // Also add a vitals log record to records
+    // Persist to user profile in localStorage
+    if (currentUser) {
+      try {
+        const updatedUser = { ...currentUser, vitals: vitalsData };
+        localStorage.setItem('telemed_current_user', JSON.stringify(updatedUser));
+      } catch (err) {
+        console.warn('Failed to sync profile vitals:', err);
+      }
+    }
+
     const userId = currentUser?.id || 'guest';
+    const now = new Date();
+    const month = now.toLocaleString('en-US', { month: 'short' });
+    const day = now.getDate();
+    const hours = now.getHours();
+    const mins = now.getMinutes().toString().padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const hour12 = hours % 12 || 12;
+
+    // Also add to telemed_vitals_logs
+    try {
+      const savedLogs = localStorage.getItem(`telemed_vitals_logs_${userId}`);
+      const parsedLogs = savedLogs ? JSON.parse(savedLogs) : [];
+      const newLogPoint = {
+        id: `vital_${Date.now()}`,
+        timestamp: now.toISOString(),
+        dateLabel: `${month} ${day}`,
+        timeLabel: `${hour12}:${mins} ${ampm}`,
+        heartRate: isNaN(hrNum) ? 72 : hrNum,
+        systolicBP: sys,
+        diastolicBP: dia,
+        spO2: isNaN(spo2Num) ? 98 : spo2Num,
+        bloodGlucose: isNaN(gluNum) ? 95 : gluNum,
+        temperature: isNaN(tempNum) ? 98.4 : tempNum,
+        weightKg: Number(cleanWeight) || 65,
+        altitudeMeters: 1400,
+        notes: 'Updated via Health Vault'
+      };
+      const updatedLogs = [...parsedLogs, newLogPoint];
+      localStorage.setItem(`telemed_vitals_logs_${userId}`, JSON.stringify(updatedLogs));
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('xenon-vitals-updated', {
+            detail: { vitals: vitalsData, logPoint: newLogPoint }
+          })
+        );
+      }
+    } catch (e) {
+      console.warn('Failed to append to vitals logs:', e);
+    }
+
+    // Also add a vitals log record to health vault records
     const newRecord: UserHealthRecord = {
       id: `vitals_${Date.now()}`,
       user_id: userId,
@@ -221,10 +330,10 @@ export const PersonalHealthVault: React.FC<PersonalHealthVaultProps> = ({
       category: 'Vitals Log',
       date: new Date().toISOString().split('T')[0],
       vitals: vitalsData,
-      notes: `BP: ${bp} | SpO2: ${spO2}% | HR: ${heartRate} bpm | Sugar: ${bloodSugar} mg/dL | Weight: ${weightKg}kg`,
+      notes: `BP: ${cleanBp} | SpO2: ${cleanSpo2} | HR: ${cleanHr} | Sugar: ${cleanSugar} | Weight: ${cleanWeight}kg`,
       ai_insights: language === 'np'
-        ? `तपाईंको रक्तचाप (${bp}) र अक्सिजन स्तर (${spO2}%) स्वस्थ दायरामा रेकर्ड गरिएको छ।`
-        : `Logged BP (${bp}) and SpO2 (${spO2}%) indicate stable cardiovascular health at current altitude.`,
+        ? `तपाईंको रक्तचाप (${cleanBp}) र अक्सिजन स्तर (${cleanSpo2}) स्वस्थ दायरामा रेकर्ड गरिएको छ।`
+        : `Logged BP (${cleanBp}) and SpO2 (${cleanSpo2}) indicate stable cardiovascular health at current altitude.`,
       tags: ['Vitals', 'Daily Health'],
       created_at: new Date().toISOString()
     };
@@ -464,10 +573,18 @@ export const PersonalHealthVault: React.FC<PersonalHealthVaultProps> = ({
               <input
                 type="text"
                 value={bp}
-                onChange={(e) => setBp(e.target.value)}
+                onChange={(e) => {
+                  setBp(e.target.value);
+                  if (vitalsErrors.bp) setVitalsErrors((prev) => ({ ...prev, bp: '' }));
+                }}
                 placeholder="120/80"
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-xs font-bold text-slate-950 dark:text-white focus:ring-2 focus:ring-blue-500"
+                className={`w-full px-3 py-2 rounded-xl border ${
+                  vitalsErrors.bp ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-300 dark:border-slate-700'
+                } bg-slate-50 dark:bg-slate-900/60 text-xs font-bold text-slate-950 dark:text-white focus:ring-2 focus:ring-blue-500`}
               />
+              {vitalsErrors.bp && (
+                <p className="text-[10px] text-red-500 font-semibold mt-0.5">{vitalsErrors.bp}</p>
+              )}
             </div>
 
             <div>
@@ -477,10 +594,18 @@ export const PersonalHealthVault: React.FC<PersonalHealthVaultProps> = ({
               <input
                 type="text"
                 value={spO2}
-                onChange={(e) => setSpO2(e.target.value)}
+                onChange={(e) => {
+                  setSpO2(e.target.value);
+                  if (vitalsErrors.spO2) setVitalsErrors((prev) => ({ ...prev, spO2: '' }));
+                }}
                 placeholder="98"
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-xs font-bold text-slate-950 dark:text-white focus:ring-2 focus:ring-blue-500"
+                className={`w-full px-3 py-2 rounded-xl border ${
+                  vitalsErrors.spO2 ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-300 dark:border-slate-700'
+                } bg-slate-50 dark:bg-slate-900/60 text-xs font-bold text-slate-950 dark:text-white focus:ring-2 focus:ring-blue-500`}
               />
+              {vitalsErrors.spO2 && (
+                <p className="text-[10px] text-red-500 font-semibold mt-0.5">{vitalsErrors.spO2}</p>
+              )}
             </div>
 
             <div>
@@ -490,10 +615,18 @@ export const PersonalHealthVault: React.FC<PersonalHealthVaultProps> = ({
               <input
                 type="text"
                 value={heartRate}
-                onChange={(e) => setHeartRate(e.target.value)}
+                onChange={(e) => {
+                  setHeartRate(e.target.value);
+                  if (vitalsErrors.heartRate) setVitalsErrors((prev) => ({ ...prev, heartRate: '' }));
+                }}
                 placeholder="72"
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-xs font-bold text-slate-950 dark:text-white focus:ring-2 focus:ring-blue-500"
+                className={`w-full px-3 py-2 rounded-xl border ${
+                  vitalsErrors.heartRate ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-300 dark:border-slate-700'
+                } bg-slate-50 dark:bg-slate-900/60 text-xs font-bold text-slate-950 dark:text-white focus:ring-2 focus:ring-blue-500`}
               />
+              {vitalsErrors.heartRate && (
+                <p className="text-[10px] text-red-500 font-semibold mt-0.5">{vitalsErrors.heartRate}</p>
+              )}
             </div>
 
             <div>
@@ -503,10 +636,18 @@ export const PersonalHealthVault: React.FC<PersonalHealthVaultProps> = ({
               <input
                 type="text"
                 value={bloodSugar}
-                onChange={(e) => setBloodSugar(e.target.value)}
+                onChange={(e) => {
+                  setBloodSugar(e.target.value);
+                  if (vitalsErrors.bloodSugar) setVitalsErrors((prev) => ({ ...prev, bloodSugar: '' }));
+                }}
                 placeholder="95"
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-xs font-bold text-slate-950 dark:text-white focus:ring-2 focus:ring-blue-500"
+                className={`w-full px-3 py-2 rounded-xl border ${
+                  vitalsErrors.bloodSugar ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-300 dark:border-slate-700'
+                } bg-slate-50 dark:bg-slate-900/60 text-xs font-bold text-slate-950 dark:text-white focus:ring-2 focus:ring-blue-500`}
               />
+              {vitalsErrors.bloodSugar && (
+                <p className="text-[10px] text-red-500 font-semibold mt-0.5">{vitalsErrors.bloodSugar}</p>
+              )}
             </div>
 
             <div>
@@ -529,10 +670,18 @@ export const PersonalHealthVault: React.FC<PersonalHealthVaultProps> = ({
               <input
                 type="text"
                 value={temperature}
-                onChange={(e) => setTemperature(e.target.value)}
+                onChange={(e) => {
+                  setTemperature(e.target.value);
+                  if (vitalsErrors.temperature) setVitalsErrors((prev) => ({ ...prev, temperature: '' }));
+                }}
                 placeholder="98.6"
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-xs font-bold text-slate-950 dark:text-white focus:ring-2 focus:ring-blue-500"
+                className={`w-full px-3 py-2 rounded-xl border ${
+                  vitalsErrors.temperature ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-300 dark:border-slate-700'
+                } bg-slate-50 dark:bg-slate-900/60 text-xs font-bold text-slate-950 dark:text-white focus:ring-2 focus:ring-blue-500`}
               />
+              {vitalsErrors.temperature && (
+                <p className="text-[10px] text-red-500 font-semibold mt-0.5">{vitalsErrors.temperature}</p>
+              )}
             </div>
           </div>
 

@@ -1017,6 +1017,7 @@ export default function App() {
               onOpenPatientRegister={() => handleOpenAuth('register-patient')}
               onCancelAppointment={handleCancelAppointment}
               onOpenConsultation={() => handleOpenBookModal()}
+              onUpdateUser={handleUpdateUser}
             />
           )}
 

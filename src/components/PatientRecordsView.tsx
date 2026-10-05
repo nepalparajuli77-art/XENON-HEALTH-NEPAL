@@ -39,6 +39,7 @@ interface PatientRecordsViewProps {
   onOpenPatientRegister?: () => void;
   onCancelAppointment?: (aptId: string) => void;
   onOpenConsultation?: () => void;
+  onUpdateUser?: (updatedUser: UserType) => void;
 }
 
 export const PatientRecordsView: React.FC<PatientRecordsViewProps> = ({
@@ -50,7 +51,8 @@ export const PatientRecordsView: React.FC<PatientRecordsViewProps> = ({
   onIssueRxClick,
   onOpenPatientRegister,
   onCancelAppointment,
-  onOpenConsultation
+  onOpenConsultation,
+  onUpdateUser
 }) => {
   const [activeTab, setActiveTab] = useState<'vitals' | 'appointments' | 'prescriptions' | 'timeline'>('vitals');
   const [selectedAptId, setSelectedAptId] = useState<string>(appointments[0]?.id || '');
@@ -426,6 +428,14 @@ export const PatientRecordsView: React.FC<PatientRecordsViewProps> = ({
           currentUser={currentUser}
           language={language}
           onOpenConsultation={onOpenConsultation}
+          onUpdateUserVitals={(vitals) => {
+            if (onUpdateUser) {
+              onUpdateUser({
+                ...currentUser,
+                vitals
+              });
+            }
+          }}
         />
       )}
 
