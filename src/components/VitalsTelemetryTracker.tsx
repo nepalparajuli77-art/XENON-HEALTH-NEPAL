@@ -191,6 +191,31 @@ export const VitalsTelemetryTracker: React.FC<VitalsTrackerProps> = ({
     return generateInitialLogs(userId);
   });
 
+  // Sync state if currentUser/userId changes
+  React.useEffect(() => {
+    const savedChecklist = localStorage.getItem(`telemed_vitals_checklist_${userId}`);
+    if (savedChecklist) {
+      try {
+        setChecklist(JSON.parse(savedChecklist));
+      } catch {
+        setChecklist(INITIAL_CHECKLIST);
+      }
+    } else {
+      setChecklist(INITIAL_CHECKLIST);
+    }
+
+    const savedLogs = localStorage.getItem(`telemed_vitals_logs_${userId}`);
+    if (savedLogs) {
+      try {
+        setLogs(JSON.parse(savedLogs));
+      } catch {
+        setLogs(generateInitialLogs(userId));
+      }
+    } else {
+      setLogs(generateInitialLogs(userId));
+    }
+  }, [userId]);
+
   // Modal for new manual vitals entry
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
   const [activeMetric, setActiveMetric] = useState<'bp' | 'heartRate' | 'spO2' | 'bloodGlucose' | 'temperature'>('bp');
@@ -497,7 +522,7 @@ export const VitalsTelemetryTracker: React.FC<VitalsTrackerProps> = ({
         </div>
 
         {/* Recharts chart */}
-        <div className="h-60 w-full pt-2">
+        <div className="h-64 sm:h-72 w-full pt-2 min-h-[250px] min-w-0 overflow-hidden">
           <ResponsiveContainer width="100%" height="100%">
             {activeMetric === 'bp' ? (
               <LineChart data={logs} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>

@@ -61,12 +61,12 @@ export const PatientRecordsView: React.FC<PatientRecordsViewProps> = ({
   // Privacy Lock State (optional biometric / PIN requirement)
   const [isPrivacyEnabled, setIsPrivacyEnabled] = useState<boolean>(() => {
     const saved = localStorage.getItem('telemed_privacy_lock_enabled');
-    return saved === null ? true : saved === 'true';
+    return saved === 'true';
   });
 
   const [isUnlocked, setIsUnlocked] = useState<boolean>(() => {
     const lockEnabled = localStorage.getItem('telemed_privacy_lock_enabled');
-    if (lockEnabled === 'false') return true;
+    if (lockEnabled !== 'true') return true;
     const sessionUnlocked = sessionStorage.getItem('telemed_records_unlocked');
     return sessionUnlocked === 'true';
   });
@@ -135,18 +135,19 @@ export const PatientRecordsView: React.FC<PatientRecordsViewProps> = ({
 
     // 2. Add Prescriptions
     prescriptions.forEach((rx) => {
+      const medCount = Array.isArray(rx.medicines) ? rx.medicines.length : 0;
       events.push({
         id: `rx-${rx.id}`,
         date: rx.date,
         type: 'prescription',
         title: `Rx Issued by ${rx.doctor_name}`,
         titleNp: `${rx.doctor_name} द्वारा औषधि सिफारिस (Rx)`,
-        subtitle: `${rx.medications.length} Medications prescribed`,
-        subtitleNp: `${rx.medications.length} औषधिहरू सिफारिस गरिएको`,
+        subtitle: `${medCount} Medications prescribed`,
+        subtitleNp: `${medCount} औषधिहरू सिफारिस गरिएको`,
         badgeColor: 'bg-teal-500/10 text-teal-700 dark:bg-teal-500/20 dark:text-teal-300',
         icon: <Pill className="w-4 h-4" />,
-        notes: rx.instructions || 'Follow medicine dosage timelines strictly.',
-        notesNp: rx.instructions || 'औषधिको मात्रा र तालिका कडाईका साथ पालना गर्नुहोस्।',
+        notes: rx.lifestyle_advice || 'Follow medicine dosage timelines strictly.',
+        notesNp: rx.lifestyle_advice || 'औषधिको मात्रा र तालिका कडाईका साथ पालना गर्नुहोस्।',
         meta: rx
       });
     });
