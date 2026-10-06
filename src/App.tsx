@@ -62,7 +62,17 @@ export default function App() {
   // Parse dynamic URL parameters and path on initial load
   const initialUrl = useMemo(() => parseCurrentUrl(), []);
 
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    try {
+      const saved = localStorage.getItem('telemed_current_user');
+      if (saved) {
+        return JSON.parse(saved) as User;
+      }
+    } catch (e) {
+      console.warn('Failed to parse cached current user', e);
+    }
+    return null;
+  });
 
   const [currentTab, setCurrentTab] = useState<string>(() => {
     if (initialUrl.tab) {
@@ -607,6 +617,15 @@ export default function App() {
     showToast(`Welcome Dr. ${doc.name.replace('Dr. ', '')}! Clinical workspace unlocked.`);
   };
 
+  const saveUsersList = (updatedUsers: User[]) => {
+    try {
+      localStorage.setItem('xenon_users', JSON.stringify(updatedUsers));
+      localStorage.setItem('telemed_users', JSON.stringify(updatedUsers));
+    } catch (e) {
+      console.warn('Failed to persist users list', e);
+    }
+  };
+
   const handleDoctorRegistered = (newDoctor: Doctor, newUser: User) => {
     markSiteOperated();
     setDoctors((prev) => {
@@ -620,12 +639,11 @@ export default function App() {
     });
 
     setUsers((prev) => {
-      const updated = [newUser, ...prev];
-      try {
-        localStorage.setItem('telemed_users', JSON.stringify(updated));
-      } catch (e) {
-        console.warn(e);
-      }
+      const exists = prev.some((u) => u.id === newUser.id || u.username === newUser.username);
+      const updated = exists
+        ? prev.map((u) => (u.id === newUser.id || u.username === newUser.username ? newUser : u))
+        : [newUser, ...prev];
+      saveUsersList(updated);
       return updated;
     });
 
@@ -645,12 +663,11 @@ export default function App() {
   const handlePatientRegistered = (newPatient: User) => {
     markSiteOperated();
     setUsers((prev) => {
-      const updated = [newPatient, ...prev];
-      try {
-        localStorage.setItem('telemed_users', JSON.stringify(updated));
-      } catch (e) {
-        console.warn(e);
-      }
+      const exists = prev.some((u) => u.id === newPatient.id || u.username === newPatient.username);
+      const updated = exists
+        ? prev.map((u) => (u.id === newPatient.id || u.username === newPatient.username ? newPatient : u))
+        : [newPatient, ...prev];
+      saveUsersList(updated);
       return updated;
     });
 
@@ -670,12 +687,11 @@ export default function App() {
   const handleUpdateUser = (updatedUser: User) => {
     setCurrentUser(updatedUser);
     setUsers((prev) => {
-      const updated = prev.map((u) => (u.id === updatedUser.id ? updatedUser : u));
-      try {
-        localStorage.setItem('xenon_users', JSON.stringify(updated));
-      } catch (e) {
-        console.warn(e);
-      }
+      const exists = prev.some((u) => u.id === updatedUser.id || u.username === updatedUser.username);
+      const updated = exists
+        ? prev.map((u) => (u.id === updatedUser.id || u.username === updatedUser.username ? updatedUser : u))
+        : [updatedUser, ...prev];
+      saveUsersList(updated);
       return updated;
     });
     try {

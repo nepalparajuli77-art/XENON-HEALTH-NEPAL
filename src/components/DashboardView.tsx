@@ -211,22 +211,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       onUpdateUser(updatedUser);
     }
 
-    try {
-      localStorage.setItem('telemed_current_user', JSON.stringify(updatedUser));
-      const savedUsers = localStorage.getItem('xenon_users') || localStorage.getItem('telemed_users');
-      if (savedUsers) {
-        const parsed = JSON.parse(savedUsers) as User[];
-        const exists = parsed.some((u) => u.id === updatedUser.id);
-        const updatedList = exists
-          ? parsed.map((u) => (u.id === updatedUser.id ? updatedUser : u))
-          : [updatedUser, ...parsed];
-        localStorage.setItem('xenon_users', JSON.stringify(updatedList));
-        localStorage.setItem('telemed_users', JSON.stringify(updatedList));
-      }
-    } catch (e) {
-      console.warn(e);
-    }
-
     setIsEditingProfile(false);
   };
 
