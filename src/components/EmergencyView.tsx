@@ -1,16 +1,39 @@
 import React, { useState } from 'react';
-import { PhoneCall, ShieldAlert, HeartPulse, Copy, Check, AlertTriangle, Navigation, MapPin, Plane, Radio, Zap, Shield, Crosshair } from 'lucide-react';
+import { PhoneCall, ShieldAlert, HeartPulse, Copy, Check, AlertTriangle, Navigation, MapPin, Plane, Radio, Zap, Shield, Crosshair, Heart } from 'lucide-react';
 import { EmergencyContact, Language } from '../types';
 import { t } from '../data/mockData';
 
 interface EmergencyViewProps {
   contacts: EmergencyContact[];
   language: Language;
+  onNavigateToMap?: () => void;
 }
+
+const renderEmergencyIcon = (iconKey?: string) => {
+  switch (iconKey) {
+    case 'helicopter':
+      return <Plane className="w-4 h-4 text-red-500" />;
+    case 'drone':
+      return <Zap className="w-4 h-4 text-amber-500" />;
+    case 'ambulance':
+      return <HeartPulse className="w-4 h-4 text-rose-500" />;
+    case 'police':
+      return <Shield className="w-4 h-4 text-blue-500" />;
+    case 'traffic':
+      return <Navigation className="w-4 h-4 text-indigo-500" />;
+    case 'infection':
+      return <AlertTriangle className="w-4 h-4 text-teal-500" />;
+    case 'mental-health':
+      return <Heart className="w-4 h-4 text-emerald-500" />;
+    default:
+      return <HeartPulse className="w-4 h-4 text-red-500" />;
+  }
+};
 
 export const EmergencyView: React.FC<EmergencyViewProps> = ({
   contacts,
-  language
+  language,
+  onNavigateToMap
 }) => {
   const [copiedNumber, setCopiedNumber] = useState<string | null>(null);
   const [requestModal, setRequestModal] = useState<'helicopter' | 'drone' | null>(null);
@@ -80,9 +103,9 @@ export const EmergencyView: React.FC<EmergencyViewProps> = ({
                 <span>Nepal Air Medevac & Remote Drone Supply Network</span>
               </div>
               <h3 className="text-xl font-black tracking-tight text-white flex items-center gap-2">
-                <span>🚁 Nepal Army Air Rescue</span>
+                <span className="flex items-center gap-1.5"><Plane className="w-5 h-5 text-red-400" /> Nepal Army Air Rescue</span>
                 <span className="text-blue-400">&amp;</span>
-                <span>🛸 DJI FlyCart 30 Medical Drone</span>
+                <span className="flex items-center gap-1.5"><Zap className="w-5 h-5 text-amber-400" /> DJI FlyCart 30 Medical Drone</span>
               </h3>
               <p className="text-xs text-slate-300 max-w-2xl mt-1 leading-relaxed">
                 {language === 'np'
@@ -96,13 +119,27 @@ export const EmergencyView: React.FC<EmergencyViewProps> = ({
                 href="tel:+977014246950"
                 className="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-black flex items-center gap-2 shadow-lg shadow-red-600/30 transition-all cursor-pointer"
               >
-                <span>🚁 Call Army Medevac (+977-01-4246950)</span>
+                <Plane className="w-4 h-4 text-white" />
+                <span>Call Army Medevac (+977-01-4246950)</span>
               </a>
+
+              {onNavigateToMap && (
+                <button
+                  type="button"
+                  onClick={onNavigateToMap}
+                  className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-black flex items-center gap-2 shadow-lg shadow-blue-600/30 transition-all cursor-pointer hover:scale-105 active:scale-95"
+                >
+                  <MapPin className="w-4 h-4 text-white" />
+                  <span>{language === 'np' ? 'लाइभ जीपीएस गुगल नक्सा खोल्नुहोस्' : 'Open Live Google Maps Radar'}</span>
+                </button>
+              )}
+
               <div
                 className="px-4 py-2.5 rounded-xl bg-slate-800/90 border border-amber-500/40 text-amber-300 text-xs font-black flex items-center gap-2 select-none"
                 title="Service line is currently unavailable due to incorrect contact number"
               >
-                <span>🛸 Drone Dispatch: Currently Unavailable</span>
+                <Zap className="w-4 h-4 text-amber-400" />
+                <span>Drone Dispatch: Currently Unavailable</span>
               </div>
             </div>
           </div>
@@ -119,7 +156,9 @@ export const EmergencyView: React.FC<EmergencyViewProps> = ({
             <div className="p-4 rounded-2xl bg-white/10 dark:bg-black/30 backdrop-blur-md border border-white/10 space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-xl">🚁</span>
+                  <div className="w-8 h-8 rounded-lg bg-red-600/30 text-red-300 flex items-center justify-center font-bold">
+                    <Plane className="w-4 h-4" />
+                  </div>
                   <span className="text-sm font-black text-white">Nepal Army Aviation Medevac</span>
                 </div>
                 <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-red-500 text-white">
@@ -144,7 +183,9 @@ export const EmergencyView: React.FC<EmergencyViewProps> = ({
             <div className="p-4 rounded-2xl bg-white/5 dark:bg-black/40 backdrop-blur-md border border-amber-500/30 space-y-2 opacity-90">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-xl">🛸</span>
+                  <div className="w-8 h-8 rounded-lg bg-amber-600/30 text-amber-300 flex items-center justify-center font-bold">
+                    <Zap className="w-4 h-4" />
+                  </div>
                   <span className="text-sm font-black text-white">DJI FlyCart 30 Cargo Drone Logistics</span>
                 </div>
                 <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-500 text-black">
@@ -185,7 +226,7 @@ export const EmergencyView: React.FC<EmergencyViewProps> = ({
                       isUnavailable ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'
                     }`}
                   >
-                    {c.icon && <span>{c.icon}</span>}
+                    {renderEmergencyIcon(c.icon)}
                     <span>{c.badge || 'National Helpline'}</span>
                   </span>
                   {isUnavailable ? (
@@ -236,8 +277,9 @@ export const EmergencyView: React.FC<EmergencyViewProps> = ({
                 </p>
 
                 {c.unavailableReason && (
-                  <div className="mt-2.5 p-2 rounded-xl bg-amber-100/60 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-[11px] font-semibold text-amber-900 dark:text-amber-300">
-                    ⚠️ {c.unavailableReason}
+                  <div className="mt-2.5 p-2 rounded-xl bg-amber-100/60 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-[11px] font-semibold text-amber-900 dark:text-amber-300 flex items-center gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    <span>{c.unavailableReason}</span>
                   </div>
                 )}
               </div>
@@ -248,7 +290,8 @@ export const EmergencyView: React.FC<EmergencyViewProps> = ({
                     disabled
                     className="w-full py-2.5 rounded-full bg-slate-100 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 font-bold text-xs border border-slate-200 dark:border-slate-700 cursor-not-allowed flex items-center justify-center gap-1.5"
                   >
-                    <span>⚠️ Service Currently Unavailable</span>
+                    <AlertTriangle className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Service Currently Unavailable</span>
                   </button>
                 ) : (
                   <a

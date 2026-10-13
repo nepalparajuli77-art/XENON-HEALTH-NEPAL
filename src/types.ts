@@ -252,6 +252,22 @@ export interface UserVitals {
   last_updated?: string;
 }
 
+export interface VitalLogPoint {
+  id: string;
+  timestamp: string; // ISO string
+  dateLabel: string; // MM/DD or DD Mon
+  timeLabel: string; // HH:mm AM/PM
+  heartRate: number; // bpm
+  systolicBP: number; // mmHg
+  diastolicBP: number; // mmHg
+  spO2: number; // %
+  bloodGlucose: number; // mg/dL
+  temperature: number; // °F
+  weightKg?: number;
+  altitudeMeters?: number;
+  notes?: string;
+}
+
 export interface UserHealthRecord {
   id: string;
   user_id: string;

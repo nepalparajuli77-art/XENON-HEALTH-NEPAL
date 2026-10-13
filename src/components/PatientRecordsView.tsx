@@ -20,13 +20,18 @@ import {
   Settings as SettingsIcon,
   TrendingUp,
   Download,
-  CheckSquare
+  CheckSquare,
+  Search,
+  Droplets,
+  Phone,
+  Edit3
 } from 'lucide-react';
 import { Appointment, Prescription, Language, User as UserType } from '../types';
 import { t } from '../data/mockData';
 import { RecordsPrivacyLock } from './RecordsPrivacyLock';
 import { VitalsTelemetryTracker } from './VitalsTelemetryTracker';
 import { MedicalSummaryPdfModal } from './MedicalSummaryPdfModal';
+import { EditProfileModal } from './EditProfileModal';
 import { triggerHaptic } from '../utils/haptics';
 
 interface PatientRecordsViewProps {
@@ -59,6 +64,7 @@ export const PatientRecordsView: React.FC<PatientRecordsViewProps> = ({
   const [selectedRxId, setSelectedRxId] = useState<string>(prescriptions[0]?.id || '');
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showPdfModal, setShowPdfModal] = useState(false);
+  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
 
   // Privacy Lock State (optional biometric / PIN requirement)
   const [isPrivacyEnabled, setIsPrivacyEnabled] = useState<boolean>(() => {
@@ -163,7 +169,7 @@ export const PatientRecordsView: React.FC<PatientRecordsViewProps> = ({
       titleNp: 'डिजिटल स्वास्थ्य प्रोफाइल सिर्जना गरियो',
       subtitle: 'Biometric profile & clinical allergies registered',
       subtitleNp: 'शारीरिक प्रोफाइल र क्लिनिकल एलर्जीहरू दर्ता गरियो',
-      badgeColor: 'bg-purple-500/10 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300',
+      badgeColor: 'bg-blue-500/10 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300',
       icon: <CheckSquare className="w-4 h-4" />,
       notes: `Registered under ID ${currentUser.id} with Blood Group ${currentUser.blood_group || 'O+'}`,
       notesNp: `ब्लड ग्रुप ${currentUser.blood_group || 'O+'} सहित आईडी ${currentUser.id} अन्तर्गत सफलतापूर्वक दर्ता गरियो`
@@ -258,8 +264,8 @@ export const PatientRecordsView: React.FC<PatientRecordsViewProps> = ({
       <div className="rounded-[24px] liquid-glass-card p-5 border border-white/60 dark:border-white/10 shadow-sm transition-all">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
-            <div className="w-13 h-13 rounded-2xl bg-slate-900 dark:bg-slate-800 text-white border border-white/10 flex items-center justify-center text-2xl font-bold shadow-md">
-              👤
+            <div className="w-13 h-13 rounded-2xl bg-slate-900 dark:bg-slate-800 text-teal-400 border border-teal-500/20 flex items-center justify-center text-2xl font-bold shadow-md shrink-0">
+              <User className="w-7 h-7 text-teal-400" />
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -271,10 +277,10 @@ export const PatientRecordsView: React.FC<PatientRecordsViewProps> = ({
                 </span>
               </div>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5 text-xs text-black dark:text-white font-medium">
-                <span>🩸 Blood Group: <b className="text-red-600 dark:text-red-400 font-bold">{currentUser.blood_group || 'O+'}</b></span>
-                <span>🎂 Age: <b className="text-black dark:text-white font-bold">{currentUser.age || 29} yrs ({currentUser.gender || 'Male'})</b></span>
-                <span>⚠️ Allergies: <b className="text-black dark:text-white font-bold">{currentUser.allergies?.join(', ') || 'None'}</b></span>
-                <span>📞 Contact: <b className="text-black dark:text-white font-bold">{currentUser.phone}</b></span>
+                <span className="inline-flex items-center gap-1"><Droplets className="w-3.5 h-3.5 text-red-600 shrink-0" /> Blood Group: <b className="text-red-600 dark:text-red-400 font-bold">{currentUser.blood_group || 'O+'}</b></span>
+                <span className="inline-flex items-center gap-1"><Calendar className="w-3.5 h-3.5 text-teal-600 shrink-0" /> Age: <b className="text-black dark:text-white font-bold">{currentUser.age || 29} yrs ({currentUser.gender || 'Male'})</b></span>
+                <span className="inline-flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0" /> Allergies: <b className="text-black dark:text-white font-bold">{currentUser.allergies?.join(', ') || 'None'}</b></span>
+                <span className="inline-flex items-center gap-1"><Phone className="w-3.5 h-3.5 text-blue-600 shrink-0" /> Contact: <b className="text-black dark:text-white font-bold">{currentUser.phone}</b></span>
               </div>
             </div>
           </div>
@@ -312,6 +318,18 @@ export const PatientRecordsView: React.FC<PatientRecordsViewProps> = ({
                 <span>{language === 'np' ? 'गोपनीयता लक सक्षम गर्नुहोस्' : 'Enable Privacy Lock'}</span>
               </button>
             )}
+
+            <button
+              onClick={() => {
+                triggerHaptic('medium');
+                setShowEditProfileModal(true);
+              }}
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold text-xs border border-slate-300 dark:border-slate-700 transition-all cursor-pointer whitespace-nowrap"
+              title={language === 'np' ? 'स्वास्थ्य प्रोफाइल सम्पादन गर्नुहोस्' : 'Edit Health Profile'}
+            >
+              <Edit3 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <span>{language === 'np' ? 'प्रोफाइल सम्पादन' : 'Edit Profile'}</span>
+            </button>
 
             {onOpenPatientRegister && (
               <button
@@ -414,9 +432,9 @@ export const PatientRecordsView: React.FC<PatientRecordsViewProps> = ({
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
-          <Clock className="w-4 h-4 text-purple-600" />
+          <Clock className="w-4 h-4 text-teal-600 dark:text-teal-400" />
           <span>{language === 'np' ? 'मेडिकल टाइमलाइन (Timeline)' : 'Medical Timeline'}</span>
-          <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 font-mono">
+          <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300 font-mono">
             Interactive
           </span>
         </button>
@@ -655,7 +673,7 @@ export const PatientRecordsView: React.FC<PatientRecordsViewProps> = ({
               {/* Prescription Header */}
               <div className="text-center border-b border-black/10 dark:border-white/10 pb-4">
                 <div className="flex items-center justify-center gap-2 text-black dark:text-white font-black text-sm tracking-wider">
-                  <span>🇳🇵</span>
+                  <ShieldCheck className="w-4 h-4 text-teal-600 dark:text-teal-400" />
                   <span>XENON HEALTH DIGITAL PRESCRIPTION</span>
                 </div>
                 <p className="text-[11px] text-black dark:text-white opacity-80 font-medium mt-0.5">
@@ -781,7 +799,7 @@ export const PatientRecordsView: React.FC<PatientRecordsViewProps> = ({
           {/* Header Controls & Timeline Search */}
           <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 p-4 rounded-[22px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
             <div className="flex items-center gap-2">
-              <Clock className="w-5 h-5 text-purple-600 animate-pulse" />
+              <Clock className="w-5 h-5 text-indigo-600 animate-pulse" />
               <div>
                 <h3 className="text-sm font-black text-black dark:text-white">
                   {language === 'np' ? 'कालक्रम स्वास्थ्य इतिहास' : 'Chronological Health History'}
@@ -800,9 +818,9 @@ export const PatientRecordsView: React.FC<PatientRecordsViewProps> = ({
                   value={timelineSearch}
                   onChange={(e) => setTimelineSearch(e.target.value)}
                   placeholder={language === 'np' ? 'डाक्टर वा रेकर्ड खोज्नुहोस्...' : 'Search doctor, notes...'}
-                  className="w-full sm:w-60 pl-8 pr-3 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:text-white font-medium"
+                  className="w-full sm:w-60 pl-8 pr-3 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500 dark:text-white font-medium"
                 />
-                <span className="absolute left-2.5 top-2.5 text-slate-400">🔍</span>
+                <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
               </div>
             </div>
           </div>
@@ -827,7 +845,7 @@ export const PatientRecordsView: React.FC<PatientRecordsViewProps> = ({
                   }}
                   className={`px-3.5 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
                     isActive
-                      ? 'bg-purple-600 text-white shadow-sm'
+                      ? 'bg-teal-600 text-white shadow-sm'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
@@ -856,22 +874,22 @@ export const PatientRecordsView: React.FC<PatientRecordsViewProps> = ({
                     {/* Timestamp Tag (Positioned absolutely on desktop, stacked on mobile) */}
                     <div className="absolute -left-28 md:flex flex-col items-end justify-center w-24 text-right hidden">
                       <span className="text-xs font-black text-black dark:text-white">{ev.date}</span>
-                      <span className="text-[9px] uppercase tracking-wider font-extrabold text-purple-600 dark:text-purple-400">
+                      <span className="text-[9px] uppercase tracking-wider font-extrabold text-teal-600 dark:text-teal-400">
                         {ev.type}
                       </span>
                     </div>
 
                     {/* Step Node Dot on the Vertical Line */}
-                    <div className="absolute -left-[35px] md:-left-[41px] top-1.5 w-[18px] h-[18px] rounded-full border-[3.5px] border-white dark:border-[#0F172A] bg-purple-600 shadow-md ring-4 ring-purple-100 dark:ring-purple-950/40 z-10 flex items-center justify-center transition-transform group-hover:scale-110">
+                    <div className="absolute -left-[35px] md:-left-[41px] top-1.5 w-[18px] h-[18px] rounded-full border-[3.5px] border-white dark:border-[#0F172A] bg-teal-600 shadow-md ring-4 ring-teal-100 dark:ring-teal-950/40 z-10 flex items-center justify-center transition-transform group-hover:scale-110">
                       <div className="w-1 h-1 rounded-full bg-white" />
                     </div>
 
                     {/* Timeline Event Card container */}
-                    <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 shadow-xs hover:shadow-md transition-all duration-300 relative group-hover:border-purple-500/40">
+                    <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 shadow-xs hover:shadow-md transition-all duration-300 relative group-hover:border-teal-500/40">
                       {/* Mobile Timestamp stack */}
                       <div className="flex md:hidden items-center justify-between mb-2 text-[10px] font-black text-slate-400 uppercase tracking-wider">
                         <span>{ev.date}</span>
-                        <span className="text-purple-600 dark:text-purple-400">{ev.type}</span>
+                        <span className="text-teal-600 dark:text-teal-400">{ev.type}</span>
                       </div>
 
                       {/* Card Content Header */}
@@ -881,7 +899,7 @@ export const PatientRecordsView: React.FC<PatientRecordsViewProps> = ({
                             {ev.icon}
                           </div>
                           <div>
-                            <h4 className="text-xs font-black text-slate-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                            <h4 className="text-xs font-black text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                               {language === 'np' ? ev.titleNp : ev.title}
                             </h4>
                             <p className="text-[11px] text-slate-500 font-medium">
@@ -1020,6 +1038,19 @@ export const PatientRecordsView: React.FC<PatientRecordsViewProps> = ({
         appointments={appointments}
         prescriptions={prescriptions}
         language={language}
+      />
+
+      {/* Edit Health Profile Modal */}
+      <EditProfileModal
+        isOpen={showEditProfileModal}
+        onClose={() => setShowEditProfileModal(false)}
+        currentUser={currentUser}
+        language={language}
+        onSave={(updated) => {
+          if (onUpdateUser) {
+            onUpdateUser(updated);
+          }
+        }}
       />
     </div>
   );

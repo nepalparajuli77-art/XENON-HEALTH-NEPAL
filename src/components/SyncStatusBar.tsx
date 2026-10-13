@@ -50,13 +50,13 @@ export const SyncStatusBar: React.FC<SyncStatusBarProps> = ({ onNotifyToast }) =
     if (result.success) {
       triggerHaptic('success');
       if (result.syncedAppointments > 0 || result.syncedMessages > 0) {
-        onNotifyToast?.(`🟢 ${result.message}`);
+        onNotifyToast?.(result.message);
       } else {
         onNotifyToast?.('Database is already up to date!');
       }
     } else {
       triggerHaptic('error');
-      onNotifyToast?.(`⚠️ ${result.message}`);
+      onNotifyToast?.(result.message);
     }
   };
 
@@ -65,9 +65,9 @@ export const SyncStatusBar: React.FC<SyncStatusBarProps> = ({ onNotifyToast }) =
     const nextState = !syncStatus.isSimulatedOffline;
     setSimulatedOffline(nextState);
     if (nextState) {
-      onNotifyToast?.('📴 Offline Mode Simulated. Any new appointments or chat messages will be queued locally.');
+      onNotifyToast?.('Offline Mode Simulated. Any new appointments or chat messages will be queued locally.');
     } else {
-      onNotifyToast?.('🟢 Reconnected to Online. Background sync is pushing queued records to database...');
+      onNotifyToast?.('Reconnected to Online. Background sync is pushing queued records to database...');
     }
   };
 

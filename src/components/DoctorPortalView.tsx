@@ -684,7 +684,7 @@ export const DoctorPortalView: React.FC<DoctorPortalViewProps> = ({
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
-          <FlaskConical className="w-4 h-4 text-purple-600" />
+          <FlaskConical className="w-4 h-4 text-indigo-600" />
           <span>Patient Diagnostic Files ({relevantLabReports.length})</span>
         </button>
 
@@ -805,7 +805,7 @@ export const DoctorPortalView: React.FC<DoctorPortalViewProps> = ({
       {activeDoctorTab === 'lab' && (
         <div className="rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 p-5 shadow-xs space-y-3">
           <div className="flex items-center gap-2">
-            <FlaskConical className="w-5 h-5 text-purple-600" />
+            <FlaskConical className="w-5 h-5 text-indigo-600" />
             <h3 className="text-sm font-bold text-slate-900 dark:text-white">
               Patient Medical Records &amp; Diagnostic Vault
             </h3>
@@ -832,7 +832,7 @@ export const DoctorPortalView: React.FC<DoctorPortalViewProps> = ({
                   className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between gap-3"
                 >
                   <div className="flex items-center gap-3">
-                    <FlaskConical className="w-4 h-4 text-purple-600 shrink-0" />
+                    <FlaskConical className="w-4 h-4 text-indigo-600 shrink-0" />
                     <div>
                       <h4 className="text-xs font-bold text-slate-900 dark:text-white">
                         {lab.test_name} ({lab.category})
@@ -843,7 +843,7 @@ export const DoctorPortalView: React.FC<DoctorPortalViewProps> = ({
                     </div>
                   </div>
 
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
                     {lab.status}
                   </span>
                 </div>

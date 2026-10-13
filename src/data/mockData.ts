@@ -911,7 +911,7 @@ export const INITIAL_EMERGENCY_CONTACTS: EmergencyContact[] = [
     desc: "24/7 Directorate of Air Operations & High-Altitude Medical Evacuation (MEDEVAC). Coordinates emergency helicopter dispatch for critical trauma, maternal complications in remote districts, and alpine search & rescue.",
     category: "air-ambulance",
     badge: "Air Rescue / Medevac",
-    icon: "🚁"
+    icon: "helicopter"
   },
   {
     name: "DJI FlyCart 30 Remote Drone Medical Cargo Dispatch",
@@ -920,7 +920,7 @@ export const INITIAL_EMERGENCY_CONTACTS: EmergencyContact[] = [
     desc: "Autonomous aerial cargo & high-altitude medical payload drone operations. Notice: Direct telephone dispatch line is currently unavailable due to unverified contact number. Service line is offline until official verification.",
     category: "drone-delivery",
     badge: "Currently Unavailable",
-    icon: "🛸",
+    icon: "drone",
     available: false,
     unavailableReason: "Dispatch hotline temporarily unavailable due to incorrect/unverified phone number."
   },
@@ -931,7 +931,7 @@ export const INITIAL_EMERGENCY_CONTACTS: EmergencyContact[] = [
     desc: "Toll-free 24/7 Nepal Red Cross ambulance dispatch across all 77 districts.",
     category: "national-helpline",
     badge: "Ground Dispatch",
-    icon: "🚑"
+    icon: "ambulance"
   },
   {
     name: "Nepal Police Emergency Response",
@@ -940,7 +940,7 @@ export const INITIAL_EMERGENCY_CONTACTS: EmergencyContact[] = [
     desc: "Toll-free 24/7 Police control room & disaster incident response.",
     category: "police",
     badge: "Police 24/7",
-    icon: "👮"
+    icon: "police"
   },
   {
     name: "Traffic Police Help Line",
@@ -949,7 +949,7 @@ export const INITIAL_EMERGENCY_CONTACTS: EmergencyContact[] = [
     desc: "For road accidents, highway clearance, and emergency transit assistance.",
     category: "police",
     badge: "Highway Help",
-    icon: "🚔"
+    icon: "traffic"
   },
   {
     name: "Sukraraj Tropical Infectious Disease Hotline",
@@ -958,7 +958,7 @@ export const INITIAL_EMERGENCY_CONTACTS: EmergencyContact[] = [
     desc: "Ministry of Health epidemic, dengue, and snakebite clinical guidance.",
     category: "national-helpline",
     badge: "Infectious Disease",
-    icon: "🧪"
+    icon: "infection"
   },
   {
     name: "National Mental Health Suicide Prevention Helpline",
@@ -967,7 +967,7 @@ export const INITIAL_EMERGENCY_CONTACTS: EmergencyContact[] = [
     desc: "24/7 Confidential mental health crisis counseling and emotional support.",
     category: "mental-health",
     badge: "Counseling 24/7",
-    icon: "🧠"
+    icon: "mental-health"
   }
 ];
 

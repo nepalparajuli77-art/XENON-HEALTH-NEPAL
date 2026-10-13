@@ -64,8 +64,8 @@ export function evaluateBloodPressure(systolic: number, diastolic: number): Vita
       status: 'low',
       label: 'Hypotension (Low BP)',
       labelNp: 'कम रक्तचाप (Hypotension)',
-      badgeBg: 'bg-purple-500/10 border-purple-500/20',
-      badgeText: 'text-purple-700 dark:text-purple-300',
+      badgeBg: 'bg-indigo-500/10 border-indigo-500/20',
+      badgeText: 'text-indigo-700 dark:text-indigo-300',
       description: 'Low blood pressure. Ensure hydration and oral rehydration fluids (Jeevan Jal).',
       descriptionNp: 'रक्तचाप कम छ। जीवनजल र प्रशस्त झोलिलो पदार्थ पिउनुहोस्।'
     };
@@ -110,8 +110,8 @@ export function evaluateHeartRate(bpm: number): VitalsEvaluation {
       status: 'warning',
       label: 'Bradycardia (Low Pulse)',
       labelNp: 'कम मुटुको चाल (Bradycardia)',
-      badgeBg: 'bg-purple-500/10 border-purple-500/20',
-      badgeText: 'text-purple-700 dark:text-purple-300',
+      badgeBg: 'bg-indigo-500/10 border-indigo-500/20',
+      badgeText: 'text-indigo-700 dark:text-indigo-300',
       description: 'Below 50 bpm (unless highly conditioned athlete).',
       descriptionNp: 'मुटुको चाल सुस्त छ (खेलाडीबाहेक सतर्कता आवश्यक)।'
     };

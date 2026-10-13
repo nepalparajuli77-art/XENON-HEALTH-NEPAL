@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { Navbar } from './components/Navbar';
 import { Sidebar } from './components/Sidebar';
 import { DashboardView } from './components/DashboardView';
@@ -29,6 +29,7 @@ import { SyncStatusBar } from './components/SyncStatusBar';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { motion, AnimatePresence } from 'framer-motion';
 import { initBackgroundSync } from './services/syncService';
+import { api } from './services/api';
 import {
   INITIAL_DOCTORS,
   INITIAL_HOSPITALS,
@@ -168,6 +169,42 @@ export default function App() {
     }
     return INITIAL_USERS;
   });
+
+  // Sync authoritative user database on mount and listen for real-time events
+  useEffect(() => {
+    api.getUsers().then((dbUsers) => {
+      if (Array.isArray(dbUsers) && dbUsers.length > 0) {
+        setUsers(dbUsers);
+        if (currentUser) {
+          const fresh = dbUsers.find((u) => u.id === currentUser.id || u.username === currentUser.username);
+          if (fresh) {
+            setCurrentUser(fresh);
+            try {
+              localStorage.setItem('telemed_current_user', JSON.stringify(fresh));
+            } catch {}
+          }
+        }
+      }
+    });
+
+    const handleExternalUserUpdate = () => {
+      api.getUsers().then((dbUsers) => {
+        if (Array.isArray(dbUsers) && dbUsers.length > 0) {
+          setUsers(dbUsers);
+          const cached = localStorage.getItem('telemed_current_user');
+          if (cached) {
+            try {
+              const parsed = JSON.parse(cached);
+              setCurrentUser(parsed);
+            } catch {}
+          }
+        }
+      });
+    };
+
+    window.addEventListener('xenon-user-updated', handleExternalUserUpdate);
+    return () => window.removeEventListener('xenon-user-updated', handleExternalUserUpdate);
+  }, []);
 
   // Track whether site has already been operated
   const [hasOperatedSite, setHasOperatedSite] = useState<boolean>(() => {
@@ -657,10 +694,12 @@ export default function App() {
       console.warn(e);
     }
 
+    // Persist to server database
+    api.registerDoctor(newDoctor, newUser);
     showToast(`Doctor registration approved! Welcome, ${newDoctor.name} (${newDoctor.nmc_number}).`);
   };
 
-  const handlePatientRegistered = (newPatient: User) => {
+  const handlePatientRegistered = async (newPatient: User) => {
     markSiteOperated();
     setUsers((prev) => {
       const exists = prev.some((u) => u.id === newPatient.id || u.username === newPatient.username);
@@ -681,11 +720,22 @@ export default function App() {
       console.warn(e);
     }
 
+    // Persist to server database
+    await api.registerPatient(newPatient);
     showToast(`Patient registered! Welcome, ${newPatient.full_name} (PID: ${newPatient.id}).`);
   };
 
-  const handleUpdateUser = (updatedUser: User) => {
-    setCurrentUser(updatedUser);
+  const handleUpdateUser = async (updatedUser: User) => {
+    const isCurrent = !currentUser || currentUser.id === updatedUser.id || currentUser.username === updatedUser.username;
+    if (isCurrent) {
+      setCurrentUser(updatedUser);
+      try {
+        localStorage.setItem('telemed_current_user', JSON.stringify(updatedUser));
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+
     setUsers((prev) => {
       const exists = prev.some((u) => u.id === updatedUser.id || u.username === updatedUser.username);
       const updated = exists
@@ -694,12 +744,17 @@ export default function App() {
       saveUsersList(updated);
       return updated;
     });
-    try {
-      localStorage.setItem('telemed_current_user', JSON.stringify(updatedUser));
-    } catch (e) {
-      console.warn(e);
+
+    // Persist directly to server database
+    const res = await api.updateUser(updatedUser.id, updatedUser);
+    if (res.success && res.user) {
+      if (isCurrent) {
+        setCurrentUser(res.user);
+      }
+      showToast(`Health profile updated for ${res.user.full_name}!`);
+    } else {
+      showToast(`Health profile updated for ${updatedUser.full_name}!`);
     }
-    showToast(`Health profile updated for ${updatedUser.full_name}!`);
   };
 
   const handleLogout = () => {
@@ -823,11 +878,11 @@ export default function App() {
   return (
     <div className={`min-h-screen w-full flex justify-center transition-colors duration-200 ${isDark ? 'dark bg-[#03060E]' : 'bg-[#E2E8F0]'}`}>
       <div className={`w-full max-w-[1440px] min-h-screen flex relative font-sans shadow-2xl border-x border-slate-200/50 dark:border-slate-800/50 ${isDark ? 'bg-[#070A12] text-white' : 'bg-[#F8FAFC] text-slate-900'}`}>
-        {/* Ambient Liquid Glass Refraction Mesh Orbs */}
+        {/* Ambient Liquid Glass Refraction Mesh Orbs - Clinical Teal and Steel Blue */}
         <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
-          <div className="absolute -top-32 -left-32 w-[38rem] h-[38rem] rounded-full bg-gradient-to-br from-blue-400/20 via-indigo-500/15 to-purple-500/10 blur-3xl opacity-90 dark:opacity-30" />
+          <div className="absolute -top-32 -left-32 w-[38rem] h-[38rem] rounded-full bg-gradient-to-br from-teal-500/15 via-slate-800/20 to-sky-600/15 blur-3xl opacity-90 dark:opacity-30" />
           <div className="absolute top-1/3 -right-32 w-[40rem] h-[40rem] rounded-full bg-gradient-to-bl from-cyan-400/20 via-sky-500/15 to-blue-600/10 blur-3xl opacity-85 dark:opacity-25" />
-          <div className="absolute -bottom-32 left-1/4 w-[36rem] h-[36rem] rounded-full bg-gradient-to-tr from-teal-400/15 via-emerald-400/10 to-indigo-500/15 blur-3xl opacity-80 dark:opacity-25" />
+          <div className="absolute -bottom-32 left-1/4 w-[36rem] h-[36rem] rounded-full bg-gradient-to-tr from-teal-400/15 via-emerald-400/10 to-slate-700/15 blur-3xl opacity-80 dark:opacity-25" />
         </div>
 
       {/* Desktop Vertical Sidebar */}
@@ -1011,6 +1066,7 @@ export default function App() {
               hospitals={hospitals}
               language={language}
               onOpenChat={handleOpenChat}
+              onNavigateToMap={() => handleSelectTab('locationMedevac')}
             />
           )}
 
@@ -1055,6 +1111,7 @@ export default function App() {
             <EmergencyView
               contacts={INITIAL_EMERGENCY_CONTACTS}
               language={language}
+              onNavigateToMap={() => handleSelectTab('locationMedevac')}
             />
           )}
         </main>
@@ -1062,8 +1119,9 @@ export default function App() {
         {/* Global Footer */}
         <footer className="mt-auto shrink-0 border-t border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-[#090D1A]/95 py-4 transition-colors">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs text-slate-600 dark:text-slate-400 font-medium">
-            <p>
-              🇳🇵 <b>XENON HEALTH</b> — Clinical Telemedicine, AI Triage &amp; Vitals Telemetry Platform
+            <p className="flex items-center justify-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0" />
+              <span><b>XENON HEALTH</b> — Clinical Telemedicine, AI Triage &amp; Vitals Telemetry Platform</span>
             </p>
           </div>
         </footer>
@@ -1135,7 +1193,7 @@ export default function App() {
             transition={{ type: 'spring', damping: 25, stiffness: 350 }}
             className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50 p-4 rounded-2xl bg-white dark:bg-[#1C1C1E] text-black dark:text-white text-xs font-bold shadow-2xl border border-black/10 dark:border-white/20 flex items-center gap-2.5"
           >
-            <span>✨</span>
+            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
             <span className="text-black dark:text-white">{toastMessage}</span>
           </motion.div>
         )}

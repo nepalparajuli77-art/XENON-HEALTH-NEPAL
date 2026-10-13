@@ -898,7 +898,7 @@ export const VitalsTelemetryTracker: React.FC<VitalsTrackerProps> = ({
         <div className="p-4 rounded-2xl liquid-glass-card border border-white/60 dark:border-white/10 shadow-xs space-y-1">
           <div className="flex items-center justify-between text-slate-500">
             <span className="text-xs font-semibold">{language === 'np' ? 'ग्लुकोज (Sugar)' : 'Blood Glucose'}</span>
-            <Droplets className="w-4 h-4 text-purple-500" />
+            <Droplets className="w-4 h-4 text-indigo-500" />
           </div>
           <p className="text-xl font-bold text-slate-900 dark:text-white">
             {latestLog.bloodGlucose} <span className="text-xs font-normal text-slate-400">mg/dL</span>
@@ -1186,7 +1186,7 @@ export const VitalsTelemetryTracker: React.FC<VitalsTrackerProps> = ({
                   </td>
                   <td className="p-3 font-mono text-blue-600 dark:text-blue-400 font-bold">{l.heartRate}</td>
                   <td className="p-3 font-mono text-cyan-600 dark:text-cyan-400 font-bold">{l.spO2}%</td>
-                  <td className="p-3 font-mono text-purple-600 dark:text-purple-400 font-bold">{l.bloodGlucose}</td>
+                  <td className="p-3 font-mono text-indigo-600 dark:text-indigo-400 font-bold">{l.bloodGlucose}</td>
                   <td className="p-3 font-mono text-amber-600 dark:text-amber-400 font-bold">{l.temperature}°F</td>
                   <td className="p-3 text-slate-500 text-[11px] whitespace-nowrap">
                     {l.weightKg ? `${l.weightKg}kg` : '—'} {l.altitudeMeters ? `• ${l.altitudeMeters}m` : ''}
@@ -1374,7 +1374,7 @@ export const VitalsTelemetryTracker: React.FC<VitalsTrackerProps> = ({
                 <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 space-y-1.5">
                   <div className="flex items-center justify-between">
                     <label className="text-slate-600 dark:text-slate-300 font-bold flex items-center gap-1">
-                      <Droplets className="w-3.5 h-3.5 text-purple-500" />
+                      <Droplets className="w-3.5 h-3.5 text-indigo-500" />
                       <span>Glucose (mg/dL)</span>
                     </label>
                     {liveModalEval.glu && (

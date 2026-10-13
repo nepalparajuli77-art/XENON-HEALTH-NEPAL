@@ -145,7 +145,7 @@ export const DoctorDashboardView: React.FC<DoctorDashboardViewProps> = ({
               onClick={onNavigateToXenon}
               className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-colors cursor-pointer min-h-[44px]"
             >
-              <Sparkles className="w-4 h-4 text-purple-400" />
+              <Sparkles className="w-4 h-4 text-blue-400" />
               <span>{language === 'np' ? 'क्लिनिकल AI सपोर्ट' : 'Clinical AI Assistant'}</span>
             </button>
           </div>
@@ -356,21 +356,21 @@ export const DoctorDashboardView: React.FC<DoctorDashboardViewProps> = ({
                 </div>
 
                 {/* Quick Clinical Decision Support CTA */}
-                <div className="p-4 rounded-xl bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-900/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="p-4 rounded-xl bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <Sparkles className="w-5 h-5 text-purple-600 shrink-0" />
+                    <Sparkles className="w-5 h-5 text-indigo-600 dark:text-indigo-400 shrink-0" />
                     <div className="text-xs">
-                      <div className="font-bold text-purple-900 dark:text-purple-200">
+                      <div className="font-bold text-indigo-900 dark:text-indigo-200">
                         {language === 'np' ? 'जेमिनी क्लिनिकल ड्रग इन्टर्याक्सन' : 'Xenon AI Drug Interaction & Protocol Assistant'}
                       </div>
-                      <div className="text-purple-700 dark:text-purple-300 text-[11px]">
+                      <div className="text-indigo-700 dark:text-indigo-300 text-[11px]">
                         Verify contraindications and Nepal standard treatment protocols.
                       </div>
                     </div>
                   </div>
                   <button
                     onClick={onNavigateToXenon}
-                    className="px-3.5 py-2 text-xs font-bold rounded-lg bg-purple-600 hover:bg-purple-700 text-white shadow-xs shrink-0 cursor-pointer self-start sm:self-auto"
+                    className="px-3.5 py-2 text-xs font-bold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs shrink-0 cursor-pointer self-start sm:self-auto"
                   >
                     Open AI Decision Support
                   </button>

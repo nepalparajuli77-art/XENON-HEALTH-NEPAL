@@ -165,7 +165,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
                       : 'bg-slate-800 text-white shadow-md'
                   }`}
                 >
-                  <Sparkles className="w-5 h-5 text-purple-300" />
+                  <Sparkles className="w-5 h-5 text-indigo-300" />
                 </div>
                 <span className="text-[10px] font-bold mt-1 text-slate-700 dark:text-slate-300">
                   {tab.label}

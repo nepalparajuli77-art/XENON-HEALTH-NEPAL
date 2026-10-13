@@ -7,6 +7,7 @@ import {
   Trash2,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
   Clock,
   History,
   FileJson,
@@ -49,36 +50,71 @@ export const BackupsConsoleTabView: React.FC<BackupsConsoleTabViewProps> = ({ sh
     const snap = captureBackupSnapshot('Manual Backup', title);
     if (snap) {
       triggerHaptic('success');
-      showToast('📥 Custom system backup successfully created!');
+      showToast('Custom system backup successfully created.');
       setManualBackupTitle('');
       refreshHistory();
     }
   };
 
+  const [confirmDialog, setConfirmDialog] = useState<{
+    type: 'restore' | 'delete' | 'import';
+    data: any;
+    title: string;
+    message: string;
+  } | null>(null);
+
   const handleRestore = (snap: BackupSnapshot) => {
-    const confirmRestore = window.confirm(
-      `⚠️ WARNING: Restoring this backup will replace ALL current session records, appointments, and telemetry logs with the data from: "${snap.summary}" (${new Date(snap.timestamp).toLocaleString()}).\n\nProceed?`
-    );
-    if (confirmRestore) {
+    setConfirmDialog({
+      type: 'restore',
+      data: snap,
+      title: 'Confirm Database Rollback',
+      message: `Restoring this backup will replace current session records, appointments, and telemetry logs with data from: "${snap.summary}" (${new Date(snap.timestamp).toLocaleString()}).`
+    });
+  };
+
+  const handleDelete = (id: string) => {
+    setConfirmDialog({
+      type: 'delete',
+      data: id,
+      title: 'Delete Backup Snapshot',
+      message: 'Are you sure you want to permanently delete this backup checkpoint from storage history?'
+    });
+  };
+
+  const executeConfirmedAction = () => {
+    if (!confirmDialog) return;
+    triggerHaptic('medium');
+
+    if (confirmDialog.type === 'restore') {
+      const snap = confirmDialog.data as BackupSnapshot;
       const ok = restoreFromSnapshot(snap);
       if (ok) {
-        showToast('🔄 Database state successfully restored! Reloading application...');
+        showToast('Database state successfully restored. Reloading application...');
         setTimeout(() => {
           window.location.reload();
         }, 1200);
       } else {
-        showToast('❌ Failed to restore database state.');
+        showToast('Failed to restore database state.');
       }
-    }
-  };
-
-  const handleDelete = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this backup checkpoint?')) {
-      triggerHaptic('warning');
+    } else if (confirmDialog.type === 'delete') {
+      const id = confirmDialog.data as string;
       const updated = deleteBackupFromHistory(id);
       setBackups(updated);
-      showToast('🗑️ Backup snapshot deleted from local storage history.');
+      showToast('Backup snapshot deleted from local storage history.');
+    } else if (confirmDialog.type === 'import') {
+      const parsed = confirmDialog.data as BackupSnapshot;
+      const ok = restoreFromSnapshot(parsed);
+      if (ok) {
+        showToast('Database successfully restored from imported file. Reloading...');
+        setTimeout(() => {
+          window.location.reload();
+        }, 1200);
+      } else {
+        setUploadError('Failed to apply data restore from imported snapshot.');
+      }
     }
+
+    setConfirmDialog(null);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -99,21 +135,12 @@ export const BackupsConsoleTabView: React.FC<BackupsConsoleTabViewProps> = ({ sh
           throw new Error('Invalid file structure. Make sure this is a valid Xenon Auto-Backup JSON file.');
         }
 
-        const confirmImport = window.confirm(
-          `📥 File Validated!\nBackup Checkpoint: "${parsed.actionType}" - ${parsed.summary}\nTimestamp: ${new Date(parsed.timestamp).toLocaleString()}\n\nDo you want to instantly restore and sync your entire workspace to this checkpoint?`
-        );
-
-        if (confirmImport) {
-          const ok = restoreFromSnapshot(parsed);
-          if (ok) {
-            showToast('🔄 Database successfully restored from imported file! Reloading...');
-            setTimeout(() => {
-              window.location.reload();
-            }, 1200);
-          } else {
-            setUploadError('Failed to apply data restore from imported snapshot.');
-          }
-        }
+        setConfirmDialog({
+          type: 'import',
+          data: parsed,
+          title: 'Validated Backup Checkpoint',
+          message: `Checkpoint: "${parsed.actionType}" - ${parsed.summary} (${new Date(parsed.timestamp).toLocaleString()}). Restore and sync entire workspace to this checkpoint?`
+        });
       } catch (err: any) {
         triggerHaptic('warning');
         setUploadError(err?.message || 'Failed to parse JSON file.');
@@ -277,6 +304,45 @@ export const BackupsConsoleTabView: React.FC<BackupsConsoleTabViewProps> = ({ sh
           </div>
         </div>
       </div>
+
+      {/* Inline Confirmation Dialog (Replaces window.confirm) */}
+      {confirmDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-2xl bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <h3 className="text-sm font-black text-slate-900 dark:text-white">
+                {confirmDialog.title}
+              </h3>
+            </div>
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+              {confirmDialog.message}
+            </p>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setConfirmDialog(null)}
+                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={executeConfirmedAction}
+                className={`px-4 py-2 rounded-xl text-white text-xs font-bold shadow-md transition-all cursor-pointer ${
+                  confirmDialog.type === 'delete'
+                    ? 'bg-red-600 hover:bg-red-700'
+                    : 'bg-amber-600 hover:bg-amber-700'
+                }`}
+              >
+                {confirmDialog.type === 'delete' ? 'Delete Snapshot' : 'Confirm & Proceed'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

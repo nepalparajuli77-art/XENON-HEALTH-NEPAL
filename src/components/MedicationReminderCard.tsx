@@ -12,7 +12,10 @@ import {
   Calendar,
   ChevronRight,
   ShieldAlert,
-  Plus
+  Plus,
+  Sun,
+  Moon,
+  Utensils
 } from 'lucide-react';
 import { Prescription, Language } from '../types';
 import { t } from '../data/mockData';
@@ -272,8 +275,9 @@ export const MedicationReminderCard: React.FC<MedicationReminderCardProps> = ({
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded-md bg-red-600 text-white text-[10px] font-black uppercase tracking-wider">
-                    🔔 LIVE PUSH NOTIFICATION
+                  <span className="px-2 py-0.5 rounded-md bg-red-600 text-white text-[10px] font-black uppercase tracking-wider inline-flex items-center gap-1">
+                    <Bell className="w-3 h-3" />
+                    <span>LIVE PUSH NOTIFICATION</span>
                   </span>
                   <span className="text-[11px] text-slate-500 dark:text-slate-400 font-bold">
                     {activeAlertBanner.item.timeLabel}
@@ -381,10 +385,10 @@ export const MedicationReminderCard: React.FC<MedicationReminderCardProps> = ({
         {/* Quick Time Jump Pills */}
         <div className="flex items-center gap-1.5 flex-wrap justify-center">
           {[
-            { label: '🌅 08:00 AM (Morning)', hour: 8 },
-            { label: '☀️ 01:30 PM (Lunch)', hour: 13 },
-            { label: '🌙 09:00 PM (Dinner)', hour: 21 },
-            { label: '⏰ Real Local Time', hour: new Date().getHours() }
+            { label: '08:00 AM (Morning)', hour: 8 },
+            { label: '01:30 PM (Lunch)', hour: 13 },
+            { label: '09:00 PM (Dinner)', hour: 21 },
+            { label: 'Real Local Time', hour: new Date().getHours() }
           ].map((slot) => (
             <button
               key={slot.label}
@@ -485,8 +489,9 @@ export const MedicationReminderCard: React.FC<MedicationReminderCardProps> = ({
                   {/* Meal Timing & Instruction */}
                   <div className="mt-3 space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-bold">
-                        🍽️ {language === 'np' ? item.mealTimingNp : item.mealTiming}
+                      <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-bold inline-flex items-center gap-1">
+                        <Utensils className="w-3 h-3 text-slate-500" />
+                        <span>{language === 'np' ? item.mealTimingNp : item.mealTiming}</span>
                       </span>
                       <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
                         Dr. {item.doctorName}

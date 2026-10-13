@@ -227,7 +227,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   className="flex items-center gap-2 pl-1.5 pr-2.5 py-1 rounded-full bg-black/[0.04] hover:bg-black/[0.07] dark:bg-white/[0.06] dark:hover:bg-white/[0.1] text-slate-900 dark:text-white border border-black/[0.04] dark:border-white/[0.06] transition-all cursor-pointer"
                 >
                   <div className="w-6 h-6 rounded-full bg-[#1C1C1E] dark:bg-white text-white dark:text-slate-900 flex items-center justify-center text-xs font-bold shadow-xs">
-                    {isDoctor ? '🩺' : isDeveloper ? '💻' : currentUser.full_name.charAt(0)}
+                    {isDoctor ? <Stethoscope className="w-3.5 h-3.5" /> : isDeveloper ? <Code className="w-3.5 h-3.5" /> : currentUser.full_name.charAt(0)}
                   </div>
                   <div className="text-left hidden sm:block">
                     <div className="text-xs font-bold truncate max-w-[110px]">
@@ -273,7 +273,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                             setUserDropdownOpen(false);
                             setCurrentTab('developer');
                           }}
-                          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/40 transition-colors text-left font-bold"
+                          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-950/40 transition-colors text-left font-bold"
                         >
                           <Code className="w-3.5 h-3.5" />
                           <span>Admin Console</span>

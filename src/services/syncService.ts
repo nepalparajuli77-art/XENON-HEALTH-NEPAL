@@ -314,7 +314,7 @@ export function initBackgroundSync(onOnlineSyncToast?: (message: string) => void
       pushPendingQueueToDatabase().then((res) => {
         if (res.success && (res.syncedAppointments > 0 || res.syncedMessages > 0)) {
           if (onOnlineSyncToast) {
-            onOnlineSyncToast(`🟢 Reconnected: Pushed ${res.syncedAppointments} appointment(s) & ${res.syncedMessages} message(s) to database.`);
+            onOnlineSyncToast(`Reconnected: Pushed ${res.syncedAppointments} appointment(s) & ${res.syncedMessages} message(s) to database.`);
           }
         }
       });
@@ -357,7 +357,7 @@ export function initBackgroundSync(onOnlineSyncToast?: (message: string) => void
         console.log('[SyncService] Received BACKGROUND_SYNC_TRIGGERED message from Service Worker.');
         pushPendingQueueToDatabase().then((res) => {
           if (res.success && (res.syncedAppointments > 0 || res.syncedMessages > 0) && onOnlineSyncToast) {
-            onOnlineSyncToast(`🟢 Background Sync: Pushed ${res.syncedAppointments} appointment(s) & ${res.syncedMessages} message(s) to database.`);
+            onOnlineSyncToast(`Background Sync: Pushed ${res.syncedAppointments} appointment(s) & ${res.syncedMessages} message(s) to database.`);
           }
         });
       }
@@ -371,7 +371,7 @@ export function initBackgroundSync(onOnlineSyncToast?: (message: string) => void
       setTimeout(() => {
         pushPendingQueueToDatabase().then((res) => {
           if (res.success && (res.syncedAppointments > 0 || res.syncedMessages > 0) && onOnlineSyncToast) {
-            onOnlineSyncToast(`🟢 Re-synced ${res.syncedAppointments} appointment(s) and ${res.syncedMessages} message(s) with database.`);
+            onOnlineSyncToast(`Re-synced ${res.syncedAppointments} appointment(s) and ${res.syncedMessages} message(s) with database.`);
           }
         });
       }, 1000);

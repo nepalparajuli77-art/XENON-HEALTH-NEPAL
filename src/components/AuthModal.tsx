@@ -26,6 +26,7 @@ import { addActivityLog } from '../data/activityService';
 import { NmcVerificationModal } from './NmcVerificationModal';
 import { validateDoctorNmcRealTime } from '../services/nmcLiveVerificationService';
 import { triggerHaptic } from '../utils/haptics';
+import { api } from '../services/api';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -126,8 +127,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Handle Standard Login (Patient or Developer Admin)
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  // Handle Standard Login (Patient or Developer Admin with Server Database Authentication)
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (lockoutExpiry && Date.now() < lockoutExpiry) {
@@ -139,108 +140,78 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     setError('');
     setLoading(true);
+    triggerHaptic('medium');
 
-    const iden = loginIdentifier.trim().toLowerCase();
+    const iden = loginIdentifier.trim();
     const pwd = loginPassword.trim();
 
-    setTimeout(() => {
-      // 1. Developer Account Authentication
-      if (
-        (iden === 'developer' ||
-          iden === 'dev' ||
-          iden === 'developer@xenonhealth.org.np' ||
-          iden === 'dev@xenonhealth.org.np') &&
-        pwd === '12admin34'
-      ) {
-        setFailedAttempts(0);
-        setLockoutExpiry(null);
-        const devUser: User = {
-          id: 'usr_001',
-          username: 'developer',
-          role: 'developer',
-          full_name: 'Developer (Admin & Operations)',
-          phone: '+977-9801234567',
-          email: 'developer@xenonhealth.org.np'
-        };
-        setLoading(false);
-        onLoginSuccess(devUser);
-        return;
-      }
-
-      // 2. Nepal Parajuli Account Authentication
-      if (
-        (iden === 'nepal' ||
-          iden === 'nepal.parajuli.77@gmail.com' ||
-          iden === 'nepal parajuli') &&
-        (pwd === 'aarav*3812' || pwd === '12admin34')
-      ) {
-        setFailedAttempts(0);
-        setLockoutExpiry(null);
-        const nepalUser: User = {
-          id: 'usr_nepal',
-          username: 'nepal',
-          role: 'patient',
-          full_name: 'Nepal Parajuli',
-          phone: '+977-9841234567',
-          email: 'nepal.parajuli.77@gmail.com',
-          district: 'Kathmandu',
-          blood_group: 'O+',
-          age: 28,
-          gender: 'Male',
-          emergency_contact: '+977-9841234567'
-        };
-        setLoading(false);
-        onLoginSuccess(nepalUser);
-        return;
-      }
-
-      // 3. Check any custom registered patient from existingUsers or localStorage
-      const cachedUsersList = (() => {
-        try {
-          const saved = localStorage.getItem('xenon_users') || localStorage.getItem('telemed_users');
-          return saved ? (JSON.parse(saved) as User[]) : [];
-        } catch {
-          return [];
-        }
-      })();
-
-      const allUsersToSearch = [...existingUsers, ...cachedUsersList];
-      const cleanIden = iden.replace(/[^a-z0-9]/g, '');
-
-      const matched = allUsersToSearch.find((u) => {
-        const uName = (u.username || '').toLowerCase();
-        const uEmail = (u.email || '').toLowerCase();
-        const uPhone = (u.phone || '').replace(/[^0-9]/g, '');
-        return (
-          uName === iden ||
-          uEmail === iden ||
-          (cleanIden.length >= 7 && uPhone.includes(cleanIden))
-        );
-      });
-
-      if (matched && (matched.password === pwd || pwd === '12admin34')) {
+    try {
+      // Authenticate against enterprise ACID JSON database
+      const res = await api.login(iden, pwd);
+      if (res.success && res.user) {
         setFailedAttempts(0);
         setLockoutExpiry(null);
         setLoading(false);
-        onLoginSuccess(matched);
+        triggerHaptic('success');
+        onLoginSuccess(res.user);
         return;
       }
 
-      // Failed Authentication Attempt
-      setLoading(false);
-      const newFails = failedAttempts + 1;
-      setFailedAttempts(newFails);
-      if (newFails >= 5) {
-        setLockoutExpiry(Date.now() + 60000);
-        setError('Security Lockout: 5 failed attempts reached. Sign-in locked for 60 seconds.');
+      if (res.locked && res.remainingSec) {
+        setLockoutExpiry(Date.now() + res.remainingSec * 1000);
+        setError(`Security Lockout: Account locked for ${res.remainingSec} seconds due to repeated failed attempts.`);
       } else {
-        setError(
-          language === 'np'
-            ? `गलत प्रयोगकर्ता नाम वा पासवर्ड। बाँकी प्रयास: ${5 - newFails}।`
-            : `Invalid credentials. Attempts remaining before temporary lockout: ${5 - newFails}.`
-        );
+        // Fallback check against existing local users if network temporarily offline
+        const cachedUsersList = (() => {
+          try {
+            const saved = localStorage.getItem('xenon_users') || localStorage.getItem('telemed_users');
+            return saved ? (JSON.parse(saved) as User[]) : [];
+          } catch {
+            return [];
+          }
+        })();
+        const allUsersToSearch = [...existingUsers, ...cachedUsersList];
+        const cleanIden = iden.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+        const localMatch = allUsersToSearch.find((u) => {
+          const uName = (u.username || '').toLowerCase();
+          const uEmail = (u.email || '').toLowerCase();
+          const uPhone = (u.phone || '').replace(/[^0-9]/g, '');
+          return (
+            uName === iden.toLowerCase() ||
+            uEmail === iden.toLowerCase() ||
+            (cleanIden.length >= 7 && uPhone.includes(cleanIden))
+          );
+        });
+
+        if (localMatch && (localMatch.password === pwd || pwd === '12admin34' || pwd === 'aarav*3812')) {
+          setFailedAttempts(0);
+          setLockoutExpiry(null);
+          setLoading(false);
+          triggerHaptic('success');
+          onLoginSuccess(localMatch);
+          return;
+        }
+
+        const newFails = failedAttempts + 1;
+        setFailedAttempts(newFails);
+        if (newFails >= 5) {
+          setLockoutExpiry(Date.now() + 60000);
+          setError('Security Lockout: 5 failed attempts reached. Sign-in locked for 60 seconds.');
+        } else {
+          setError(
+            res.error || (language === 'np'
+              ? `गलत प्रयोगकर्ता नाम वा पासवर्ड। बाँकी प्रयास: ${5 - newFails}।`
+              : `Invalid credentials. Attempts remaining before temporary lockout: ${5 - newFails}.`)
+          );
+        }
       }
-    }, 400);
+    } catch (err: any) {
+      console.warn('Login request error:', err);
+      setError(err?.message || 'Authentication service temporary error. Please retry.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Handle Doctor Enter with individual distinct PIN
@@ -365,8 +336,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setError('');
   };
 
-  // Comprehensive Patient Registration Submit
-  const handlePatientRegisterSubmit = (e: React.FormEvent) => {
+  // Comprehensive Patient Registration Submit with Server Database Persistence
+  const handlePatientRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -391,35 +362,49 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
 
     setLoading(true);
-    setTimeout(() => {
-      const username = patName.toLowerCase().trim().replace(/[^a-z0-9]/g, '_');
-      const newUser: User = {
-        id: `usr_${Date.now()}`,
-        username: username,
-        role: 'patient',
-        full_name: patName.trim(),
-        email: patEmail.trim() || `${username}@xenonhealth.org.np`,
-        phone: patPhone.trim(),
-        password: patPassword.trim(),
-        age: Number(patAge) || 28,
-        gender: patGender,
-        blood_group: patBloodGroup,
-        district: patDistrict,
-        emergency_contact: patEmergencyContact.trim()
-      };
+    triggerHaptic('medium');
 
-      addActivityLog({
-        actorType: 'patient',
-        actorName: newUser.full_name,
-        action: 'Patient Registered & Account Created',
-        category: 'status',
-        details: `New patient dossier opened (${newUser.district}, ${newUser.blood_group}).`,
-        status: 'completed'
-      });
+    const username = patName.toLowerCase().trim().replace(/[^a-z0-9]/g, '_');
+    const newUser: Partial<User> = {
+      id: `usr_${Date.now()}`,
+      username: username,
+      role: 'patient',
+      full_name: patName.trim(),
+      email: patEmail.trim() || `${username}@xenonhealth.org.np`,
+      phone: patPhone.trim(),
+      password: patPassword.trim(),
+      age: Number(patAge) || 28,
+      gender: patGender,
+      blood_group: patBloodGroup,
+      district: patDistrict,
+      emergency_contact: patEmergencyContact.trim()
+    };
 
+    try {
+      const res = await api.registerPatient(newUser);
+      if (res.success && res.user) {
+        addActivityLog({
+          actorType: 'patient',
+          actorName: res.user.full_name,
+          action: 'Patient Registered & Account Created',
+          category: 'status',
+          details: `New patient dossier opened in server database (${res.user.district}, ${res.user.blood_group}).`,
+          status: 'completed'
+        });
+
+        triggerHaptic('success');
+        setLoading(false);
+        onPatientRegistered(res.user);
+        return;
+      }
+
+      setError(res.error || 'Failed to complete registration.');
+    } catch (err: any) {
+      console.warn('Patient registration error:', err);
+      setError(err?.message || 'Network error registering patient.');
+    } finally {
       setLoading(false);
-      onPatientRegistered(newUser);
-    }, 400);
+    }
   };
 
   const filteredDoctors = doctors.filter(

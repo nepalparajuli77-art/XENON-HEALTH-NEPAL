@@ -23,12 +23,23 @@ import {
   MapPin,
   AlertTriangle,
   CheckCircle2,
-  Phone
+  Phone,
+  Code,
+  Droplets,
+  Shield,
+  Activity,
+  Compass,
+  Heart,
+  Wind,
+  Utensils,
+  Pill
 } from 'lucide-react';
 import { Doctor, Hospital, Appointment, Prescription, Language, User, UserVitals } from '../types';
 import { t } from '../data/mockData';
 import { MedicationReminderCard } from './MedicationReminderCard';
 import { PersonalHealthVault } from './PersonalHealthVault';
+import { EditProfileModal } from './EditProfileModal';
+import { api } from '../services/api';
 
 interface DashboardViewProps {
   doctors: Doctor[];
@@ -171,46 +182,24 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     allergies: []
   };
 
-  // Profile Edit Local State
-  const [editFullName, setEditFullName] = useState(currentUser?.full_name || activeUser.full_name);
-  const [editBloodGroup, setEditBloodGroup] = useState(currentUser?.blood_group || activeUser.blood_group || 'O+');
-  const [editAge, setEditAge] = useState((currentUser?.age || activeUser.age || 28).toString());
-  const [editGender, setEditGender] = useState(currentUser?.gender || activeUser.gender || 'Male');
-  const [editDistrict, setEditDistrict] = useState(currentUser?.district || activeUser.district || 'Kathmandu');
-  const [editEmergencyPhone, setEditEmergencyPhone] = useState(currentUser?.emergency_contact || activeUser.emergency_contact || '+977-9841234567');
-  const [editAllergies, setEditAllergies] = useState(currentUser?.allergies?.join(', ') || activeUser.allergies?.join(', ') || '');
+  // Patient-specific Appointments Filtering
+  const userAppointments = React.useMemo(() => {
+    if (!currentUser || currentUser.role === 'developer' || currentUser.role === 'doctor') {
+      return appointments;
+    }
+    return appointments.filter(
+      (a) =>
+        a.patient_username === activeUser.username ||
+        a.patient_name.toLowerCase() === activeUser.full_name.toLowerCase() ||
+        (a as any).patient_id === activeUser.id
+    );
+  }, [appointments, activeUser, currentUser]);
 
-  // Keep inputs strictly in sync when currentUser changes or when user opens the Edit Profile modal
-  React.useEffect(() => {
-    const userToSync = currentUser || activeUser;
-    setEditFullName(userToSync.full_name || '');
-    setEditBloodGroup(userToSync.blood_group || 'O+');
-    setEditAge((userToSync.age || 28).toString());
-    setEditGender(userToSync.gender || 'Male');
-    setEditDistrict(userToSync.district || 'Kathmandu');
-    setEditEmergencyPhone(userToSync.emergency_contact || '+977-9841234567');
-    setEditAllergies(userToSync.allergies?.join(', ') || '');
-  }, [currentUser, isEditingProfile]);
-
-  const handleSaveProfile = (e: React.FormEvent) => {
-    e.preventDefault();
-    const base = currentUser || activeUser;
-
-    const updatedUser: User = {
-      ...base,
-      full_name: editFullName.trim() || base.full_name,
-      blood_group: editBloodGroup,
-      age: parseInt(editAge) || base.age || 28,
-      gender: editGender,
-      district: editDistrict.trim() || base.district || 'Kathmandu',
-      emergency_contact: editEmergencyPhone.trim() || base.emergency_contact || '+977-9841234567',
-      allergies: editAllergies.split(',').map((s) => s.trim()).filter(Boolean)
-    };
-
+  const handleSaveProfile = async (updatedUser: User) => {
     if (onUpdateUser) {
       onUpdateUser(updatedUser);
     }
-
+    await api.updateUser(updatedUser.id, updatedUser);
     setIsEditingProfile(false);
   };
 
@@ -220,7 +209,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       id: 1,
       category: 'altitude',
       tag: language === 'np' ? 'हिमाली उचाइ सल्लाह' : 'Altitude & Hydration',
-      icon: '🏔️',
+      icon: <Compass className="w-7 h-7 text-teal-600 dark:text-teal-400" />,
       title: language === 'np' ? 'उचाइ र दैनिक पानीको मात्रा' : 'High-Altitude Hydration Balance',
       content: language === 'np'
         ? 'काठमाडौं (१,४०० मिटर) वा हिमाली भेगमा शरीरबाट छिटो पानी खेर जान्छ। दैनिक कम्तिमा ३-४ लिटर पानी पिउनुहोस् जसले अक्सिजन प्रवाह र टाउको दुखाई कम गर्न मद्दत गर्छ।'
@@ -230,7 +219,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       id: 2,
       category: 'cardio',
       tag: language === 'np' ? 'मुटु तथा रक्तचाप' : 'Cardiovascular Care',
-      icon: '❤️',
+      icon: <Heart className="w-7 h-7 text-rose-600 dark:text-rose-400" />,
       title: language === 'np' ? 'रक्तचाप तथा नुनको मात्रा नियन्त्रण' : 'Optimal Blood Pressure & Sodium Intake',
       content: language === 'np'
         ? 'दैनिक नुनको मात्रा ५ ग्रामभन्दा कम राख्नुहोस् र बिहान २० मिनेट हिंड्नुहोस्। यसले रक्तचापलाई सामान्य (१२०/८०) राख्न मद्दत गर्छ।'
@@ -240,7 +229,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       id: 3,
       category: 'wellness',
       tag: language === 'np' ? 'वायु प्रदूषण सतर्कता' : 'Air Quality & Respiratory',
-      icon: '🫁',
+      icon: <Wind className="w-7 h-7 text-sky-600 dark:text-sky-400" />,
       title: language === 'np' ? 'उपत्यकाको हावा र मास्क प्रयोग' : 'Urban Air Quality & Lung Defense',
       content: language === 'np'
         ? 'काठमाडौंमा बिहानको समयमा धुलो र PM2.5 धेरै हुने भएकाले बाहिर निस्कँदा मास्क लगाउनुहोस् र घर फर्केपछि मनतातो पानीले मुख कुल्ला गर्नुहोस्।'
@@ -250,7 +239,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       id: 4,
       category: 'nutrition',
       tag: language === 'np' ? 'नेपाली पोषण सल्लाह' : 'Nepal Nutrition Balance',
-      icon: '🍲',
+      icon: <Utensils className="w-7 h-7 text-amber-600 dark:text-amber-400" />,
       title: language === 'np' ? 'दाल, भात र सागपातको सन्तुलन' : 'Balanced Fiber & Protein in Traditional Diet',
       content: language === 'np'
         ? 'खानाको थालीमा भातको मात्रा अलि घटाएर ताजा हरियो साग, गेडागुडी र दही थप्दा पाचन प्रक्रिया राम्रो हुन्छ र मधुमेहबाट बचिन्छ।'
@@ -260,7 +249,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       id: 5,
       category: 'wellness',
       tag: language === 'np' ? 'औषधि नियमितता' : 'Medication Adherence',
-      icon: '💊',
+      icon: <Pill className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />,
       title: language === 'np' ? 'डाक्टरको सिफारिस बिना औषधि नछोड्नुहोस्' : 'Course Completion & Digital Records',
       content: language === 'np'
         ? 'एन्टिबायोटिक वा रक्तचापको औषधि बीचमै नरोक्नुहोस्। नयाँ प्रिस्क्रिप्शन प्राप्त भएपछि तुरुन्त व्यक्तिगत भल्टमा अपलोड गर्नुहोस्।'
@@ -348,13 +337,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div
                 className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center text-lg sm:text-xl font-black text-white shadow-lg shrink-0 ${
                   activeUser.role === 'developer'
-                    ? 'bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-600 ring-2 ring-purple-400/50'
+                    ? 'bg-gradient-to-br from-slate-900 via-slate-800 to-teal-800 ring-2 ring-teal-500/50 text-teal-300'
                     : activeUser.role === 'doctor'
-                    ? 'bg-gradient-to-br from-blue-600 to-indigo-700 ring-2 ring-blue-400/40'
-                    : 'bg-gradient-to-br from-red-600 to-blue-700'
+                    ? 'bg-gradient-to-br from-blue-700 to-teal-800 ring-2 ring-blue-400/40'
+                    : 'bg-gradient-to-br from-slate-800 to-teal-900 ring-2 ring-teal-600/30'
                 }`}
               >
-                {activeUser.role === 'developer' ? '💻' : activeUser.full_name.charAt(0)}
+                {activeUser.role === 'developer' ? <Code className="w-6 h-6 text-teal-300" /> : activeUser.full_name.charAt(0)}
               </div>
 
               <div className="min-w-0 flex-1">
@@ -369,7 +358,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   <span
                     className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
                       activeUser.role === 'developer'
-                        ? 'bg-purple-600 text-white shadow-xs'
+                        ? 'bg-teal-700 text-teal-100 border border-teal-500/40 shadow-xs'
                         : activeUser.role === 'doctor'
                         ? 'bg-blue-600 text-white shadow-xs'
                         : 'bg-emerald-600 text-white shadow-xs'
@@ -382,12 +371,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 {/* Patient Quick Vitals & Health Attributes */}
                 <div className="mt-2.5 flex items-center gap-1.5 sm:gap-3 flex-wrap text-xs text-slate-700 dark:text-slate-300 font-medium">
                   <span className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-bold border border-slate-200/60 dark:border-slate-700 text-[11px] sm:text-xs">
-                    <span>🆔</span>
+                    <Shield className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                     <span>{activeUser.id}</span>
                   </span>
 
                   <span className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-900/40 font-bold text-[11px] sm:text-xs">
-                    <span>🩸</span>
+                    <Droplets className="w-3.5 h-3.5 text-red-600 shrink-0" />
                     <span>{activeUser.blood_group || 'O+'}</span>
                   </span>
 
@@ -544,7 +533,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </button>
             </div>
 
-            {appointments.length === 0 ? (
+            {userAppointments.length === 0 ? (
               <div className="p-6 text-center bg-slate-50/60 dark:bg-slate-900/60 rounded-xl">
                 <p className="text-xs text-slate-500 font-medium">
                   {language === 'np' ? 'कुनै आगामी भिडियो वा ओपीडी परामर्श छैन।' : 'No upcoming consultations scheduled.'}
@@ -559,7 +548,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
             ) : (
               <div className="space-y-2.5">
-                {appointments.slice(0, 3).map((apt) => (
+                {userAppointments.slice(0, 3).map((apt) => (
                   <div
                     key={apt.id}
                     className="p-3 rounded-xl bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-3 text-xs"
@@ -571,12 +560,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
                         <span>{apt.date} ({apt.time}) • {apt.specialty}</span>
                         {apt.synced === false ? (
-                          <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300 dark:border-amber-800 shrink-0">
-                            🕒 Pending Sync
+                          <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300 dark:border-amber-800 shrink-0 inline-flex items-center gap-1">
+                            <Clock className="w-2.5 h-2.5" />
+                            <span>Pending Sync</span>
                           </span>
                         ) : (
-                          <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold shrink-0">
-                            ✓ Synced
+                          <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold shrink-0 inline-flex items-center gap-1">
+                            <CheckCircle2 className="w-2.5 h-2.5 text-emerald-500" />
+                            <span>Synced</span>
                           </span>
                         )}
                       </div>
@@ -613,121 +604,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       </section>
 
       {/* Profile Edit Modal */}
-      {isEditingProfile && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md rounded-3xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 p-6 shadow-2xl animate-in fade-in zoom-in-95">
-            <h3 className="text-base font-black text-slate-950 dark:text-white mb-1">
-              {language === 'np' ? 'व्यक्तिगत स्वास्थ्य प्रोफाइल सम्पादन' : 'Edit Personal Health Profile'}
-            </h3>
-            <p className="text-xs text-slate-500 mb-4 font-medium">
-              {language === 'np' ? 'यसले परामर्श र एआई स्वास्थ्य सिफारिसलाई व्यक्तिगत बनाउँछ।' : 'Update your personal info for tailored healthcare & alerts.'}
-            </p>
-
-            <form onSubmit={handleSaveProfile} className="space-y-3.5 text-xs">
-              <div>
-                <label className="block font-bold text-slate-800 dark:text-slate-200 mb-1">
-                  {language === 'np' ? 'पूरा नाम' : 'Full Name'}
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={editFullName}
-                  onChange={(e) => setEditFullName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-950 dark:text-white font-medium"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-bold text-slate-800 dark:text-slate-200 mb-1">
-                    {language === 'np' ? 'रक्त समूह (Blood Group)' : 'Blood Group'}
-                  </label>
-                  <select
-                    value={editBloodGroup}
-                    onChange={(e) => setEditBloodGroup(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-950 dark:text-white font-bold"
-                  >
-                    {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((bg) => (
-                      <option key={bg} value={bg}>
-                        {bg}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block font-bold text-slate-800 dark:text-slate-200 mb-1">
-                    {language === 'np' ? 'उमेर (Age)' : 'Age'}
-                  </label>
-                  <input
-                    type="number"
-                    value={editAge}
-                    onChange={(e) => setEditAge(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-950 dark:text-white font-medium"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-bold text-slate-800 dark:text-slate-200 mb-1">
-                    {language === 'np' ? 'जिल्ला (District)' : 'District'}
-                  </label>
-                  <input
-                    type="text"
-                    value={editDistrict}
-                    onChange={(e) => setEditDistrict(e.target.value)}
-                    placeholder="Kathmandu"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-950 dark:text-white font-medium"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-bold text-slate-800 dark:text-slate-200 mb-1">
-                    {language === 'np' ? 'आपतकालीन सम्पर्क (SOS)' : 'Emergency Contact'}
-                  </label>
-                  <input
-                    type="text"
-                    value={editEmergencyPhone}
-                    onChange={(e) => setEditEmergencyPhone(e.target.value)}
-                    placeholder="+977-98XXXXXXXX"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-950 dark:text-white font-medium"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-800 dark:text-slate-200 mb-1">
-                  {language === 'np' ? 'एलर्जीहरू (Allergies - कमाले छुट्याउनुहोस्)' : 'Allergies (comma separated)'}
-                </label>
-                <input
-                  type="text"
-                  value={editAllergies}
-                  onChange={(e) => setEditAllergies(e.target.value)}
-                  placeholder="e.g. Penicillin, Dust, Peanuts"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-950 dark:text-white font-medium"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3">
-                <button
-                  type="button"
-                  onClick={() => setIsEditingProfile(false)}
-                  className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 font-bold cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-red-600 to-blue-700 text-white font-bold shadow-sm cursor-pointer"
-                >
-                  Save Profile
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <EditProfileModal
+        isOpen={isEditingProfile}
+        onClose={() => setIsEditingProfile(false)}
+        currentUser={currentUser || activeUser}
+        language={language}
+        onSave={handleSaveProfile}
+      />
     </div>
   );
 };

@@ -87,7 +87,22 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
 
   const [activeTabFilter, setActiveTabFilter] = useState<'all' | 'hospitals' | 'medevac'>('all');
 
-  const apiKey = (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY || '';
+  const [apiKey, setApiKey] = useState<string>(
+    () => (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY || ''
+  );
+
+  useEffect(() => {
+    if (!apiKey) {
+      fetch('/api/maps-key')
+        .then((r) => r.json())
+        .then((data) => {
+          if (data?.apiKey) {
+            setApiKey(data.apiKey);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [apiKey]);
 
   // Ping Current GPS Location
   const handlePingGps = () => {
@@ -420,9 +435,10 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
 
         {/* Map Frame */}
         <div className="h-[500px] w-full relative">
-          <APIProvider apiKey={apiKey}>
-            <Map
-              defaultCenter={{ lat: userCoords.lat, lng: userCoords.lng }}
+          {apiKey ? (
+            <APIProvider apiKey={apiKey}>
+              <Map
+                defaultCenter={{ lat: userCoords.lat, lng: userCoords.lng }}
               center={{ lat: userCoords.lat, lng: userCoords.lng }}
               defaultZoom={11}
               mapId="DEMO_MAP_ID"
@@ -558,6 +574,12 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
               )}
             </Map>
           </APIProvider>
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900 text-white rounded-2xl p-6 space-y-3">
+            <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            <span className="text-xs font-bold text-slate-300">Initializing Live Google Maps Radar...</span>
+          </div>
+        )}
         </div>
       </div>
 

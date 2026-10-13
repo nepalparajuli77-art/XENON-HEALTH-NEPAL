@@ -280,11 +280,11 @@ export const BookModal: React.FC<BookModalProps> = ({
                 onClick={() => setPaymentMethod('khalti')}
                 className={`p-3 rounded-2xl border flex flex-col items-center justify-center gap-1 cursor-pointer transition-all ${
                   paymentMethod === 'khalti'
-                    ? 'border-purple-500 bg-purple-50 dark:bg-purple-950/40 text-purple-800 dark:text-purple-300 font-black shadow-xs ring-2 ring-purple-500/20'
+                    ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-800 dark:text-indigo-300 font-black shadow-xs ring-2 ring-indigo-500/20'
                     : 'border-black/10 dark:border-white/10 bg-[#F8FAFC] dark:bg-[#1E293B] text-black dark:text-white opacity-80'
                 }`}
               >
-                <div className="w-6 h-6 rounded-lg bg-purple-600 text-white font-black text-xs flex items-center justify-center">
+                <div className="w-6 h-6 rounded-lg bg-indigo-600 text-white font-black text-xs flex items-center justify-center">
                   K
                 </div>
                 <span className="text-[11px] font-bold">Khalti</span>

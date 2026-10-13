@@ -364,7 +364,7 @@ export const DeveloperConsoleView: React.FC<DeveloperConsoleViewProps> = ({
 
           <button
             onClick={() => setShowAddDoctorModal(true)}
-            className="min-h-[42px] px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold shadow-md shadow-purple-600/30 flex items-center gap-1.5 transition-all cursor-pointer"
+            className="min-h-[42px] px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-600/30 flex items-center gap-1.5 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>+ Add Doctor</span>
@@ -415,7 +415,7 @@ export const DeveloperConsoleView: React.FC<DeveloperConsoleViewProps> = ({
             onClick={() => setActiveTab('appointments')}
             className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap min-h-[40px] ${
               activeTab === 'appointments'
-                ? 'bg-purple-600 text-white shadow-xs'
+                ? 'bg-indigo-600 text-white shadow-xs'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
@@ -486,9 +486,9 @@ export const DeveloperConsoleView: React.FC<DeveloperConsoleViewProps> = ({
 
               <button
                 onClick={() => handleDispatchDoctorReset(doctors[0])}
-                className="min-h-[40px] px-3.5 py-2 rounded-xl bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 dark:hover:bg-purple-900/60 text-purple-700 dark:text-purple-300 font-bold text-xs border border-purple-200 dark:border-purple-800 transition-colors cursor-pointer flex items-center gap-1.5"
+                className="min-h-[40px] px-3.5 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 font-bold text-xs border border-indigo-200 dark:border-indigo-800 transition-colors cursor-pointer flex items-center gap-1.5"
               >
-                <Mail className="w-3.5 h-3.5 text-purple-600" />
+                <Mail className="w-3.5 h-3.5 text-indigo-600" />
                 <span>Send Security Reset</span>
               </button>
             </div>
@@ -539,7 +539,7 @@ export const DeveloperConsoleView: React.FC<DeveloperConsoleViewProps> = ({
                           ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300'
                           : log.actorType === 'patient'
                           ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                          : 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300'
+                          : 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300'
                       }`}
                     >
                       {log.actorType === 'doctor' ? '👨‍⚕️' : log.actorType === 'patient' ? '🧑‍💼' : '🛡️'}
@@ -623,7 +623,7 @@ export const DeveloperConsoleView: React.FC<DeveloperConsoleViewProps> = ({
                   <tr key={doc.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-900/50 transition-colors">
                     <td className="py-3 px-4">
                       <div className="font-bold text-slate-900 dark:text-white">{doc.name}</div>
-                      <div className="text-[10px] font-mono text-purple-600 dark:text-purple-400 font-bold">
+                      <div className="text-[10px] font-mono text-indigo-600 dark:text-indigo-400 font-bold">
                         {doc.nmc_number}
                       </div>
                     </td>
@@ -675,7 +675,7 @@ export const DeveloperConsoleView: React.FC<DeveloperConsoleViewProps> = ({
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => setEditingDoctor(doc)}
-                          className="px-2.5 py-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/50 dark:hover:bg-purple-900/60 text-purple-700 dark:text-purple-300 font-bold text-xs flex items-center gap-1 transition-colors cursor-pointer"
+                          className="px-2.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/50 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 font-bold text-xs flex items-center gap-1 transition-colors cursor-pointer"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
                           <span>Change Info</span>
@@ -710,7 +710,7 @@ export const DeveloperConsoleView: React.FC<DeveloperConsoleViewProps> = ({
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <h3 className="font-bold text-sm text-slate-900 dark:text-white">{doc.name}</h3>
-                    <div className="text-[10px] font-mono text-purple-600 dark:text-purple-400 font-bold">
+                    <div className="text-[10px] font-mono text-indigo-600 dark:text-indigo-400 font-bold">
                       {doc.nmc_number}
                     </div>
                   </div>
@@ -747,7 +747,7 @@ export const DeveloperConsoleView: React.FC<DeveloperConsoleViewProps> = ({
                 <div className="pt-2 flex items-center gap-2">
                   <button
                     onClick={() => setEditingDoctor(doc)}
-                    className="flex-1 min-h-[40px] px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                    className="flex-1 min-h-[40px] px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
                   >
                     <Edit3 className="w-3.5 h-3.5" />
                     <span>Change Info</span>
@@ -907,7 +907,7 @@ export const DeveloperConsoleView: React.FC<DeveloperConsoleViewProps> = ({
                       <td className="py-3 px-4 font-bold text-slate-900 dark:text-white">
                         {apt.patient_name}
                       </td>
-                      <td className="py-3 px-4 text-purple-600 dark:text-purple-400 font-bold">
+                      <td className="py-3 px-4 text-indigo-600 dark:text-indigo-400 font-bold">
                         {apt.doctor_name}
                       </td>
                       <td className="py-3 px-4 text-slate-700 dark:text-slate-300">
@@ -1032,7 +1032,7 @@ export const DeveloperConsoleView: React.FC<DeveloperConsoleViewProps> = ({
           <div className="w-full max-w-lg rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-2xl animate-in fade-in max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2">
-                <Stethoscope className="w-5 h-5 text-purple-600" />
+                <Stethoscope className="w-5 h-5 text-indigo-600" />
                 <h3 className="text-base font-black text-slate-900 dark:text-white">
                   Change Doctor Information
                 </h3>
@@ -1053,7 +1053,7 @@ export const DeveloperConsoleView: React.FC<DeveloperConsoleViewProps> = ({
                   required
                   value={editingDoctor.name}
                   onChange={(e) => setEditingDoctor({ ...editingDoctor, name: e.target.value })}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-600"
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-600"
                 />
               </div>
 
@@ -1065,7 +1065,7 @@ export const DeveloperConsoleView: React.FC<DeveloperConsoleViewProps> = ({
                     required
                     value={editingDoctor.nmc_number}
                     onChange={(e) => setEditingDoctor({ ...editingDoctor, nmc_number: e.target.value })}
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-2 focus:ring-purple-600"
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-2 focus:ring-indigo-600"
                   />
                 </div>
                 <div>
@@ -1088,7 +1088,7 @@ export const DeveloperConsoleView: React.FC<DeveloperConsoleViewProps> = ({
                   required
                   value={editingDoctor.specialty}
                   onChange={(e) => setEditingDoctor({ ...editingDoctor, specialty: e.target.value })}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-600"
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-600"
                 />
               </div>
 
@@ -1099,7 +1099,7 @@ export const DeveloperConsoleView: React.FC<DeveloperConsoleViewProps> = ({
                   required
                   value={editingDoctor.hospital}
                   onChange={(e) => setEditingDoctor({ ...editingDoctor, hospital: e.target.value })}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-600"
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-600"
                 />
               </div>
 
@@ -1110,7 +1110,7 @@ export const DeveloperConsoleView: React.FC<DeveloperConsoleViewProps> = ({
                     type="number"
                     value={editingDoctor.fee_npr}
                     onChange={(e) => setEditingDoctor({ ...editingDoctor, fee_npr: Number(e.target.value) })}
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-purple-600"
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-indigo-600"
                   />
                 </div>
                 <div>
@@ -1118,7 +1118,7 @@ export const DeveloperConsoleView: React.FC<DeveloperConsoleViewProps> = ({
                   <select
                     value={editingDoctor.available ? 'true' : 'false'}
                     onChange={(e) => setEditingDoctor({ ...editingDoctor, available: e.target.value === 'true' })}
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-purple-600"
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-indigo-600"
                   >
                     <option value="true">Available for OPD</option>
                     <option value="false">Busy / In Surgery</option>
@@ -1132,7 +1132,7 @@ export const DeveloperConsoleView: React.FC<DeveloperConsoleViewProps> = ({
                   type="text"
                   value={editingDoctor.schedule}
                   onChange={(e) => setEditingDoctor({ ...editingDoctor, schedule: e.target.value })}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-600"
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-600"
                 />
               </div>
 
@@ -1146,7 +1146,7 @@ export const DeveloperConsoleView: React.FC<DeveloperConsoleViewProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold shadow-xs cursor-pointer flex items-center gap-1.5"
+                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-xs cursor-pointer flex items-center gap-1.5"
                 >
                   <Save className="w-3.5 h-3.5" />
                   <span>Save Doctor Changes</span>
@@ -1300,7 +1300,7 @@ export const DeveloperConsoleView: React.FC<DeveloperConsoleViewProps> = ({
           <div className="w-full max-w-lg rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-2xl animate-in fade-in max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-purple-600" />
+                <Calendar className="w-5 h-5 text-indigo-600" />
                 <h3 className="text-base font-black text-slate-900 dark:text-white">
                   Reschedule / Edit Appointment
                 </h3>
@@ -1406,7 +1406,7 @@ export const DeveloperConsoleView: React.FC<DeveloperConsoleViewProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold shadow-xs cursor-pointer flex items-center gap-1.5"
+                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-xs cursor-pointer flex items-center gap-1.5"
                 >
                   <Save className="w-3.5 h-3.5" />
                   <span>Save Appointment Changes</span>
@@ -1425,7 +1425,7 @@ export const DeveloperConsoleView: React.FC<DeveloperConsoleViewProps> = ({
           <div className="w-full max-w-lg rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-2xl animate-in fade-in max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2">
-                <Plus className="w-5 h-5 text-purple-600" />
+                <Plus className="w-5 h-5 text-indigo-600" />
                 <h3 className="text-base font-black text-slate-900 dark:text-white">
                   Add New NMC Certified Doctor
                 </h3>
@@ -1447,7 +1447,7 @@ export const DeveloperConsoleView: React.FC<DeveloperConsoleViewProps> = ({
                   placeholder="e.g. Dr. Roshan Thapa"
                   value={newDocName}
                   onChange={(e) => setNewDocName(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-600"
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-600"
                 />
               </div>
 
@@ -1460,7 +1460,7 @@ export const DeveloperConsoleView: React.FC<DeveloperConsoleViewProps> = ({
                     placeholder="e.g. NMC-8890"
                     value={newDocNmc}
                     onChange={(e) => setNewDocNmc(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-2 focus:ring-purple-600"
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-2 focus:ring-indigo-600"
                   />
                 </div>
                 <div>
@@ -1472,7 +1472,7 @@ export const DeveloperConsoleView: React.FC<DeveloperConsoleViewProps> = ({
                     placeholder="••••"
                     value={newDocPin}
                     onChange={(e) => setNewDocPin(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-2 focus:ring-purple-600"
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-2 focus:ring-indigo-600"
                   />
                 </div>
               </div>
@@ -1485,7 +1485,7 @@ export const DeveloperConsoleView: React.FC<DeveloperConsoleViewProps> = ({
                   placeholder="e.g. Senior Consultant Neurologist"
                   value={newDocSpecialty}
                   onChange={(e) => setNewDocSpecialty(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-600"
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-600"
                 />
               </div>
 
@@ -1497,7 +1497,7 @@ export const DeveloperConsoleView: React.FC<DeveloperConsoleViewProps> = ({
                   placeholder="e.g. Bir Hospital, Kathmandu"
                   value={newDocHospital}
                   onChange={(e) => setNewDocHospital(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-600"
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-600"
                 />
               </div>
 
@@ -1508,7 +1508,7 @@ export const DeveloperConsoleView: React.FC<DeveloperConsoleViewProps> = ({
                     type="number"
                     value={newDocFee}
                     onChange={(e) => setNewDocFee(Number(e.target.value))}
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-purple-600"
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-indigo-600"
                   />
                 </div>
                 <div>
@@ -1517,7 +1517,7 @@ export const DeveloperConsoleView: React.FC<DeveloperConsoleViewProps> = ({
                     type="text"
                     value={newDocSchedule}
                     onChange={(e) => setNewDocSchedule(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-600"
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-600"
                   />
                 </div>
               </div>
@@ -1532,7 +1532,7 @@ export const DeveloperConsoleView: React.FC<DeveloperConsoleViewProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold shadow-xs cursor-pointer"
+                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-xs cursor-pointer"
                 >
                   Confirm &amp; Add Doctor
                 </button>

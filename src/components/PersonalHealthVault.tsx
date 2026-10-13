@@ -430,7 +430,7 @@ export const PersonalHealthVault: React.FC<PersonalHealthVaultProps> = ({
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
-            <FileText className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+            <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             <span>
               {language === 'np' ? 'मेरो रेकर्ड' : 'My Records'} ({records.length})
             </span>

@@ -375,7 +375,7 @@ export const MedicalSummaryPdfModal: React.FC<MedicalSummaryPdfModalProps> = ({
 
           {/* Section 4: Clinical Consultation Encounters */}
           <div className="rounded-2xl p-5 border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 space-y-3">
-            <h3 className="text-xs font-black uppercase tracking-wider text-purple-600 dark:text-purple-400 flex items-center gap-1.5">
+            <h3 className="text-xs font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
               <Calendar className="w-4 h-4" />
               <span>IV. Clinical Encounters &amp; OPD Consultation Log ({appointments.length})</span>
             </h3>

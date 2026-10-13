@@ -7,12 +7,14 @@ interface HospitalsViewProps {
   hospitals: Hospital[];
   language: Language;
   onOpenChat: (hospital: Hospital) => void;
+  onNavigateToMap?: () => void;
 }
 
 export const HospitalsView: React.FC<HospitalsViewProps> = ({
   hospitals,
   language,
-  onOpenChat
+  onOpenChat,
+  onNavigateToMap
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDistrict, setSelectedDistrict] = useState('all');
@@ -40,6 +42,40 @@ export const HospitalsView: React.FC<HospitalsViewProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* Live Google Maps Radar Navigation Banner */}
+      {onNavigateToMap && (
+        <div className="rounded-[22px] bg-gradient-to-r from-blue-950 via-slate-900 to-blue-950 text-white p-4 sm:p-5 border border-blue-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-2xl bg-blue-600/30 text-blue-300 border border-blue-400/30 shrink-0">
+              <MapPin className="w-5 h-5 text-blue-400 animate-bounce" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-black text-white">
+                  {language === 'np' ? 'आपतकालीन जीपीएस गुगल नक्सा तथा दूरी रडार' : 'Emergency GPS Live Map & Hospital Radar'}
+                </h3>
+                <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-full bg-emerald-600 text-white shadow-xs">
+                  Google Maps
+                </span>
+              </div>
+              <p className="text-xs text-blue-200/80 mt-0.5 font-medium">
+                {language === 'np'
+                  ? 'तपाईंको लाइभ जीपीएस स्थानबाट सबैभन्दा नजिकको अस्पताल र सेना उद्धार हेलिकप्टर बेस पत्ता लगाउनुहोस्'
+                  : 'Ping your live GPS to discover nearest emergency hospitals, driving time & air medevac dispatch bases'}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onNavigateToMap}
+            className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-black transition-all shadow-md shrink-0 flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95"
+          >
+            <MapPin className="w-4 h-4" />
+            <span>{language === 'np' ? 'गुगल नक्सामा हेर्नुहोस् →' : 'Open Live Google Map →'}</span>
+          </button>
+        </div>
+      )}
+
       {/* Search & Filter Bar */}
       <div className="rounded-[22px] bg-white dark:bg-[#0F172A] p-5 border border-black/[0.08] dark:border-white/[0.08] shadow-[0_2px_12px_rgba(0,0,0,0.04)] dark:shadow-none flex flex-col md:flex-row gap-3 items-center justify-between">
         <div className="relative w-full md:w-96">
@@ -86,8 +122,8 @@ export const HospitalsView: React.FC<HospitalsViewProps> = ({
                 {/* Header */}
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-slate-900 dark:bg-slate-800 text-white flex items-center justify-center text-xl font-bold shadow-sm border border-white/10 shrink-0">
-                      🏥
+                    <div className="w-12 h-12 rounded-2xl bg-slate-900 dark:bg-slate-800 text-teal-400 flex items-center justify-center shadow-sm border border-teal-500/20 shrink-0">
+                      <Building2 className="w-6 h-6 text-teal-400" />
                     </div>
                     <div>
                       <h3 className="font-extrabold text-sm text-black dark:text-white group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors leading-tight">
