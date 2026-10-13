@@ -482,6 +482,7 @@ export interface ServerUser {
 export interface DatabaseSchema {
   users: ServerUser[];
   doctors: any[];
+  hospitals: any[];
   vitals: Record<string, VitalLogPoint[]>;
   patientRecords: Record<string, any[]>;
   appointments: any[];
@@ -493,6 +494,17 @@ export interface DatabaseSchema {
 }
 
 const DB_FILE = path.join(process.cwd(), 'data', 'server-db.json');
+const HOSPITALS_SEED_FILE = path.join(process.cwd(), 'data', 'hospitals-seed.json');
+
+function getSeedHospitals(): any[] {
+  try {
+    if (fs.existsSync(HOSPITALS_SEED_FILE)) {
+      const raw = fs.readFileSync(HOSPITALS_SEED_FILE, 'utf-8');
+      return JSON.parse(raw);
+    }
+  } catch {}
+  return [];
+}
 
 // Cryptographic Password Hashing & Salts (Prevents Credential Dumps / Rainbow Tables)
 function hashPassword(password: string, salt?: string): { hash: string; salt: string } {
@@ -565,6 +577,7 @@ const INITIAL_SERVER_USERS: ServerUser[] = [
 ];
 
 function loadDatabase(): DatabaseSchema {
+  const seedHospitals = getSeedHospitals();
   try {
     if (fs.existsSync(DB_FILE)) {
       const raw = fs.readFileSync(DB_FILE, 'utf-8');
@@ -572,6 +585,7 @@ function loadDatabase(): DatabaseSchema {
       return {
         users: Array.isArray(parsed.users) && parsed.users.length > 0 ? parsed.users : INITIAL_SERVER_USERS,
         doctors: Array.isArray(parsed.doctors) ? parsed.doctors : [],
+        hospitals: Array.isArray(parsed.hospitals) && parsed.hospitals.length > 0 ? parsed.hospitals : seedHospitals,
         vitals: parsed.vitals && typeof parsed.vitals === 'object' ? parsed.vitals : {},
         patientRecords: parsed.patientRecords && typeof parsed.patientRecords === 'object' ? parsed.patientRecords : {},
         appointments: Array.isArray(parsed.appointments) ? parsed.appointments : [],
@@ -588,6 +602,7 @@ function loadDatabase(): DatabaseSchema {
   return {
     users: INITIAL_SERVER_USERS,
     doctors: [],
+    hospitals: seedHospitals,
     vitals: {},
     patientRecords: {},
     appointments: [],
@@ -1108,38 +1123,36 @@ app.post('/api/xenon', rateLimitMiddleware(30, 60000, 'AI triage request limit r
     // If Gemini client is available, generate clinical response with user configured model
     if (ai) {
       try {
-        const systemInstruction = `You are Xenon AI (जिनोन एआई), an elite, highly logical, empathetic clinical triage and medical intelligence doctor for Xenon Health (National Digital Healthcare Portal of Nepal).
+        const systemInstruction = `You are Xenon AI (जिनोन एआई), a clinical triage and medical intelligence assistant for Xenon Health (National Healthcare Platform of Nepal).
 
-STRICT SCOPE MANDATE - HEALTH & MEDICAL ONLY:
-- You are EXCLUSIVELY dedicated to human health, medicine, clinical triage, medical symptoms, first-aid, emergency protocols, wellness, pharmacology, and hospital/doctor guidance.
-- You MUST STRICTLY REFUSE any questions or requests that are unrelated to human health and medicine (such as software programming, general coding, writing non-medical code, math problems, finance, entertainment, sports, politics, or general trivia).
-- If a user asks an out-of-scope, non-health/non-medical question, immediately politely decline in the user's language and firmly redirect them back to medical assistance:
-  * In Nepali: "म जिनोन एआई (Xenon AI) केवल स्वास्थ्य, चिकित्सा, क्लिनिकल ट्राइएज र आपतकालीन उपचार सम्बन्धी सहयोगका लागि विशेष रूपमा तयार गरिएको सहायक हुँ। म गैर-स्वास्थ्य वा गैर-चिकित्सकीय विषयहरूमा उत्तर दिन सक्दिनँ। कृपया आफ्नो कुनै पनि स्वास्थ्य वा चिकित्सा सम्बन्धी प्रश्न सोध्नुहोस्!"
-  * In English: "I am Xenon AI, an AI medical and clinical triage assistant dedicated exclusively to healthcare, medical symptoms, emergency first-aid, and hospital/doctor guidance. I cannot assist with non-medical topics such as coding, math, general trivia, or non-health subjects. Please feel free to ask any health, medical, or symptom-related questions!"
+STRICT SCOPE MANDATE — HEALTH & MEDICAL ONLY:
+- You are EXCLUSIVELY dedicated to human health, medical symptoms, first-aid, emergency triage, clinical guidance, medication safety, and Nepal hospital/doctor navigation.
+- You MUST STRICTLY REFUSE any questions or requests that are unrelated to human health and medicine (such as computer programming, general coding, mathematics, finance, entertainment, movies, politics, sports, creative writing, or non-medical trivia).
+- If a user asks ANY non-health question, immediately, politely, and firmly decline:
+  * In Nepali: "म जिनोन एआई (Xenon AI) केवल स्वास्थ्य, चिकित्सा, र प्राथमिक उपचार सम्बन्धी सहयोगका लागि मात्र उपलब्ध छु। म गैर-स्वास्थ्य विषयहरूमा उत्तर दिन सक्दिनँ। कृपया आफ्नो कुनै पनि स्वास्थ्य समस्या, लक्षण वा औषधी सम्बन्धी प्रश्न सोध्नुहोस्!"
+  * In English: "I am Xenon AI, an assistant dedicated exclusively to healthcare, medical symptoms, emergency first-aid, and doctor guidance. I cannot assist with non-medical topics like coding, math, or general trivia. Please feel free to ask any health or medical questions!"
 
-CORE LOGICAL INTELLIGENCE MANDATES:
-1. DEEP CLINICAL REASONING:
-   - Provide sharp, logically sound medical insights. Do NOT give repetitive, programmed, or boilerplate robotic responses.
-   - Analyze the exact situation, potential differential diagnoses, mechanism of injury, pathogen/exposure type, and progressive danger.
-   - For queries about injuries (cuts, bleeding, fractures, animal bites, snakebites, burns), immediately provide prioritized, step-by-step FIRST AID.
-   - NEVER give generic irrelevant advice (e.g. do not say "stay hydrated" for open lacerations or acute trauma).
-2. EMERGENCY PROTOCOLS & WARNING SIGNS:
-   - Identify red flags immediately (e.g., arterial pulsating hemorrhage, stroke FAST signs, acute MI crushing retrosternal pain, anaphylaxis, severe sepsis, shock).
-   - Advise safe medicines with dosage cautions (e.g. Paracetamol only for suspected dengue/bleeding; strictly warn against NSAIDs/Ibuprofen/Aspirin when bleeding or dengue thrombocytopenia is possible).
-3. NEPAL HEALTHCARE SPECIFICS:
-   - Recommend real hospitals in Nepal (e.g., Sukraraj Tropical Hospital Teku for rabies/dengue/snakebite; Shahid Gangalal for cardiology; Bir Hospital National Trauma Centre for fractures/cuts; Kirtipur Burn Center; Kanti Children's; Tilganga Institute for eye emergencies; TUTH Teaching Hospital & Patan Hospital for internal medicine/multi-specialty).
-   - Nepal emergency numbers: Ambulance 102, Police 100.
-4. LANGUAGE:
-   - If the user asks in Nepali, respond in fluent, empathetic Nepali (नेपाली).
-   - If in English, respond in articulate, professional English.
-5. METADATA BLOCK:
-   - At the very end of your response, output a structured JSON metadata block strictly inside \`\`\`json\`\`\` tags matching this exact schema:
+ANSWER STYLE MANDATE — SIMPLE YET EFFECTIVE:
+- KEEP ANSWERS SIMPLE, DIRECT, AND HIGHLY ACTIONABLE. Avoid overwhelming medical jargon, dense textbook paragraphs, and robotic filler text.
+- Patients and families in distress need immediate clarity. Give punchy, practical points that anyone can understand in under 30 seconds.
+- Structure your response cleanly:
+  1. **Direct Assessment** (1–2 simple, reassuring sentences explaining the likely situation).
+  2. **Immediate Action & First Aid** (3–4 clear, practical, numbered bullet points of exactly what to do right now).
+  3. **Warning Signs (Red Flags)** (1–2 critical signs that mean go to the hospital immediately).
+  4. **Recommended Doctor Specialty & Real Nepal Hospital** (e.g., Sukraraj Tropical Teku for dengue/rabies/snakebite; Nagarik Hospital Gatthaghar for Bhaktapur emergencies; HAMS Hospital Dhumbarahi for critical care; Bir Hospital Trauma Centre; Kanti Children's; Gangalal for heart). Nepal Emergency Ambulance: 102.
+
+LANGUAGE:
+- If asked in Nepali, reply in natural, clear, empathetic Nepali (नेपाली).
+- If in English, reply in plain, professional English.
+
+METADATA BLOCK:
+- At the very end of your response, output a structured JSON metadata block strictly inside \`\`\`json\`\`\` tags:
 \`\`\`json
 {
   "severity": "critical" | "urgent" | "routine",
   "first_aid_steps": ["step 1", "step 2", "step 3"],
   "recommended_specialty": "Medical Specialty",
-  "recommended_hospital": "Hospital Name, City, Nepal"
+  "recommended_hospital": "Hospital Name, Nepal"
 }
 \`\`\``;
 
@@ -1171,7 +1184,9 @@ CORE LOGICAL INTELLIGENCE MANDATES:
               model: modelName,
               contents: formattedContents,
               config: {
-                systemInstruction
+                systemInstruction,
+                temperature: 0.2,
+                maxOutputTokens: 1024
               }
             });
             if (response && response.text) {
@@ -1250,6 +1265,7 @@ CORE LOGICAL INTELLIGENCE MANDATES:
 app.get('/api/database/status', (req, res) => {
   const usersCount = serverDb.users.length;
   const doctorsCount = serverDb.doctors.length;
+  const hospitalsCount = serverDb.hospitals.length;
   const vitalsUsersCount = Object.keys(serverDb.vitals).length;
   const totalVitalsPoints = Object.values(serverDb.vitals).reduce((acc, curr) => acc + (Array.isArray(curr) ? curr.length : 0), 0);
 
@@ -1265,6 +1281,7 @@ app.get('/api/database/status', (req, res) => {
     },
     usersCount,
     doctorsCount,
+    hospitalsCount,
     vitalsUsersCount,
     totalVitalsPoints,
     appointmentsCount: serverDb.appointments.length,
@@ -1431,6 +1448,193 @@ app.post('/api/messages', (req, res) => {
     res.json({ success: true, message: msgWithSync });
   } catch (err: any) {
     res.status(500).json({ error: err?.message });
+  }
+});
+
+// ----------------------------------------------------------------------------
+// HOSPITALS DATABASE CRUD ENDPOINTS (Persists user input directly to server-db.json)
+// ----------------------------------------------------------------------------
+
+// Get All Hospitals
+app.get('/api/hospitals', (req, res) => {
+  res.json({
+    success: true,
+    hospitals: serverDb.hospitals || [],
+    count: (serverDb.hospitals || []).length
+  });
+});
+
+// Add / Create New Hospital from User Input
+app.post('/api/hospitals', (req, res) => {
+  try {
+    const hosp = req.body;
+    if (!hosp || !hosp.name) {
+      return res.status(400).json({ success: false, error: 'Hospital name is required' });
+    }
+
+    const rawIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+    const ip = Array.isArray(rawIp) ? rawIp[0] : String(rawIp).split(',')[0].trim();
+
+    const id = hosp.id || `hosp_${Date.now()}`;
+    const newHospital = {
+      id,
+      name: hosp.name.trim(),
+      name_np: hosp.name_np ? hosp.name_np.trim() : hosp.name.trim(),
+      address: hosp.address ? hosp.address.trim() : 'Kathmandu Valley',
+      district: hosp.district ? hosp.district.trim() : 'Kathmandu',
+      phone: hosp.phone ? hosp.phone.trim() : '+977-01-4000000',
+      emergency: hosp.emergency ? hosp.emergency.trim() : (hosp.phone ? hosp.phone.trim() : '102'),
+      email: hosp.email ? hosp.email.trim() : '',
+      website: hosp.website ? hosp.website.trim() : '',
+      type: hosp.type || 'General',
+      beds: Number(hosp.beds) || 50,
+      icu: Boolean(hosp.icu),
+      specialties: Array.isArray(hosp.specialties) && hosp.specialties.length > 0 ? hosp.specialties : ['Emergency & Trauma', 'General Medicine'],
+      open_247: hosp.open_247 !== undefined ? Boolean(hosp.open_247) : true,
+      rating: Number(hosp.rating) || 4.5,
+      lat: Number(hosp.lat) || 27.7052,
+      lng: Number(hosp.lng) || 85.3142,
+      description: hosp.description || 'Verified healthcare facility recorded in Xenon database.',
+      created_at: new Date().toISOString()
+    };
+
+    if (!Array.isArray(serverDb.hospitals)) {
+      serverDb.hospitals = [];
+    }
+
+    const existingIdx = serverDb.hospitals.findIndex((h: any) => h.id === id);
+    if (existingIdx >= 0) {
+      serverDb.hospitals[existingIdx] = newHospital;
+    } else {
+      serverDb.hospitals.unshift(newHospital);
+    }
+
+    saveDatabase(serverDb);
+    logSecurityEvent(ip, 'RECORD_CREATED', 'user', 'info', `New hospital registered in database: ${newHospital.name} (${id})`);
+
+    res.json({
+      success: true,
+      hospital: newHospital,
+      message: 'Hospital successfully created and saved in authoritative database!'
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message });
+  }
+});
+
+// Update Existing Hospital
+app.put('/api/hospitals/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+    if (!Array.isArray(serverDb.hospitals)) {
+      serverDb.hospitals = [];
+    }
+
+    const idx = serverDb.hospitals.findIndex((h: any) => h.id === id);
+    if (idx < 0) {
+      return res.status(404).json({ success: false, error: 'Hospital not found in database' });
+    }
+
+    serverDb.hospitals[idx] = {
+      ...serverDb.hospitals[idx],
+      ...updates,
+      updated_at: new Date().toISOString()
+    };
+
+    saveDatabase(serverDb);
+    res.json({
+      success: true,
+      hospital: serverDb.hospitals[idx],
+      message: 'Hospital updated in database'
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message });
+  }
+});
+
+// Delete Hospital
+app.delete('/api/hospitals/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!Array.isArray(serverDb.hospitals)) {
+      return res.status(404).json({ success: false, error: 'Hospital not found' });
+    }
+
+    const lenBefore = serverDb.hospitals.length;
+    serverDb.hospitals = serverDb.hospitals.filter((h: any) => h.id !== id);
+    if (serverDb.hospitals.length < lenBefore) {
+      saveDatabase(serverDb);
+      return res.json({ success: true, message: 'Hospital removed from database' });
+    }
+
+    res.status(404).json({ success: false, error: 'Hospital not found' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message });
+  }
+});
+
+// ----------------------------------------------------------------------------
+// DOCTORS DATABASE CRUD ENDPOINTS (Persists doctors directly to server-db.json)
+// ----------------------------------------------------------------------------
+
+app.get('/api/doctors', (req, res) => {
+  res.json({
+    success: true,
+    doctors: serverDb.doctors || [],
+    count: (serverDb.doctors || []).length
+  });
+});
+
+app.post('/api/doctors', (req, res) => {
+  try {
+    const doc = req.body;
+    if (!doc || !doc.name) {
+      return res.status(400).json({ success: false, error: 'Doctor details are required' });
+    }
+
+    if (!Array.isArray(serverDb.doctors)) {
+      serverDb.doctors = [];
+    }
+
+    const id = doc.id || `doc_${Date.now()}`;
+    const newDoc = {
+      ...doc,
+      id,
+      updated_at: new Date().toISOString()
+    };
+
+    const existingIdx = serverDb.doctors.findIndex((d: any) => d.id === id || (doc.nmc_number && d.nmc_number === doc.nmc_number));
+    if (existingIdx >= 0) {
+      serverDb.doctors[existingIdx] = newDoc;
+    } else {
+      serverDb.doctors.unshift(newDoc);
+    }
+
+    saveDatabase(serverDb);
+    res.json({ success: true, doctor: newDoc, message: 'Doctor saved to database' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message });
+  }
+});
+
+app.delete('/api/doctors/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!Array.isArray(serverDb.doctors)) {
+      return res.status(404).json({ success: false, error: 'Doctor not found' });
+    }
+
+    const lenBefore = serverDb.doctors.length;
+    serverDb.doctors = serverDb.doctors.filter((d: any) => d.id !== id);
+    if (serverDb.doctors.length < lenBefore) {
+      saveDatabase(serverDb);
+      return res.json({ success: true, message: 'Doctor deleted from database' });
+    }
+
+    res.status(404).json({ success: false, error: 'Doctor not found' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message });
   }
 });
 

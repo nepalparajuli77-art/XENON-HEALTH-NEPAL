@@ -126,9 +126,21 @@ export const HospitalsView: React.FC<HospitalsViewProps> = ({
                       <Building2 className="w-6 h-6 text-teal-400" />
                     </div>
                     <div>
-                      <h3 className="font-extrabold text-sm text-black dark:text-white group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors leading-tight">
-                        {language === 'np' ? hosp.name_np : hosp.name}
-                      </h3>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <h3 className="font-extrabold text-sm text-black dark:text-white group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors leading-tight">
+                          {language === 'np' ? hosp.name_np : hosp.name}
+                        </h3>
+                        {hosp.id === 'hosp_020' && (
+                          <span className="px-2 py-0.5 rounded-md bg-indigo-600 text-white text-[9px] font-black">
+                            GATTHAGHAR HUB
+                          </span>
+                        )}
+                        {hosp.id === 'hosp_011' && (
+                          <span className="px-2 py-0.5 rounded-md bg-blue-600 text-white text-[9px] font-black">
+                            DHUMBARAHI HUB
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-black dark:text-white opacity-85 flex items-center gap-1 mt-0.5 font-medium">
                         <MapPin className="w-3 h-3 text-red-600 dark:text-red-400 shrink-0" />
                         <span>{hosp.address}</span>
@@ -212,7 +224,7 @@ export const HospitalsView: React.FC<HospitalsViewProps> = ({
                 </div>
               </div>
 
-              {/* Action Buttons: Message SMS / Open Website / Live Chat */}
+              {/* Action Buttons: Message SMS / Open Website / Live Chat / View on GPS Map */}
               <div className="mt-4 pt-3 border-t border-black/5 dark:border-white/5 space-y-2">
                 <div className="grid grid-cols-2 gap-2">
                   <a
@@ -224,7 +236,17 @@ export const HospitalsView: React.FC<HospitalsViewProps> = ({
                     <span className="truncate">{language === 'np' ? 'एसएमएस सन्देश' : 'SMS Message'}</span>
                   </a>
 
-                  {hosp.website ? (
+                  {onNavigateToMap ? (
+                    <button
+                      type="button"
+                      onClick={() => onNavigateToMap(hosp.id)}
+                      className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/60 border border-blue-300 dark:border-blue-800 text-blue-800 dark:text-blue-300 font-bold text-xs transition-all text-center cursor-pointer shadow-2xs"
+                      title="Open Google Maps Driving Route & Distance"
+                    >
+                      <MapPin className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                      <span className="truncate">{language === 'np' ? 'नक्सा र रुट' : 'Map & Route'}</span>
+                    </button>
+                  ) : hosp.website ? (
                     <a
                       href={hosp.website}
                       target="_blank"

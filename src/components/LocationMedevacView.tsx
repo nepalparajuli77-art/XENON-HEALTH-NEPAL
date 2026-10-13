@@ -35,7 +35,11 @@ import {
   ShieldCheck,
   ChevronDown,
   ChevronUp,
-  AlertCircle
+  AlertCircle,
+  Search,
+  X,
+  Check,
+  Radio as SignalIcon
 } from 'lucide-react';
 import { Hospital, MedevacBase, Language } from '../types';
 import { INITIAL_HOSPITALS, NEPAL_MEDEVAC_BASES } from '../data/mockData';
@@ -45,6 +49,8 @@ interface LocationMedevacViewProps {
   language: Language;
   onBookDoctor?: (hospitalId?: string) => void;
   onNavigate?: (tab: string) => void;
+  hospitals?: Hospital[];
+  preselectedHospital?: Hospital | null;
 }
 
 export interface ComputedRouteInfo {
@@ -79,18 +85,79 @@ function calculateHaversineDistance(
   return R * c;
 }
 
-// Preset Regional Locations in Nepal with Gatthaghar Nagarik and HAMS
-const PRESET_LOCATIONS = [
-  { name: 'Kathmandu Valley', nameNp: 'काठमाडौँ उपत्यका', lat: 27.7172, lng: 85.324, district: 'Kathmandu' },
+// Searchable Neighborhoods, Districts and Hospital POIs
+interface SearchableLocationItem {
+  id: string;
+  name: string;
+  nameNp: string;
+  category: 'neighborhood' | 'hospital' | 'city';
+  lat: number;
+  lng: number;
+  district: string;
+  details?: string;
+}
+
+const SEARCHABLE_LOCATIONS: SearchableLocationItem[] = [
+  // Neighborhoods & Sub-hubs in Kathmandu Valley
+  { id: 'loc_gatthaghar', name: 'Gatthaghar, Madhyapur Thimi', nameNp: 'गठ्ठाघर, मध्यपुर थिमी (भक्तपुर)', category: 'neighborhood', lat: 27.6788, lng: 85.3670, district: 'Bhaktapur', details: 'Araniko Highway corridor' },
+  { id: 'loc_thimi', name: 'Madhyapur Thimi / Radhe Radhe', nameNp: 'मध्यपुर थिमी / राधे राधे', category: 'neighborhood', lat: 27.6830, lng: 85.3850, district: 'Bhaktapur', details: 'Central Bhaktapur junction' },
+  { id: 'loc_suryabinayak', name: 'Suryabinayak / Bhaktapur City', nameNp: 'सूर्यविनायक / भक्तपुर', category: 'neighborhood', lat: 27.6710, lng: 85.4298, district: 'Bhaktapur', details: 'Historical valley east hub' },
+  { id: 'loc_sallaghari', name: 'Sallaghari, Bhaktapur', nameNp: 'सल्लाघारी, भक्तपुर', category: 'neighborhood', lat: 27.6720, lng: 85.4050, district: 'Bhaktapur', details: 'Araniko Highway intersection' },
+  { id: 'loc_dhumbarahi', name: 'Dhumbarahi, Kathmandu', nameNp: 'धुम्बाराही, काठमाडौँ', category: 'neighborhood', lat: 27.7329, lng: 85.3444, district: 'Kathmandu', details: 'Ring road north corridor' },
+  { id: 'loc_koteshwor', name: 'Koteshwor / Jadibuti', nameNp: 'कोटेश्वर / जडीबुटी', category: 'neighborhood', lat: 27.6782, lng: 85.3488, district: 'Kathmandu', details: 'Valley eastern gateway' },
+  { id: 'loc_baneshwor', name: 'New Baneshwor / Shankhamul', nameNp: 'नयाँ बानेश्वर / शंखमुल', category: 'neighborhood', lat: 27.6915, lng: 85.3420, district: 'Kathmandu', details: 'Central administrative zone' },
+  { id: 'loc_minbhawan', name: 'Minbhawan / Tinkune', nameNp: 'मीनभवन / तीनकुने', category: 'neighborhood', lat: 27.6872, lng: 85.3424, district: 'Kathmandu', details: 'Civil Hospital area' },
+  { id: 'loc_sinamangal', name: 'Sinamangal / TIA Airport', nameNp: 'सिनामंगल / विमानस्थल', category: 'neighborhood', lat: 27.6961, lng: 85.3533, district: 'Kathmandu', details: 'KMC Hospital vicinity' },
+  { id: 'loc_chabahil', name: 'Chabahil / Bouddha', nameNp: 'चाबहिल / बौद्ध', category: 'neighborhood', lat: 27.7176, lng: 85.3503, district: 'Kathmandu', details: 'Northeast Kathmandu hub' },
+  { id: 'loc_maharajgunj', name: 'Maharajgunj / Teaching', nameNp: 'महाराजगञ्ज / शिक्षण अस्पताल', category: 'neighborhood', lat: 27.7360, lng: 85.3303, district: 'Kathmandu', details: 'TUTH & Kanti Medical zone' },
+  { id: 'loc_bansbari', name: 'Bansbari / Golfutar', nameNp: 'बाँसबारी / गोल्फुटार', category: 'neighborhood', lat: 27.7402, lng: 85.3377, district: 'Kathmandu', details: 'Gangalal Heart Centre area' },
+  { id: 'loc_dhapasi', name: 'Dhapasi / Tokha', nameNp: 'धापासी / टोखा', category: 'neighborhood', lat: 27.7516, lng: 85.3276, district: 'Kathmandu', details: 'Grande Hospital sector' },
+  { id: 'loc_thapathali', name: 'Thapathali / Maitighar', nameNp: 'थापाथली / माइतीघर', category: 'neighborhood', lat: 27.6917, lng: 85.3197, district: 'Kathmandu', details: 'Norvic & bridge corridor' },
+  { id: 'loc_teku', name: 'Tripureshwor / Teku', nameNp: 'त्रिपुरेश्वर / टेकु', category: 'neighborhood', lat: 27.6968, lng: 85.3149, district: 'Kathmandu', details: 'Sukraraj Hospital sector' },
+  { id: 'loc_kalanki', name: 'Kalanki / Balkhu', nameNp: 'कलंकी / बल्खु', category: 'neighborhood', lat: 27.6936, lng: 85.2818, district: 'Kathmandu', details: 'Western highway gateway' },
+  { id: 'loc_gwarko', name: 'Gwarko / Balkumari / Imadol', nameNp: 'ग्वार्को / बालकुमारी', category: 'neighborhood', lat: 27.6657, lng: 85.3323, district: 'Lalitpur', details: 'B&B Hospital sector' },
+  { id: 'loc_lagankhel', name: 'Lagankhel / Jawalakhel / Patan', nameNp: 'लगनखेल / जावलाखेल / पाटन', category: 'neighborhood', lat: 27.6687, lng: 85.3204, district: 'Lalitpur', details: 'Patan Hospital heart' },
+  { id: 'loc_bhaisepati', name: 'Bhaisepati / Ekantakuna', nameNp: 'भैँसेपाटी / एकान्तकुना', category: 'neighborhood', lat: 27.6599, lng: 85.3045, district: 'Lalitpur', details: 'Mediciti Hospital zone' },
+  { id: 'loc_jorpati', name: 'Jorpati / Gokarneshwor', nameNp: 'जोरपाटी / गोकर्णेश्वर', category: 'neighborhood', lat: 27.7214, lng: 85.3787, district: 'Kathmandu', details: 'NMC Hospital zone' },
+  { id: 'loc_banepa', name: 'Banepa / Dhulikhel', nameNp: 'बनेपा / धुलिखेल', category: 'city', lat: 27.6298, lng: 85.5214, district: 'Kavrepalanchok', details: 'Araniko Highway east' },
+  { id: 'loc_pokhara', name: 'Pokhara / Kaski', nameNp: 'पोखरा / कास्की', category: 'city', lat: 28.2096, lng: 83.9856, district: 'Kaski', details: 'Western emergency hub' },
+  { id: 'loc_chitwan', name: 'Bharatpur / Chitwan', nameNp: 'भरतपुर / चितवन', category: 'city', lat: 27.6830, lng: 84.4320, district: 'Chitwan', details: 'Central Terai medical hub' },
+  { id: 'loc_dharan', name: 'Dharan / Eastern Hub', nameNp: 'धरान / पूर्वी क्षेत्र', category: 'city', lat: 26.8125, lng: 87.2835, district: 'Sunsari', details: 'BPKIHS medical academy' },
+  { id: 'loc_surkhet', name: 'Surkhet / Karnali', nameNp: 'सुर्खेत / कर्णाली', category: 'city', lat: 28.5875, lng: 81.6360, district: 'Surkhet', details: 'Mid-western airbase hub' },
+  { id: 'loc_lukla', name: 'Lukla / Everest Khumbu', nameNp: 'लुक्ला / खुम्बु', category: 'city', lat: 27.6869, lng: 86.7290, district: 'Solukhumbu', details: 'Alpine rescue hub' },
+  { id: 'loc_manang', name: 'Manang / Annapurna Track', nameNp: 'मनाङ / अन्नपूर्ण', category: 'city', lat: 28.6655, lng: 84.0210, district: 'Manang', details: 'HRA high altitude post' },
+  { id: 'loc_mustang', name: 'Mustang / Jomsom', nameNp: 'मुस्ताङ / जोमसोम', category: 'city', lat: 28.7820, lng: 83.7380, district: 'Mustang', details: 'Northern transit post' },
+
+  // Direct Hospital searchable items
+  { id: 'loc_hosp_nagarik', name: 'Nagarik Community Teaching Hospital (Gatthaghar)', nameNp: 'नागरिक सामुदायिक शिक्षण अस्पताल (गठ्ठाघर)', category: 'hospital', lat: 27.6788, lng: 85.3670, district: 'Bhaktapur', details: '24/7 ICU & Trauma Hub' },
+  { id: 'loc_hosp_hams', name: 'HAMS Hospital (Dhumbarahi)', nameNp: 'ह्याम्स हस्पिटल (धुम्बाराही)', category: 'hospital', lat: 27.7329, lng: 85.3444, district: 'Kathmandu', details: 'Critical Care & Surgery' },
+  { id: 'loc_hosp_patan', name: 'Patan Hospital (Lagankhel)', nameNp: 'पाटन अस्पताल (लगनखेल)', category: 'hospital', lat: 27.6687, lng: 85.3204, district: 'Lalitpur', details: 'Non-profit tertiary care' },
+  { id: 'loc_hosp_bb', name: 'B&B Hospital (Gwarko)', nameNp: 'बी एण्ड बी अस्पताल (ग्वार्को)', category: 'hospital', lat: 27.6657, lng: 85.3323, district: 'Lalitpur', details: 'Orthopedics & Trauma' },
+  { id: 'loc_hosp_tuth', name: 'TU Teaching Hospital TUTH (Maharajgunj)', nameNp: 'त्रि.वि. शिक्षण अस्पताल (महाराजगञ्ज)', category: 'hospital', lat: 27.7360, lng: 85.3303, district: 'Kathmandu', details: 'Premier academic referral' },
+  { id: 'loc_hosp_bir', name: 'Bir Hospital & National Trauma Centre', nameNp: 'वीर अस्पताल तथा ट्रमा सेन्टर', category: 'hospital', lat: 27.7042, lng: 85.3142, district: 'Kathmandu', details: 'National central public hub' },
+  { id: 'loc_hosp_civil', name: 'Civil Service Hospital (Minbhawan)', nameNp: 'निजामती कर्मचारी अस्पताल (मीनभवन)', category: 'hospital', lat: 27.6872, lng: 85.3424, district: 'Kathmandu', details: 'Modern diagnostics' },
+  { id: 'loc_hosp_kmc', name: 'Kathmandu Medical College KMC (Sinamangal)', nameNp: 'काठमाडौं मेडिकल कलेज (सिनामंगल)', category: 'hospital', lat: 27.6961, lng: 85.3533, district: 'Kathmandu', details: 'Academic tertiary care' },
+  { id: 'loc_hosp_mediciti', name: 'Nepal Mediciti Hospital (Bhaisepati)', nameNp: 'नेपाल मेडिसिटी हस्पिटल (भैँसेपाटी)', category: 'hospital', lat: 27.6599, lng: 85.3045, district: 'Lalitpur', details: 'Quaternary Helipad Hospital' },
+  { id: 'loc_hosp_gangalal', name: 'Shahid Gangalal Heart Centre (Bansbari)', nameNp: 'शहीद गंगालाल हृदय केन्द्र (बाँसबारी)', category: 'hospital', lat: 27.7402, lng: 85.3377, district: 'Kathmandu', details: 'National cardiac apex' },
+  { id: 'loc_hosp_kanti', name: 'Kanti Children’s Hospital (Maharajgunj)', nameNp: 'कान्ति बाल अस्पताल (महाराजगञ्ज)', category: 'hospital', lat: 27.7375, lng: 85.3312, district: 'Kathmandu', details: 'Pediatric emergency' },
+  { id: 'loc_hosp_sukraraj', name: 'Sukraraj Tropical Hospital (Teku)', nameNp: 'शुक्रराज ट्रपिकल अस्पताल (टेकु)', category: 'hospital', lat: 27.6983, lng: 85.3041, district: 'Kathmandu', details: 'Rabies, snakebite & infections' },
+  { id: 'loc_hosp_norvic', name: 'Norvic International Hospital (Thapathali)', nameNp: 'नर्भिक इन्टरनेशनल हस्पिटल (थापाथली)', category: 'hospital', lat: 27.6917, lng: 85.3197, district: 'Kathmandu', details: 'Multi-specialty cardiac' },
+  { id: 'loc_hosp_grande', name: 'Grande International Hospital (Dhapasi)', nameNp: 'ग्रान्डी इन्टरनेशनल हस्पिटल (धापासी)', category: 'hospital', lat: 27.7516, lng: 85.3276, district: 'Kathmandu', details: 'Quaternary with rooftop helipad' },
+  { id: 'loc_hosp_om', name: 'Om Hospital (Chabahil)', nameNp: 'ओम हस्पिटल (चाबहिल)', category: 'hospital', lat: 27.7176, lng: 85.3503, district: 'Kathmandu', details: 'Surgical & Laparoscopy' }
+];
+
+// Quick Select Chips (Kept for instant 1-click convenience)
+const QUICK_SELECT_CHIPS = [
   { name: 'Gatthaghar / Nagarik (Bhaktapur)', nameNp: 'गठ्ठाघर / नागरिक अस्पताल (भक्तपुर)', lat: 27.6788, lng: 85.3670, district: 'Bhaktapur' },
   { name: 'HAMS / Dhumbarahi', nameNp: 'ह्याम्स / धुम्बाराही', lat: 27.7329, lng: 85.3444, district: 'Kathmandu' },
+  { name: 'Kathmandu Central', nameNp: 'काठमाडौँ केन्द्र', lat: 27.7172, lng: 85.324, district: 'Kathmandu' },
+  { name: 'Lalitpur / Patan', nameNp: 'पाटन / ललितपुर', lat: 27.6687, lng: 85.3204, district: 'Lalitpur' },
+  { name: 'Koteshwor / Tinkune', nameNp: 'कोटेश्वर / तीनकुने', lat: 27.6782, lng: 85.3488, district: 'Kathmandu' },
   { name: 'Pokhara / Kaski', nameNp: 'पोखरा / कास्की', lat: 28.2096, lng: 83.9856, district: 'Kaski' },
-  { name: 'Manang / Annapurna Track', nameNp: 'मनाङ / अन्नपूर्ण ट्र्याक', lat: 28.6655, lng: 84.021, district: 'Manang' },
-  { name: 'Mustang / Jomsom', nameNp: 'मुस्ताङ / जोमसोम', lat: 28.782, lng: 83.738, district: 'Mustang' },
-  { name: 'Lukla / Everest Khumbu', nameNp: 'लुक्ला / एभरेस्ट खुम्बु', lat: 27.6869, lng: 86.729, district: 'Solukhumbu' },
   { name: 'Chitwan / Bharatpur', nameNp: 'चितवन / भरतपुर', lat: 27.683, lng: 84.432, district: 'Chitwan' },
   { name: 'Dharan / Eastern Hub', nameNp: 'धरान / पूर्वी क्षेत्र', lat: 26.8125, lng: 87.2835, district: 'Sunsari' },
-  { name: 'Surkhet / Karnali Airbase', nameNp: 'सुर्खेत / कर्णाली एयरबेस', lat: 28.5875, lng: 81.636, district: 'Surkhet' }
+  { name: 'Lukla / Everest', nameNp: 'लुक्ला / खुम्बु', lat: 27.6869, lng: 86.729, district: 'Solukhumbu' },
+  { name: 'Manang / Alpine', nameNp: 'मनाङ / अन्नपूर्ण', lat: 28.6655, lng: 84.021, district: 'Manang' }
 ];
 
 /**
@@ -181,7 +248,7 @@ const DirectionsRendererChild: React.FC<DirectionsRendererChildProps> = ({
             distanceValueMeters: leg.distance?.value || 0,
             duration: leg.duration?.text || '',
             durationValueSeconds: leg.duration?.value || 0,
-            summary: primaryRoute.summary || 'Fastest Route',
+            summary: primaryRoute.summary || 'Fastest Emergency Transit',
             startAddress: leg.start_address,
             endAddress: leg.end_address,
             steps: stepsList
@@ -190,7 +257,6 @@ const DirectionsRendererChild: React.FC<DirectionsRendererChildProps> = ({
         } else {
           console.warn('Google Maps Directions Service returned status:', status);
           directionsRenderer.setDirections({ routes: [] });
-          // Inform parent about fallback calculation
           onError(`Directions status: ${status}. Switched to GPS Geodesic Corridor.`);
           onRouteComputed(null);
         }
@@ -204,18 +270,29 @@ const DirectionsRendererChild: React.FC<DirectionsRendererChildProps> = ({
 export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
   language,
   onBookDoctor,
-  onNavigate
+  onNavigate,
+  hospitals = INITIAL_HOSPITALS,
+  preselectedHospital = null
 }) => {
-  // User Pinged Location State (Default Kathmandu)
+  // Live GPS Tracking & Permission State
+  const [isLiveTracking, setIsLiveTracking] = useState(true);
+  const [permissionStatus, setPermissionStatus] = useState<'prompt' | 'granted' | 'denied' | 'requesting'>('prompt');
+  const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
+  const [gpsError, setGpsError] = useState<string | null>(null);
+  const watchIdRef = useRef<number | null>(null);
+
+  // User Position State (Default to Gatthaghar/Bhaktapur corridor if GPS is loading)
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number; label: string; district?: string }>({
-    lat: 27.7172,
-    lng: 85.324,
-    label: language === 'np' ? 'काठमाडौँ उपत्यका (सुरुवाती स्थान)' : 'Kathmandu Valley (Default Ping)',
-    district: 'Kathmandu'
+    lat: 27.6788,
+    lng: 85.3670,
+    label: language === 'np' ? 'गठ्ठाघर, भक्तपुर (प्रारम्भिक स्थान)' : 'Gatthaghar, Bhaktapur (Initial)',
+    district: 'Bhaktapur'
   });
 
-  const [isPingingGps, setIsPingingGps] = useState(false);
-  const [gpsError, setGpsError] = useState<string | null>(null);
+  // Location Search State
+  const [locationSearchQuery, setLocationSearchQuery] = useState('');
+  const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false);
+  const searchContainerRef = useRef<HTMLDivElement | null>(null);
 
   // Selected Entity for Marker InfoWindow
   const [selectedEntity, setSelectedEntity] = useState<
@@ -228,7 +305,7 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
   const [activeTabFilter, setActiveTabFilter] = useState<'all' | 'hospitals' | 'medevac'>('all');
 
   // Directions API State for Fastest Driving Route
-  const [routedHospital, setRoutedHospital] = useState<Hospital | null>(null);
+  const [routedHospital, setRoutedHospital] = useState<Hospital | null>(preselectedHospital);
   const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
   const [computedRoute, setComputedRoute] = useState<ComputedRouteInfo | null>(null);
   const [routeError, setRouteError] = useState<string | null>(null);
@@ -254,51 +331,176 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
     }
   }, [apiKey]);
 
-  // Ping Current Device GPS Location
-  const handlePingGps = () => {
-    triggerHaptic('medium');
-    setIsPingingGps(true);
+  // If a preselected hospital was passed from HospitalsView, start routing immediately
+  useEffect(() => {
+    if (preselectedHospital) {
+      setRoutedHospital(preselectedHospital);
+      setTimeout(() => {
+        routePodRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 200);
+    }
+  }, [preselectedHospital]);
+
+  // Close search suggestions on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+        setIsSearchDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Request Live GPS Location Permission & Start Real-Time Tracking
+  const requestLiveLocation = (silent = false) => {
+    if (!silent) {
+      triggerHaptic('medium');
+    }
+    setPermissionStatus('requesting');
     setGpsError(null);
 
     if (!navigator.geolocation) {
+      setPermissionStatus('denied');
       setGpsError(
         language === 'np'
-          ? 'तपाईंको ब्राउजरले जीपीएस लोकेशन सपोर्ट गर्दैन।'
+          ? 'तपाईंको ब्राउजरमा जीपीएस लोकेशन सुविधा उपलब्ध छैन।'
           : 'Geolocation is not supported by your browser.'
       );
-      setIsPingingGps(false);
       return;
     }
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
+        const { latitude, longitude, accuracy } = pos.coords;
+        setGpsAccuracy(Math.round(accuracy));
+        setPermissionStatus('granted');
+        setIsLiveTracking(true);
+
+        // Detect if close to Gatthaghar / Bhaktapur or other known areas
+        const distToGatthaghar = calculateHaversineDistance(latitude, longitude, 27.6788, 85.3670);
+        const distToDhumbarahi = calculateHaversineDistance(latitude, longitude, 27.7329, 85.3444);
+
+        let areaName = `Live Device GPS (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`;
+        if (distToGatthaghar < 3) {
+          areaName = language === 'np' ? `लाइभ जीपीएस: गठ्ठाघर / ठिमी क्षेत्र` : `Live GPS: Gatthaghar / Thimi Sector`;
+        } else if (distToDhumbarahi < 3) {
+          areaName = language === 'np' ? `लाइभ जीपीएस: धुम्बाराही / रिङरोड` : `Live GPS: Dhumbarahi Sector`;
+        }
+
         setUserCoords({
-          lat,
-          lng,
-          label: language === 'np' ? `जीपीएस स्थान पिंग गरियो (${lat.toFixed(4)}, ${lng.toFixed(4)})` : `Live GPS Ping (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+          lat: latitude,
+          lng: longitude,
+          label: areaName,
           district: 'Live Device GPS'
         });
-        setIsPingingGps(false);
-        triggerHaptic('success');
+
+        if (!silent) {
+          triggerHaptic('success');
+        }
+
+        // Setup real-time watchPosition for continuous live location sharing
+        if (watchIdRef.current !== null) {
+          navigator.geolocation.clearWatch(watchIdRef.current);
+        }
+
+        watchIdRef.current = navigator.geolocation.watchPosition(
+          (watchPos) => {
+            const wLat = watchPos.coords.latitude;
+            const wLng = watchPos.coords.longitude;
+            setGpsAccuracy(Math.round(watchPos.coords.accuracy));
+            setUserCoords((prev) => ({
+              ...prev,
+              lat: wLat,
+              lng: wLng,
+              label: prev.label.startsWith('Live GPS')
+                ? prev.label
+                : `Live Device GPS (${wLat.toFixed(4)}, ${wLng.toFixed(4)})`
+            }));
+          },
+          (watchErr) => {
+            console.warn('Live watchPosition error:', watchErr);
+          },
+          { enableHighAccuracy: true, maximumAge: 5000, timeout: 12000 }
+        );
       },
       (err) => {
-        console.warn('GPS Ping error:', err);
+        console.warn('Geolocation permission error:', err);
+        setPermissionStatus('denied');
         setGpsError(
           language === 'np'
-            ? 'जीपीएस लोकेशन प्राप्त गर्न सकिएन। कृपया पूर्व-सेट स्थान चयन गर्नुहोस्।'
-            : 'Could not access GPS. Please select a preset region below.'
+            ? 'जीपीएस अनुमति प्राप्त भएन। कृपया ब्राउजरमा लोकेशन सेयरिङ अन गर्नुहोस् वा तलको खोज बाकसबाट आफ्नो टोल छान्नुहोस्।'
+            : 'Live GPS permission denied or timed out. Please allow location access or search your neighborhood below.'
         );
-        setIsPingingGps(false);
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
 
+  // Automatically prompt for live location permission on component mount
+  useEffect(() => {
+    requestLiveLocation(true);
+
+    return () => {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+      }
+    };
+  }, []);
+
+  // Toggle Live Tracking On / Off
+  const toggleLiveTracking = () => {
+    triggerHaptic('light');
+    if (isLiveTracking) {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
+      }
+      setIsLiveTracking(false);
+    } else {
+      setIsLiveTracking(true);
+      requestLiveLocation(false);
+    }
+  };
+
+  // Filter Search Locations
+  const filteredSearchSuggestions = useMemo(() => {
+    const q = locationSearchQuery.trim().toLowerCase();
+    if (!q) {
+      return SEARCHABLE_LOCATIONS.slice(0, 8);
+    }
+    return SEARCHABLE_LOCATIONS.filter(
+      (loc) =>
+        loc.name.toLowerCase().includes(q) ||
+        loc.nameNp.toLowerCase().includes(q) ||
+        loc.district.toLowerCase().includes(q) ||
+        (loc.details && loc.details.toLowerCase().includes(q))
+    ).slice(0, 10);
+  }, [locationSearchQuery]);
+
+  // Handle Search Result Selection
+  const handleSelectLocation = (loc: SearchableLocationItem) => {
+    triggerHaptic('medium');
+    // Pause live auto-watch if user manually searched a specific location
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+    setIsLiveTracking(false);
+
+    setUserCoords({
+      lat: loc.lat,
+      lng: loc.lng,
+      label: language === 'np' ? loc.nameNp : loc.name,
+      district: loc.district
+    });
+    setLocationSearchQuery('');
+    setIsSearchDropdownOpen(false);
+  };
+
   // Calculate Geodesic Distances & Sort Hospitals / Medevac
   const hospitalsWithDistance = useMemo(() => {
-    return INITIAL_HOSPITALS.map((h) => {
+    return hospitals.map((h) => {
       const lat = h.lat || 27.7052;
       const lng = h.lng || 85.3142;
       const distanceKm = calculateHaversineDistance(userCoords.lat, userCoords.lng, lat, lng);
@@ -313,7 +515,7 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
         driveMins
       };
     }).sort((a, b) => a.distanceKm - b.distanceKm);
-  }, [userCoords]);
+  }, [userCoords, hospitals]);
 
   const medevacWithDistance = useMemo(() => {
     return NEPAL_MEDEVAC_BASES.map((mb) => {
@@ -365,14 +567,14 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
 
   return (
     <div className="space-y-6 animate-fade-in max-w-7xl mx-auto px-1 sm:px-0 pb-12">
-      {/* Banner / Location Control Pod */}
+      {/* Live Location Sharing Permission & State Pod */}
       <div className="rounded-[26px] bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 text-white p-5 sm:p-6 shadow-2xl border border-blue-500/20 relative overflow-hidden">
         {/* Glow Spheres */}
-        <div className="absolute top-0 right-0 w-72 h-72 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-72 h-72 bg-red-600/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 right-0 w-80 h-80 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-80 h-80 bg-red-600/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 space-y-5">
-          {/* Header */}
+          {/* Header Bar */}
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 border-b border-white/10 pb-4">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 text-white shadow-lg">
@@ -381,70 +583,225 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <h1 className="text-lg sm:text-xl font-black text-white tracking-tight">
-                    {language === 'np' ? 'गुगल म्याप्स आपतकालीन ड्राइभिङ रुट तथा एयर रेस्क्यु' : 'Google Maps Emergency Driving Routes & Medevac Radar'}
+                    {language === 'np' ? 'लाइभ जीपीएस सेयरिङ तथा नजिकको अस्पताल रडार' : 'Live GPS Location Sharing & Nearest Hospital Radar'}
                   </h1>
-                  <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-red-600 text-white font-bold tracking-wider uppercase flex items-center gap-1">
-                    <Route className="w-3 h-3" /> Directions API Active
+                  <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-600 text-white font-bold tracking-wider uppercase flex items-center gap-1 shadow-xs">
+                    <SignalIcon className="w-3 h-3 animate-pulse" /> Live Sensor
                   </span>
                 </div>
                 <p className="text-xs text-blue-200/80 font-medium mt-0.5">
                   {language === 'np'
-                    ? 'गुगल म्याप्स डाइरेक्सन्स प्रयोग गरी वर्तमान जीपीएस स्थानबाट अस्पतालसम्मको द्रुत सडक रुट र हवाई उद्धार समय गणना गर्नुहोस्'
-                    : 'Calculate the fastest emergency driving transit route and turn guidance to any hospital via Google Maps Directions API'}
+                    ? 'ब्राउजर जीपीएस अनुमति अन गरी तपाईंको वास्तविक स्थान पत्ता लगाउनुहोस् र साँचो नजिकको अस्पताल गणना गर्नुहोस्'
+                    : 'Real-time GPS calculates your genuine closest emergency hospital and fastest driving transit route'}
                 </p>
               </div>
             </div>
 
-            {/* GPS Ping Action Button */}
-            <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+            {/* Live Location Action Buttons */}
+            <div className="flex flex-wrap items-center gap-2 shrink-0 w-full sm:w-auto">
               <button
-                onClick={handlePingGps}
-                disabled={isPingingGps}
-                className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-gradient-to-r from-red-600 via-blue-600 to-indigo-600 hover:from-red-700 hover:to-indigo-700 text-white text-xs font-black shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 disabled:opacity-50"
+                onClick={() => requestLiveLocation(false)}
+                disabled={permissionStatus === 'requesting'}
+                className="flex-1 sm:flex-initial px-4 py-2.5 rounded-2xl bg-gradient-to-r from-red-600 via-blue-600 to-indigo-600 hover:from-red-700 hover:to-indigo-700 text-white text-xs font-black shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 disabled:opacity-50"
               >
-                <LocateFixed className={`w-4 h-4 text-white ${isPingingGps ? 'animate-spin' : ''}`} />
-                <span>{isPingingGps ? (language === 'np' ? 'जीपीएस पिंग हुँदैछ...' : 'Pinging GPS Location...') : (language === 'np' ? '📡 मेरो जीपीएस स्थान पिंग गर्नुहोस्' : '📡 Ping My Live GPS Location')}</span>
+                <LocateFixed className={`w-4 h-4 text-white ${permissionStatus === 'requesting' ? 'animate-spin' : ''}`} />
+                <span>
+                  {permissionStatus === 'requesting'
+                    ? (language === 'np' ? 'जीपीएस अनुरोध हुँदैछ...' : 'Requesting GPS...')
+                    : (language === 'np' ? '📍 मेरो लाइभ जीपीएस पत्ता लगाउनुहोस्' : '📍 Ping My Live GPS')}
+                </span>
+              </button>
+
+              <button
+                onClick={toggleLiveTracking}
+                className={`px-3 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer border ${
+                  isLiveTracking
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/40 hover:bg-emerald-500/30'
+                    : 'bg-white/10 text-slate-300 border-white/10 hover:bg-white/20'
+                }`}
+                title={isLiveTracking ? 'Live tracking is active' : 'Live tracking is paused'}
+              >
+                <span className={`w-2 h-2 rounded-full ${isLiveTracking ? 'bg-emerald-400 animate-ping' : 'bg-slate-400'}`} />
+                <span>{isLiveTracking ? 'Live Sharing: ON' : 'Live Sharing: OFF'}</span>
               </button>
             </div>
           </div>
 
-          {/* Current Pinged Coords Bar */}
+          {/* Location Permission Prompt Banner (Shows if not granted) */}
+          {permissionStatus === 'denied' && (
+            <div className="p-4 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-100 text-xs font-medium flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fade-in">
+              <div className="flex items-center gap-2.5">
+                <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
+                <div>
+                  <p className="font-bold text-amber-200">
+                    {language === 'np' ? 'जीपीएस अनुमति आवश्यक (स्थान सेयरिङ बन्द छ)' : 'GPS Location Permission Needed'}
+                  </p>
+                  <p className="text-[11px] text-amber-200/80 mt-0.5">
+                    {language === 'np'
+                      ? 'तपाईंको ब्राउजरले जीपीएस अनुमति नदिएकाले नर्भिक पूर्व-सेट देखिन सक्छ। वास्तविक नजिकको अस्पतालका लागि अनुमति दिनुहोस् वा तलको खोज बाकस प्रयोग गर्नुहोस्।'
+                      : 'Without live location permission, default central valley coordinates apply. Allow GPS or search your neighborhood below to find your true closest hospital.'}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => requestLiveLocation(false)}
+                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-black font-black text-xs shrink-0 cursor-pointer transition-all shadow-md active:scale-95"
+              >
+                {language === 'np' ? 'अनुमति पुनः अनुरोध गर्नुहोस्' : 'Allow GPS Location'}
+              </button>
+            </div>
+          )}
+
+          {/* Current Pinged Coords Bar with Accuracy Pill */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md">
             <div className="flex items-center gap-2.5 min-w-0">
               <MapPin className="w-4 h-4 text-red-400 shrink-0" />
               <div className="text-xs min-w-0">
-                <span className="text-slate-400 font-medium">{language === 'np' ? 'वर्तमान पिंग गरिएको स्थान:' : 'Current Pinged Location:'} </span>
+                <span className="text-slate-400 font-medium">
+                  {language === 'np' ? 'सक्रिय स्थान (तपाईंको नजिक):' : 'Active Location Anchor:'}{' '}
+                </span>
                 <span className="font-bold text-white font-mono truncate">{userCoords.label}</span>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 text-[11px] font-mono text-emerald-400 font-bold shrink-0">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-              <span>Lat: {userCoords.lat.toFixed(4)}, Lng: {userCoords.lng.toFixed(4)}</span>
+            <div className="flex items-center gap-3 shrink-0">
+              {gpsAccuracy !== null && isLiveTracking && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono font-bold">
+                  ±{gpsAccuracy}m Accuracy
+                </span>
+              )}
+              <div className="flex items-center gap-2 text-[11px] font-mono text-emerald-400 font-bold">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                <span>Lat: {userCoords.lat.toFixed(4)}, Lng: {userCoords.lng.toFixed(4)}</span>
+              </div>
             </div>
           </div>
 
-          {gpsError && (
-            <div className="p-3 rounded-xl bg-red-500/20 border border-red-500/40 text-red-200 text-xs font-medium flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
-              <span>{gpsError}</span>
+          {/* SEARCH BAR FOR NEIGHBORHOODS, PLACES & HOSPITALS */}
+          <div ref={searchContainerRef} className="relative z-30 space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] font-black uppercase tracking-wider text-blue-300 flex items-center gap-1.5">
+                <Search className="w-3.5 h-3.5 text-blue-400" />
+                <span>
+                  {language === 'np'
+                    ? 'टोल, ठाउँ वा अस्पताल खोज्नुहोस् (उदा: गठ्ठाघर, ठिमी, धुम्बाराही...)'
+                    : 'Search Your Neighborhood, Town, or Hospital:'}
+                </span>
+              </label>
+              <span className="text-[10px] text-slate-400">
+                {language === 'np' ? 'स्थान छान्दा नजिकको अस्पताल तुरुन्त फेरिन्छ' : 'Instantly re-ranks closest emergency facilities'}
+              </span>
             </div>
-          )}
 
-          {/* Region Presets Carousel */}
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={locationSearchQuery}
+                onFocus={() => setIsSearchDropdownOpen(true)}
+                onChange={(e) => {
+                  setLocationSearchQuery(e.target.value);
+                  setIsSearchDropdownOpen(true);
+                }}
+                placeholder={
+                  language === 'np'
+                    ? 'खोज्नुहोस्: गठ्ठाघर, ठिमी, धुम्बाराही, कोटेश्वर, बानेश्वर, पाटन, नागरिक अस्पताल...'
+                    : 'Type neighborhood (e.g. Gatthaghar, Thimi, Dhumbarahi, Koteshwor, Patan, Nagarik...)'
+                }
+                className="w-full pl-10 pr-24 py-3 rounded-2xl bg-white/10 hover:bg-white/15 focus:bg-white/20 border border-white/20 focus:border-blue-400 text-white placeholder:text-slate-400 text-xs font-medium focus:outline-hidden transition-all shadow-inner"
+              />
+
+              {locationSearchQuery ? (
+                <button
+                  onClick={() => {
+                    setLocationSearchQuery('');
+                    setIsSearchDropdownOpen(false);
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg text-slate-400 hover:text-white cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              ) : (
+                <button
+                  onClick={() => requestLiveLocation(false)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                >
+                  <LocateFixed className="w-3 h-3" />
+                  <span>GPS</span>
+                </button>
+              )}
+
+              {/* Suggestions Dropdown */}
+              {isSearchDropdownOpen && (
+                <div className="absolute top-full left-0 right-0 mt-2 rounded-2xl bg-slate-900 border border-white/20 shadow-2xl overflow-hidden max-h-72 overflow-y-auto divide-y divide-white/10 z-50 backdrop-blur-xl animate-fade-in">
+                  <div className="p-2 bg-slate-950/80 text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center justify-between">
+                    <span>{language === 'np' ? 'सुझाइएका स्थानहरू' : 'Suggested Neighborhoods & Hospitals'}</span>
+                    <span>{filteredSearchSuggestions.length} Results</span>
+                  </div>
+
+                  {filteredSearchSuggestions.length === 0 ? (
+                    <div className="p-4 text-center text-xs text-slate-400 font-medium">
+                      {language === 'np' ? 'कुनै स्थान भेटिएन। कृपया अन्य नाम खोज्नुहोस्।' : 'No matching locations found. Try another neighborhood or hospital name.'}
+                    </div>
+                  ) : (
+                    filteredSearchSuggestions.map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => handleSelectLocation(item)}
+                        className="w-full text-left p-3 hover:bg-blue-600/20 transition-colors flex items-center justify-between gap-3 group cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className={`p-2 rounded-xl shrink-0 ${
+                            item.category === 'hospital'
+                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                              : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                          }`}>
+                            {item.category === 'hospital' ? (
+                              <HospitalIcon className="w-4 h-4" />
+                            ) : (
+                              <MapPin className="w-4 h-4" />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <span className="text-xs font-bold text-white block group-hover:text-blue-300 truncate">
+                              {language === 'np' ? item.nameNp : item.name}
+                            </span>
+                            <span className="text-[10px] text-slate-400 block truncate">
+                              {item.district} {item.details ? `• ${item.details}` : ''}
+                            </span>
+                          </div>
+                        </div>
+
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/10 text-slate-300 shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                          Select →
+                        </span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Quick Select Chips Carousel (Kept directly below search bar) */}
           <div className="space-y-2 pt-1">
             <div className="text-[11px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
               <Compass className="w-3.5 h-3.5 text-blue-400" />
-              <span>{language === 'np' ? 'वा नेपालका मुख्य क्षेत्रहरू चयन गर्नुहोस्:' : 'Or Quick Select Regional Sector in Nepal:'}</span>
+              <span>{language === 'np' ? 'वा नेपालका मुख्य क्षेत्रहरू छिटो चयन गर्नुहोस्:' : 'Or Quick Select Popular Sectors:'}</span>
             </div>
             <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-              {PRESET_LOCATIONS.map((loc) => {
+              {QUICK_SELECT_CHIPS.map((loc) => {
                 const isSelected = Math.abs(userCoords.lat - loc.lat) < 0.01 && Math.abs(userCoords.lng - loc.lng) < 0.01;
                 return (
                   <button
                     key={loc.name}
                     onClick={() => {
                       triggerHaptic('light');
+                      if (watchIdRef.current !== null) {
+                        navigator.geolocation.clearWatch(watchIdRef.current);
+                        watchIdRef.current = null;
+                      }
+                      setIsLiveTracking(false);
                       setUserCoords({
                         lat: loc.lat,
                         lng: loc.lng,
@@ -570,7 +927,7 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10">
                 <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">
-                  {language === 'np' ? 'सुरुवात (वर्तमान जीपीएस स्थान)' : 'Origin (Your Live GPS)'}
+                  {language === 'np' ? 'सुरुवात (वर्तमान जीपीएस स्थान)' : 'Origin (Your Live Anchor)'}
                 </span>
                 <p className="text-xs font-bold text-white mt-1 truncate">
                   {userCoords.label}
@@ -660,7 +1017,7 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
             <div className="flex items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 text-xs font-black uppercase tracking-wider">
                 <HospitalIcon className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <span>{language === 'np' ? 'सबैभन्दा नजिकको आपतकालीन अस्पताल' : 'Nearest Emergency Tertiary Hospital'}</span>
+                <span>{language === 'np' ? 'तपाईंको स्थानबाट सबैभन्दा नजिकको अस्पताल' : 'Nearest Emergency Hospital to You'}</span>
               </div>
               <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
                 {nearestHospital.distanceKm.toFixed(1)} km away
@@ -668,13 +1025,27 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
             </div>
 
             <div className="mt-3 space-y-2">
-              <h3 className="text-base font-black text-slate-900 dark:text-white">
-                {language === 'np' ? nearestHospital.name_np : nearestHospital.name}
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                <span>{nearestHospital.address}</span>
-              </p>
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h3 className="text-base font-black text-slate-900 dark:text-white">
+                    {language === 'np' ? nearestHospital.name_np : nearestHospital.name}
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1.5 mt-0.5">
+                    <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span>{nearestHospital.address}</span>
+                  </p>
+                </div>
+                {nearestHospital.id === 'hosp_020' && (
+                  <span className="px-2 py-0.5 rounded-md bg-indigo-600 text-white text-[9px] font-black shrink-0">
+                    BHAKTAPUR HUB
+                  </span>
+                )}
+                {nearestHospital.id === 'hosp_011' && (
+                  <span className="px-2 py-0.5 rounded-md bg-blue-600 text-white text-[9px] font-black shrink-0">
+                    DHUMBARAHI HUB
+                  </span>
+                )}
+              </div>
 
               <div className="grid grid-cols-2 gap-2 pt-2">
                 <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
@@ -765,7 +1136,7 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
                 ) : (
                   <div className="flex-1 px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 font-bold text-xs flex items-center justify-center gap-1.5 border border-slate-300 dark:border-slate-700 cursor-not-allowed">
                     <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
-                    <span>Service Currently Offline (No Phone Number)</span>
+                    <span>Fly Service Offline (No Active Number)</span>
                   </div>
                 )}
               </div>

@@ -187,6 +187,16 @@ export default function App() {
       }
     });
 
+    // Hydrate authoritative hospitals list from database
+    api.getHospitals().then((dbHospitals) => {
+      if (Array.isArray(dbHospitals) && dbHospitals.length > 0) {
+        setHospitals(dbHospitals);
+        try {
+          localStorage.setItem('xenon_hospitals', JSON.stringify(dbHospitals));
+        } catch {}
+      }
+    });
+
     const handleExternalUserUpdate = () => {
       api.getUsers().then((dbUsers) => {
         if (Array.isArray(dbUsers) && dbUsers.length > 0) {
@@ -202,7 +212,20 @@ export default function App() {
       });
     };
 
+    const handleExternalHospitalsUpdate = () => {
+      api.getHospitals().then((dbHospitals) => {
+        if (Array.isArray(dbHospitals) && dbHospitals.length > 0) {
+          setHospitals(dbHospitals);
+        }
+      });
+    };
+
     window.addEventListener('xenon-user-updated', handleExternalUserUpdate);
+    window.addEventListener('xenon-hospitals-updated', handleExternalHospitalsUpdate);
+    return () => {
+      window.removeEventListener('xenon-user-updated', handleExternalUserUpdate);
+      window.removeEventListener('xenon-hospitals-updated', handleExternalHospitalsUpdate);
+    };
     return () => window.removeEventListener('xenon-user-updated', handleExternalUserUpdate);
   }, []);
 
@@ -242,6 +265,17 @@ export default function App() {
   });
 
   const [hospitals] = useState<Hospital[]>(INITIAL_HOSPITALS);
+  const [preselectedHospitalForMap, setPreselectedHospitalForMap] = useState<Hospital | null>(null);
+
+  const handleNavigateToMap = (hospId?: string) => {
+    if (hospId) {
+      const found = hospitals.find((h) => h.id === hospId);
+      if (found) {
+        setPreselectedHospitalForMap(found);
+      }
+    }
+    handleSelectTab('locationMedevac');
+  };
 
   const [appointments, setAppointments] = useState<Appointment[]>(() => {
     try {
@@ -1066,12 +1100,14 @@ export default function App() {
               hospitals={hospitals}
               language={language}
               onOpenChat={handleOpenChat}
-              onNavigateToMap={() => handleSelectTab('locationMedevac')}
+              onNavigateToMap={handleNavigateToMap}
             />
           )}
 
           {currentTab === 'locationMedevac' && (
             <LocationMedevacView
+              hospitals={hospitals}
+              preselectedHospital={preselectedHospitalForMap}
               language={language}
               onBookDoctor={(hospId) => handleOpenBookModal()}
               onNavigate={handleSelectTab}

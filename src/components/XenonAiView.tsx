@@ -410,31 +410,41 @@ export const XenonAiView: React.FC<XenonAiViewProps> = ({
       let hosp = 'Tribhuvan University Teaching Hospital (TUTH)';
       let coords = { lat: 27.7360, lng: 85.3303 };
 
-      if (q.includes('bleed') || q.includes('blood') || q.includes('cut') || q.includes('wound') || q.includes('रगत')) {
+      // Enforce strict Health-Only Scope Mandate
+      const nonHealthKeywords = ['code', 'python', 'javascript', 'html', 'programming', 'function', 'math', 'calculator', 'capital of', 'movie', 'song', 'bitcoin', 'crypto', 'football', 'cricket', 'recipe', 'essay', 'president of'];
+      const isNonHealth = nonHealthKeywords.some((w) => q.includes(w)) &&
+        !q.includes('fever') && !q.includes('pain') && !q.includes('blood') && !q.includes('doctor') &&
+        !q.includes('hospital') && !q.includes('medicine') && !q.includes('स्वास्थ्य') && !q.includes('बिरामी');
+
+      if (isNonHealth) {
+        severity = 'routine';
+        spec = 'Clinical Healthcare Assistant';
+        steps = ['Ask any symptom, injury, medication, or hospital question'];
+        replyText = language === 'np'
+          ? `म जिनोन एआई (Xenon AI) केवल स्वास्थ्य, चिकित्सा, र प्राथमिक उपचार सम्बन्धी सहयोगका लागि मात्र उपलब्ध छु। म कोडिङ, गणित वा गैर-स्वास्थ्य विषयहरूमा उत्तर दिन सक्दिनँ। कृपया आफ्नो कुनै पनि स्वास्थ्य समस्या, लक्षण वा औषधी सम्बन्धी प्रश्न सोध्नुहोस्!`
+          : `I am Xenon AI, dedicated exclusively to healthcare, medical symptoms, emergency first-aid, and doctor guidance. I cannot assist with non-medical topics like coding, math, or general trivia. Please feel free to ask any health or medical questions!`;
+      } else if (q.includes('bleed') || q.includes('blood') || q.includes('cut') || q.includes('wound') || q.includes('रगत')) {
         severity = 'critical';
-        spec = 'Trauma & Orthopedic Surgery / Vascular Care';
+        spec = 'Trauma & Emergency Wound Care';
         hosp = 'National Trauma Centre (Bir Hospital Complex), Kathmandu';
         coords = { lat: 27.7050, lng: 85.3142 };
         steps = [
-          'Direct Pressure: Press firmly on wound with clean sterile cloth for 10 min uninterrupted',
-          'Elevation: Keep the bleeding hand elevated strictly above heart level',
-          'Do NOT put ash, mud, turmeric, or chemical powders into the open cut',
-          'Check motor function of fingers (rule out flexor tendon or radial/ulnar nerve transection)',
-          'Tetanus Toxoid shot within 24 hours + Emergency Room visit if bleeding doesn’t cease'
+          'Direct Pressure: Press firmly on wound with clean cloth for 10 min without lifting',
+          'Elevation: Raise the injured limb strictly above heart level immediately',
+          'No Dirt/Turmeric: Do NOT apply ash, mud, or powder to open wounds',
+          'Tetanus & ER: Get Tetanus (TT) shot within 24h; visit ER if bleeding persists'
         ];
         replyText = language === 'np'
-          ? `🚨 **तत्काल प्राथमिक उपचार: हातको रक्तस्राव (Severe Bleeding Wound)**\n\n` +
-            `१. **लगातार प्रत्यक्ष दबाब (Direct Pressure):** सफा कपडा वा गजले घाउमा कम्तीमा १० मिनेटसम्म नछोडी जोडले थिच्नुहोस्। बारम्बार हेर्न नउठाउनुहोस्।\n` +
-            `२. **हात मुटुभन्दा माथि उठाउनुहोस् (Elevation):** हातलाई तुरुन्त मुटुको सतहभन्दा माथि राख्नुहोस्, यसले रगतको प्रवाह कम गर्छ।\n` +
-            `३. **धुलो, खरानी वा बेसार कहिल्यै नहाल्नुहोस्:** परम्परागत धुलोले गम्भीर संक्रमण (Tetanus & Sepsis) निम्त्याउँछ।\n` +
-            `४. **औंलाहरू चलाएर हेर्नुहोस्:** यदि औंला चलाउन नसक्ने वा लाटो भएको छ भने नसा वा टेन्डन (Tendon) काटिएको हुन सक्छ, तत्काल शल्यक्रिया चाहिन्छ।\n` +
-            `५. तुरुन्त नजिकको आपतकालीन ट्रमा सेन्टरमा जानुहोस् र धनुष्टंकार (TT) खोप लगाउनुहोस्।`
-          : `🚨 **IMMEDIATE EMERGENCY FIRST AID: ACTIVE BLEEDING WOUND**\n\n` +
-            `1. **Continuous Direct Firm Pressure**: Place a clean sterile cloth or heavy gauze directly over the bleeding site and apply uninterrupted pressure for a full 10 minutes. Do not lift to check.\n` +
-            `2. **Immediate Elevation**: Raise the injured hand or arm **ABOVE HEART LEVEL** immediately. Gravitational reduction of hydrostatic pressure significantly slows blood loss.\n` +
-            `3. **Pulsing vs. Steady Flow Check**: Arterial bleeding pulses bright red. Maintain firm direct pressure. If blood soaks through, add more cloth on top.\n` +
-            `4. **Tendon & Nerve Integrity**: Test if you can flex and extend each finger. Deep cuts near wrist or palm frequently sever flexor tendons.\n` +
-            `5. **Infection & Tetanus**: Obtain a Tetanus Toxoid (TT) booster within 24 hours. Seek immediate emergency evaluation at the nearest trauma center.`;
+          ? `🚨 **हात वा घाउको रक्तस्राव: तत्काल प्राथमिक उपचार**\n\n` +
+            `१. **लगातार प्रत्यक्ष दबाब:** सफा कपडाले घाउमा कम्तीमा १० मिनेटसम्म नछोडी जोडले थिच्नुहोस्।\n` +
+            `२. **मुटुभन्दा माथि उठाउनुहोस्:** हात वा खुट्टालाई तुरुन्त मुटुको सतहभन्दा माथि उठाउनुहोस्।\n` +
+            `३. **धुलो, खरानी वा बेसार कहिल्यै नहाल्नुहोस्:** यसले गम्भीर संक्रमण निम्त्याउँछ।\n` +
+            `४. **अस्पताल जानुहोस्:** रगत नरोकिएमा वा गहिरो घाउ भएमा तुरुन्त वीर अस्पताल ट्रमा सेन्टर जानुहोस् र धनुष्टंकार (TT) खोप लगाउनुहोस्।`
+          : `🚨 **EMERGENCY FIRST AID: ACTIVE BLEEDING WOUND**\n\n` +
+            `1. **Continuous Direct Pressure**: Press firmly on the wound with a clean cloth for 10 uninterrupted minutes.\n` +
+            `2. **Elevate Above Heart**: Raise the injured arm or leg above heart level immediately to slow blood loss.\n` +
+            `3. **Do Not Apply Ash or Powders**: Keep the wound clean to prevent severe infection or tetanus.\n` +
+            `4. **Seek Medical Care**: Get a Tetanus (TT) shot within 24 hours. Go to the nearest trauma emergency center if bleeding does not stop.`;
       } else if (q.includes('chest') || q.includes('heart') || q.includes('छाती')) {
         severity = 'critical';
         spec = 'Interventional Cardiology / Critical Care';

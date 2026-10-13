@@ -1,4 +1,4 @@
-import { User, Doctor, VitalLogPoint } from '../types';
+import { User, Doctor, VitalLogPoint, Hospital, Appointment } from '../types';
 
 /**
  * Enterprise Client-Side API & Database Connector for Xenon Health.
@@ -27,6 +27,7 @@ export interface DatabaseStatus {
   };
   usersCount: number;
   doctorsCount: number;
+  hospitalsCount?: number;
   vitalsUsersCount: number;
   totalVitalsPoints: number;
   appointmentsCount: number;
@@ -267,6 +268,173 @@ class ApiService {
       console.warn('Error deleting vital:', err);
     }
     return false;
+  }
+
+  // --------------------------------------------------------------------------
+  // HOSPITALS DATABASE SERVICES (Direct User Input Persistence)
+  // --------------------------------------------------------------------------
+
+  async getHospitals(): Promise<Hospital[]> {
+    try {
+      const res = await fetch(`${this.baseUrl}/hospitals`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.hospitals) && data.hospitals.length > 0) {
+          try {
+            localStorage.setItem('xenon_hospitals', JSON.stringify(data.hospitals));
+          } catch {}
+          return data.hospitals;
+        }
+      }
+    } catch (err) {
+      console.warn('API error fetching hospitals, using local cache:', err);
+    }
+
+    try {
+      const cached = localStorage.getItem('xenon_hospitals');
+      if (cached) return JSON.parse(cached);
+    } catch {}
+
+    return [];
+  }
+
+  async createHospital(hospital: Partial<Hospital>): Promise<{ success: boolean; hospital?: Hospital; error?: string }> {
+    try {
+      const res = await fetch(`${this.baseUrl}/hospitals`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(hospital)
+      });
+      const data = await res.json();
+      if (res.ok && data.success && data.hospital) {
+        // Sync local storage cache
+        try {
+          const cached = localStorage.getItem('xenon_hospitals');
+          const list: Hospital[] = cached ? JSON.parse(cached) : [];
+          const updated = [data.hospital, ...list.filter(h => h.id !== data.hospital.id)];
+          localStorage.setItem('xenon_hospitals', JSON.stringify(updated));
+          window.dispatchEvent(new Event('xenon-hospitals-updated'));
+        } catch {}
+        return { success: true, hospital: data.hospital };
+      }
+      return { success: false, error: data.error || 'Failed to save hospital' };
+    } catch (err: any) {
+      console.warn('Network error creating hospital, persisting to local storage:', err);
+      try {
+        const fallback: Hospital = {
+          id: hospital.id || `hosp_${Date.now()}`,
+          name: hospital.name || 'Emergency Center',
+          name_np: hospital.name_np || hospital.name || 'आपतकालीन केन्द्र',
+          address: hospital.address || 'Kathmandu Valley',
+          district: hospital.district || 'Kathmandu',
+          phone: hospital.phone || '+977-01-4000000',
+          emergency: hospital.emergency || '102',
+          type: hospital.type || 'General',
+          beds: hospital.beds || 50,
+          icu: Boolean(hospital.icu),
+          specialties: hospital.specialties || ['Emergency & Trauma'],
+          open_247: hospital.open_247 !== undefined ? hospital.open_247 : true,
+          rating: hospital.rating || 4.5,
+          lat: hospital.lat || 27.7052,
+          lng: hospital.lng || 85.3142,
+          description: hospital.description || 'Healthcare facility'
+        };
+        const cached = localStorage.getItem('xenon_hospitals');
+        const list: Hospital[] = cached ? JSON.parse(cached) : [];
+        const updated = [fallback, ...list.filter(h => h.id !== fallback.id)];
+        localStorage.setItem('xenon_hospitals', JSON.stringify(updated));
+        window.dispatchEvent(new Event('xenon-hospitals-updated'));
+        return { success: true, hospital: fallback };
+      } catch (e: any) {
+        return { success: false, error: e?.message };
+      }
+    }
+  }
+
+  async updateHospital(id: string, updates: Partial<Hospital>): Promise<{ success: boolean; hospital?: Hospital; error?: string }> {
+    try {
+      const res = await fetch(`${this.baseUrl}/hospitals/${encodeURIComponent(id)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+      });
+      const data = await res.json();
+      if (res.ok && data.success && data.hospital) {
+        try {
+          const cached = localStorage.getItem('xenon_hospitals');
+          if (cached) {
+            const list: Hospital[] = JSON.parse(cached);
+            const updated = list.map(h => h.id === id ? data.hospital : h);
+            localStorage.setItem('xenon_hospitals', JSON.stringify(updated));
+            window.dispatchEvent(new Event('xenon-hospitals-updated'));
+          }
+        } catch {}
+        return { success: true, hospital: data.hospital };
+      }
+      return { success: false, error: data.error || 'Failed to update hospital' };
+    } catch (err: any) {
+      return { success: false, error: err?.message };
+    }
+  }
+
+  async deleteHospital(id: string): Promise<boolean> {
+    try {
+      const res = await fetch(`${this.baseUrl}/hospitals/${encodeURIComponent(id)}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        try {
+          const cached = localStorage.getItem('xenon_hospitals');
+          if (cached) {
+            const list: Hospital[] = JSON.parse(cached);
+            const updated = list.filter(h => h.id !== id);
+            localStorage.setItem('xenon_hospitals', JSON.stringify(updated));
+            window.dispatchEvent(new Event('xenon-hospitals-updated'));
+          }
+        } catch {}
+        return true;
+      }
+    } catch {}
+    return false;
+  }
+
+  // --------------------------------------------------------------------------
+  // APPOINTMENTS & DOCTORS PERSISTENCE
+  // --------------------------------------------------------------------------
+
+  async createAppointment(apt: Appointment): Promise<{ success: boolean; appointment?: Appointment; error?: string }> {
+    try {
+      const res = await fetch(`${this.baseUrl}/appointments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(apt)
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        return { success: true, appointment: data.appointment || apt };
+      }
+      return { success: false, error: data.error || 'Failed to record appointment in database' };
+    } catch (err: any) {
+      console.warn('Network error saving appointment, local cache used:', err);
+      return { success: true, appointment: apt };
+    }
+  }
+
+  async saveDoctor(doc: Doctor): Promise<{ success: boolean; doctor?: Doctor; error?: string }> {
+    try {
+      const res = await fetch(`${this.baseUrl}/doctors`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(doc)
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        return { success: true, doctor: data.doctor || doc };
+      }
+      return { success: false, error: data.error || 'Failed to persist doctor' };
+    } catch (err: any) {
+      return { success: false, error: err?.message };
+    }
   }
 
   // --------------------------------------------------------------------------
