@@ -1,6 +1,14 @@
 // Source: Google Maps Platform Code Assist
-import React, { useState, useEffect, useMemo } from 'react';
-import { APIProvider, Map, AdvancedMarker, InfoWindow, Pin } from '@vis.gl/react-google-maps';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import {
+  APIProvider,
+  Map,
+  AdvancedMarker,
+  InfoWindow,
+  Pin,
+  useMap,
+  useMapsLibrary
+} from '@vis.gl/react-google-maps';
 import {
   Navigation,
   MapPin,
@@ -20,7 +28,14 @@ import {
   Crosshair,
   Map as MapIcon,
   HelpCircle,
-  ExternalLink
+  ExternalLink,
+  Route,
+  ArrowRight,
+  RotateCcw,
+  ShieldCheck,
+  ChevronDown,
+  ChevronUp,
+  AlertCircle
 } from 'lucide-react';
 import { Hospital, MedevacBase, Language } from '../types';
 import { INITIAL_HOSPITALS, NEPAL_MEDEVAC_BASES } from '../data/mockData';
@@ -30,6 +45,18 @@ interface LocationMedevacViewProps {
   language: Language;
   onBookDoctor?: (hospitalId?: string) => void;
   onNavigate?: (tab: string) => void;
+}
+
+export interface ComputedRouteInfo {
+  distance: string;
+  distanceValueMeters: number;
+  duration: string;
+  durationValueSeconds: number;
+  summary: string;
+  startAddress: string;
+  endAddress: string;
+  steps: string[];
+  trafficStatus?: string;
 }
 
 // Haversine Geodesic Distance Formula in Kilometers
@@ -52,9 +79,11 @@ function calculateHaversineDistance(
   return R * c;
 }
 
-// Preset Locations in Nepal
+// Preset Regional Locations in Nepal with Gatthaghar Nagarik and HAMS
 const PRESET_LOCATIONS = [
   { name: 'Kathmandu Valley', nameNp: 'काठमाडौँ उपत्यका', lat: 27.7172, lng: 85.324, district: 'Kathmandu' },
+  { name: 'Gatthaghar / Nagarik (Bhaktapur)', nameNp: 'गठ्ठाघर / नागरिक अस्पताल (भक्तपुर)', lat: 27.6788, lng: 85.3670, district: 'Bhaktapur' },
+  { name: 'HAMS / Dhumbarahi', nameNp: 'ह्याम्स / धुम्बाराही', lat: 27.7329, lng: 85.3444, district: 'Kathmandu' },
   { name: 'Pokhara / Kaski', nameNp: 'पोखरा / कास्की', lat: 28.2096, lng: 83.9856, district: 'Kaski' },
   { name: 'Manang / Annapurna Track', nameNp: 'मनाङ / अन्नपूर्ण ट्र्याक', lat: 28.6655, lng: 84.021, district: 'Manang' },
   { name: 'Mustang / Jomsom', nameNp: 'मुस्ताङ / जोमसोम', lat: 28.782, lng: 83.738, district: 'Mustang' },
@@ -63,6 +92,114 @@ const PRESET_LOCATIONS = [
   { name: 'Dharan / Eastern Hub', nameNp: 'धरान / पूर्वी क्षेत्र', lat: 26.8125, lng: 87.2835, district: 'Sunsari' },
   { name: 'Surkhet / Karnali Airbase', nameNp: 'सुर्खेत / कर्णाली एयरबेस', lat: 28.5875, lng: 81.636, district: 'Surkhet' }
 ];
+
+/**
+ * DirectionsRendererChild:
+ * Uses @vis.gl/react-google-maps useMap() and useMapsLibrary('routes')
+ * to invoke Google Maps DirectionsService and render high-visibility
+ * emergency transit polyline with real directions on the map.
+ */
+interface DirectionsRendererChildProps {
+  origin: { lat: number; lng: number };
+  destination: { lat: number; lng: number } | null;
+  onRouteComputed: (data: ComputedRouteInfo | null) => void;
+  onCalculatingStateChange: (loading: boolean) => void;
+  onError: (err: string | null) => void;
+}
+
+const DirectionsRendererChild: React.FC<DirectionsRendererChildProps> = ({
+  origin,
+  destination,
+  onRouteComputed,
+  onCalculatingStateChange,
+  onError
+}) => {
+  const map = useMap();
+  const routesLibrary = useMapsLibrary('routes');
+  const [directionsService, setDirectionsService] = useState<google.maps.DirectionsService | null>(null);
+  const [directionsRenderer, setDirectionsRenderer] = useState<google.maps.DirectionsRenderer | null>(null);
+
+  useEffect(() => {
+    if (!routesLibrary || !map) return;
+
+    const service = new routesLibrary.DirectionsService();
+    const renderer = new routesLibrary.DirectionsRenderer({
+      map,
+      suppressMarkers: false,
+      preserveViewport: false,
+      polylineOptions: {
+        strokeColor: '#2563EB',
+        strokeWeight: 6,
+        strokeOpacity: 0.9
+      }
+    });
+
+    setDirectionsService(service);
+    setDirectionsRenderer(renderer);
+
+    return () => {
+      renderer.setMap(null);
+    };
+  }, [routesLibrary, map]);
+
+  useEffect(() => {
+    if (!directionsService || !directionsRenderer) return;
+
+    if (!destination) {
+      directionsRenderer.setDirections({ routes: [] });
+      onRouteComputed(null);
+      onError(null);
+      onCalculatingStateChange(false);
+      return;
+    }
+
+    onCalculatingStateChange(true);
+    onError(null);
+
+    directionsService.route(
+      {
+        origin: { lat: origin.lat, lng: origin.lng },
+        destination: { lat: destination.lat, lng: destination.lng },
+        travelMode: google.maps.TravelMode.DRIVING,
+        provideRouteAlternatives: true
+      },
+      (response, status) => {
+        onCalculatingStateChange(false);
+        if (status === google.maps.DirectionsStatus.OK && response && response.routes.length > 0) {
+          directionsRenderer.setDirections(response);
+          const primaryRoute = response.routes[0];
+          const leg = primaryRoute.legs[0];
+
+          const stepsList = (leg.steps || []).map((step) => {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = step.instructions || '';
+            return tempDiv.textContent || tempDiv.innerText || step.instructions || '';
+          });
+
+          onRouteComputed({
+            distance: leg.distance?.text || `${(leg.distance?.value || 0) / 1000} km`,
+            distanceValueMeters: leg.distance?.value || 0,
+            duration: leg.duration?.text || '',
+            durationValueSeconds: leg.duration?.value || 0,
+            summary: primaryRoute.summary || 'Fastest Route',
+            startAddress: leg.start_address,
+            endAddress: leg.end_address,
+            steps: stepsList
+          });
+          onError(null);
+        } else {
+          console.warn('Google Maps Directions Service returned status:', status);
+          directionsRenderer.setDirections({ routes: [] });
+          // Inform parent about fallback calculation
+          onError(`Directions status: ${status}. Switched to GPS Geodesic Corridor.`);
+          onRouteComputed(null);
+        }
+      }
+    );
+  }, [directionsService, directionsRenderer, origin.lat, origin.lng, destination?.lat, destination?.lng]);
+
+  return null;
+};
 
 export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
   language,
@@ -79,14 +216,27 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
 
   const [isPingingGps, setIsPingingGps] = useState(false);
   const [gpsError, setGpsError] = useState<string | null>(null);
+
+  // Selected Entity for Marker InfoWindow
   const [selectedEntity, setSelectedEntity] = useState<
     | { type: 'hospital'; data: Hospital; distanceKm: number; driveMins: number }
     | { type: 'medevac'; data: MedevacBase; airDistanceKm: number; flightEtaMins: number }
     | null
   >(null);
 
+  // Active Tab Filter for Map Markers
   const [activeTabFilter, setActiveTabFilter] = useState<'all' | 'hospitals' | 'medevac'>('all');
 
+  // Directions API State for Fastest Driving Route
+  const [routedHospital, setRoutedHospital] = useState<Hospital | null>(null);
+  const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
+  const [computedRoute, setComputedRoute] = useState<ComputedRouteInfo | null>(null);
+  const [routeError, setRouteError] = useState<string | null>(null);
+  const [showTurnSteps, setShowTurnSteps] = useState(false);
+
+  const routePodRef = useRef<HTMLDivElement | null>(null);
+
+  // Reactive Google Maps API Key State
   const [apiKey, setApiKey] = useState<string>(
     () => (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY || ''
   );
@@ -104,7 +254,7 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
     }
   }, [apiKey]);
 
-  // Ping Current GPS Location
+  // Ping Current Device GPS Location
   const handlePingGps = () => {
     triggerHaptic('medium');
     setIsPingingGps(true);
@@ -146,7 +296,7 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
     );
   };
 
-  // Calculate Distances & Nearest Hospital / Medevac
+  // Calculate Geodesic Distances & Sort Hospitals / Medevac
   const hospitalsWithDistance = useMemo(() => {
     return INITIAL_HOSPITALS.map((h) => {
       const lat = h.lat || 27.7052;
@@ -182,6 +332,37 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
   const nearestHospital = hospitalsWithDistance[0];
   const nearestMedevac = medevacWithDistance[0];
 
+  // Gatthaghar Nagarik & HAMS Fast Access Pointers
+  const nagarikHospital = useMemo(
+    () => hospitalsWithDistance.find((h) => h.id === 'hosp_020' || h.name.includes('Nagarik')),
+    [hospitalsWithDistance]
+  );
+
+  const hamsHospital = useMemo(
+    () => hospitalsWithDistance.find((h) => h.id === 'hosp_011' || h.name.includes('HAMS')),
+    [hospitalsWithDistance]
+  );
+
+  // Trigger Google Maps Directions API Calculation to Selected Hospital
+  const handleCalculateDirections = (hospital: Hospital) => {
+    triggerHaptic('medium');
+    setRoutedHospital(hospital);
+    setShowTurnSteps(false);
+
+    // Scroll smoothly to route view pod
+    setTimeout(() => {
+      routePodRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 100);
+  };
+
+  const handleClearRoute = () => {
+    triggerHaptic('light');
+    setRoutedHospital(null);
+    setComputedRoute(null);
+    setRouteError(null);
+    setShowTurnSteps(false);
+  };
+
   return (
     <div className="space-y-6 animate-fade-in max-w-7xl mx-auto px-1 sm:px-0 pb-12">
       {/* Banner / Location Control Pod */}
@@ -200,16 +381,16 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <h1 className="text-lg sm:text-xl font-black text-white tracking-tight">
-                    {language === 'np' ? 'जीपीएस लोकेशन तथा एयर एम्बुलेन्स / अस्पताल खोजकर्ता' : 'Emergency GPS Location & Nearest Medevac Triage'}
+                    {language === 'np' ? 'गुगल म्याप्स आपतकालीन ड्राइभिङ रुट तथा एयर रेस्क्यु' : 'Google Maps Emergency Driving Routes & Medevac Radar'}
                   </h1>
-                  <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-red-600 text-white font-bold tracking-wider uppercase">
-                    Live GPS Radar
+                  <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-red-600 text-white font-bold tracking-wider uppercase flex items-center gap-1">
+                    <Route className="w-3 h-3" /> Directions API Active
                   </span>
                 </div>
                 <p className="text-xs text-blue-200/80 font-medium mt-0.5">
                   {language === 'np'
-                    ? 'जीपीएस लोकेशन पिंग गरी सबैभन्दा नजिकको आईसीयू अस्पताल र नेपाली सेना हेलिकप्टर / ड्रोन उद्धार हब पत्ता लगाउनुहोस्'
-                    : 'Instant GPS distance calculation to all Nepal tertiary emergency hospitals & Nepal Army airbases'}
+                    ? 'गुगल म्याप्स डाइरेक्सन्स प्रयोग गरी वर्तमान जीपीएस स्थानबाट अस्पतालसम्मको द्रुत सडक रुट र हवाई उद्धार समय गणना गर्नुहोस्'
+                    : 'Calculate the fastest emergency driving transit route and turn guidance to any hospital via Google Maps Directions API'}
                 </p>
               </div>
             </div>
@@ -222,7 +403,7 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
                 className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-gradient-to-r from-red-600 via-blue-600 to-indigo-600 hover:from-red-700 hover:to-indigo-700 text-white text-xs font-black shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 disabled:opacity-50"
               >
                 <LocateFixed className={`w-4 h-4 text-white ${isPingingGps ? 'animate-spin' : ''}`} />
-                <span>{isPingingGps ? (language === 'np' ? 'जीपीएस पिंग हुँदैछ...' : 'Pinging GPS Location...') : (language === 'np' ? '📡 मेरो जीपीएस लोकेशन पिंग गर्नुहोस्' : '📡 Ping My Live GPS Location')}</span>
+                <span>{isPingingGps ? (language === 'np' ? 'जीपीएस पिंग हुँदैछ...' : 'Pinging GPS Location...') : (language === 'np' ? '📡 मेरो जीपीएस स्थान पिंग गर्नुहोस्' : '📡 Ping My Live GPS Location')}</span>
               </button>
             </div>
           </div>
@@ -286,6 +467,189 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
         </div>
       </div>
 
+      {/* Gatthaghar Nagarik x HAMS Emergency Corridor Callout Bar */}
+      <div className="rounded-2xl p-4 bg-gradient-to-r from-blue-900/60 via-slate-900/90 to-indigo-950/70 border border-blue-500/30 text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-lg backdrop-blur-md">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-blue-600/30 border border-blue-400/40 flex items-center justify-center text-blue-300 shrink-0">
+            <ShieldCheck className="w-5 h-5 text-blue-400" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-black uppercase tracking-wider text-blue-300">
+                {language === 'np' ? 'गठ्ठाघर नागरिक x ह्याम्स इमर्जेन्सी कोरिडोर' : 'Gatthaghar Nagarik x HAMS Emergency Corridor'}
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded-md bg-blue-500/20 text-blue-200 border border-blue-400/30 font-semibold">
+                Fast-Track Trauma Hubs
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-300 mt-0.5">
+              {language === 'np'
+                ? 'अरनिको हाइवे गठ्ठाघरको नागरिक अस्पताल र धुम्बाराहीको ह्याम्स अस्पताल दुवैको सिधा सडक रुट र २४/७ आपतकालीन सम्पर्क'
+                : 'Direct emergency route calculation for Nagarik Teaching Hospital (Gatthaghar) and HAMS Hospital (Dhumbarahi)'}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0 w-full md:w-auto">
+          {nagarikHospital && (
+            <button
+              onClick={() => handleCalculateDirections(nagarikHospital)}
+              className="flex-1 md:flex-initial px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer active:scale-95"
+            >
+              <Route className="w-3.5 h-3.5" />
+              <span>{language === 'np' ? 'नागरिक गठ्ठाघर रुट' : 'Route Nagarik (Gatthaghar)'}</span>
+            </button>
+          )}
+
+          {hamsHospital && (
+            <button
+              onClick={() => handleCalculateDirections(hamsHospital)}
+              className="flex-1 md:flex-initial px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer active:scale-95"
+            >
+              <Route className="w-3.5 h-3.5" />
+              <span>{language === 'np' ? 'ह्याम्स धुम्बाराही रुट' : 'Route HAMS (Dhumbarahi)'}</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Active Driving Route Pod (Google Maps Directions API Display) */}
+      {routedHospital && (
+        <div
+          ref={routePodRef}
+          className="rounded-[24px] bg-gradient-to-br from-blue-900 via-indigo-950 to-slate-900 text-white p-5 sm:p-6 border-2 border-blue-400/50 shadow-2xl animate-fade-in relative overflow-hidden"
+        >
+          <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="relative z-10 space-y-4">
+            {/* Top Bar with Clear Button */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-red-600 text-white flex items-center justify-center font-black shadow-md">
+                  <Route className="w-5 h-5 animate-pulse" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black uppercase tracking-wider text-red-400">
+                      {language === 'np' ? 'आपतकालीन सडक रुट सक्रिय' : 'Emergency Driving Route Active'}
+                    </span>
+                    {isCalculatingRoute && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-600 text-white font-bold animate-pulse">
+                        Calculating Directions...
+                      </span>
+                    )}
+                  </div>
+                  <h2 className="text-base sm:text-lg font-black text-white">
+                    {language === 'np' ? routedHospital.name_np : routedHospital.name}
+                  </h2>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 self-end sm:self-auto">
+                <a
+                  href={`https://www.google.com/maps/dir/?api=1&origin=${userCoords.lat},${userCoords.lng}&destination=${routedHospital.lat},${routedHospital.lng}&travelmode=driving`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3.5 py-2 rounded-xl bg-white text-slate-900 hover:bg-slate-100 font-bold text-xs flex items-center gap-1.5 shadow-md cursor-pointer transition-all"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 text-blue-600" />
+                  <span>{language === 'np' ? 'गुगल म्याप्स एपमा खोल्नुहोस्' : 'Open in Google Maps'}</span>
+                </a>
+
+                <button
+                  onClick={handleClearRoute}
+                  className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white transition-colors cursor-pointer"
+                  title="Clear Route"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Origin -> Destination summary */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10">
+                <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">
+                  {language === 'np' ? 'सुरुवात (वर्तमान जीपीएस स्थान)' : 'Origin (Your Live GPS)'}
+                </span>
+                <p className="text-xs font-bold text-white mt-1 truncate">
+                  {userCoords.label}
+                </p>
+                <span className="text-[10px] font-mono text-emerald-400 mt-0.5 block">
+                  {userCoords.lat.toFixed(4)}, {userCoords.lng.toFixed(4)}
+                </span>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10">
+                <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">
+                  {language === 'np' ? 'गन्तव्य (अस्पताल)' : 'Destination'}
+                </span>
+                <p className="text-xs font-bold text-white mt-1 truncate">
+                  {routedHospital.address}
+                </p>
+                <span className="text-[10px] font-mono text-blue-300 mt-0.5 block">
+                  {routedHospital.district} • {routedHospital.beds} Beds • 24/7 ICU
+                </span>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-gradient-to-tr from-emerald-950/60 to-blue-900/60 border border-emerald-500/30 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] text-emerald-300 font-bold block uppercase tracking-wider">
+                    {language === 'np' ? 'द्रुत ड्राइभिङ समय र दूरी' : 'Fastest Driving Time'}
+                  </span>
+                  <div className="text-xl font-black text-white flex items-center gap-1.5 mt-0.5">
+                    <Clock className="w-5 h-5 text-emerald-400" />
+                    <span>
+                      {computedRoute ? computedRoute.duration : `~${Math.round(calculateHaversineDistance(userCoords.lat, userCoords.lng, routedHospital.lat || 27.7052, routedHospital.lng || 85.3142) * 1.35 / 35 * 60) + 5} mins`}
+                    </span>
+                  </div>
+                  <span className="text-[11px] font-bold text-emerald-300 block">
+                    {computedRoute ? computedRoute.distance : `${calculateHaversineDistance(userCoords.lat, userCoords.lng, routedHospital.lat || 27.7052, routedHospital.lng || 85.3142).toFixed(1)} km`}
+                    {computedRoute?.summary ? ` • via ${computedRoute.summary}` : ''}
+                  </span>
+                </div>
+
+                <a
+                  href={`tel:${routedHospital.emergency}`}
+                  className="px-3 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs flex items-center gap-1 shadow-md"
+                >
+                  <PhoneCall className="w-3.5 h-3.5" />
+                  <span>Call {routedHospital.emergency}</span>
+                </a>
+              </div>
+            </div>
+
+            {/* Turn-by-Turn Steps Accordion */}
+            {computedRoute && computedRoute.steps.length > 0 && (
+              <div className="pt-1">
+                <button
+                  onClick={() => setShowTurnSteps(!showTurnSteps)}
+                  className="text-xs font-bold text-blue-200 hover:text-white flex items-center gap-1.5 cursor-pointer py-1"
+                >
+                  <span>{language === 'np' ? 'सडक मोड तथा दिशानिर्देशहरू हेर्नुहोस्' : 'Turn-by-Turn Driving Guidance'} ({computedRoute.steps.length} turns)</span>
+                  {showTurnSteps ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </button>
+
+                {showTurnSteps && (
+                  <div className="mt-2 p-3.5 rounded-2xl bg-black/40 border border-white/10 max-h-56 overflow-y-auto space-y-2 text-xs divide-y divide-white/5 scrollbar-thin">
+                    {computedRoute.steps.map((step, idx) => (
+                      <div key={idx} className="pt-2 first:pt-0 flex items-start gap-2.5">
+                        <span className="w-5 h-5 rounded-full bg-blue-600/40 text-blue-300 font-mono text-[10px] flex items-center justify-center shrink-0 mt-0.5">
+                          {idx + 1}
+                        </span>
+                        <p className="text-slate-200 font-medium leading-relaxed">
+                          {step}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Nearest Medevac & Hospital Callout Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Nearest Hospital Card */}
@@ -328,10 +692,18 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 pt-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-2">
+                <button
+                  onClick={() => handleCalculateDirections(nearestHospital)}
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                >
+                  <Route className="w-3.5 h-3.5" />
+                  <span>{language === 'np' ? 'द्रुत ड्राइभिङ रुट गणना गर्नुहोस्' : 'Calculate Fastest Route'}</span>
+                </button>
+
                 <a
                   href={`tel:${nearestHospital.emergency}`}
-                  className="flex-1 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                 >
                   <PhoneCall className="w-3.5 h-3.5" />
                   <span>Call {nearestHospital.emergency}</span>
@@ -349,7 +721,7 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
             <div className="flex items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2 text-red-700 dark:text-red-400 text-xs font-black uppercase tracking-wider">
                 <Plane className="w-4 h-4 text-red-600 dark:text-red-400" />
-                <span>{language === 'np' ? 'सबैभन्दा नजिकको एयर एम्बुलेन्स / ड्रोन हब' : 'Nearest Medevac Airbase & Drone Hub'}</span>
+                <span>{language === 'np' ? 'सबैभन्दा नजिकको एयर एम्बुलेन्स / उद्धार हब' : 'Nearest Medevac Airbase & Air Rescue'}</span>
               </div>
               <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-300 border border-red-300 dark:border-red-800">
                 {nearestMedevac.airDistanceKm.toFixed(1)} km air distance
@@ -382,13 +754,20 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
               </div>
 
               <div className="flex items-center gap-2 pt-2">
-                <a
-                  href={`tel:${nearestMedevac.hotline}`}
-                  className="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-blue-700 hover:from-red-700 hover:to-blue-800 text-white font-bold text-xs shadow-md flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-                >
-                  <PhoneCall className="w-3.5 h-3.5 text-white" />
-                  <span>Call Air Rescue {nearestMedevac.hotline}</span>
-                </a>
+                {nearestMedevac.hotline && !nearestMedevac.hotline.includes('Not Available') ? (
+                  <a
+                    href={`tel:${nearestMedevac.hotline}`}
+                    className="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-blue-700 hover:from-red-700 hover:to-blue-800 text-white font-bold text-xs shadow-md flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                  >
+                    <PhoneCall className="w-3.5 h-3.5 text-white" />
+                    <span>Call Air Rescue {nearestMedevac.hotline}</span>
+                  </a>
+                ) : (
+                  <div className="flex-1 px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 font-bold text-xs flex items-center justify-center gap-1.5 border border-slate-300 dark:border-slate-700 cursor-not-allowed">
+                    <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
+                    <span>Service Currently Offline (No Phone Number)</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -397,11 +776,16 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
 
       {/* Main Interactive Google Map Container using @vis.gl/react-google-maps */}
       <div className="rounded-[26px] bg-white dark:bg-[#0F172A] border-2 border-blue-600/20 dark:border-blue-500/30 shadow-2xl overflow-hidden space-y-0">
-        {/* Filter Pills */}
+        {/* Filter Pills and Status */}
         <div className="p-4 bg-slate-50 dark:bg-[#0B1120] border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-xs font-black text-slate-900 dark:text-white">
             <MapIcon className="w-4 h-4 text-blue-600" />
             <span>{language === 'np' ? 'गुगल म्याप्स आपतकालीन ट्राइएज रडार' : 'Interactive Google Maps Triage Radar'}</span>
+            {routedHospital && (
+              <span className="text-[10px] px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 font-mono font-bold">
+                Route Active
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-200 dark:bg-slate-900">
@@ -410,7 +794,7 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
               const label = {
                 all: language === 'np' ? 'सबै (All Pins)' : 'Show All Pins',
                 hospitals: language === 'np' ? 'अस्पतालहरू (Hospitals)' : 'Hospitals Only',
-                medevac: language === 'np' ? 'हवाई उद्धार (Medevac)' : 'Medevac & Drones'
+                medevac: language === 'np' ? 'हवाई उद्धार (Medevac)' : 'Medevac & Bases'
               }[filter];
 
               return (
@@ -434,256 +818,370 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
         </div>
 
         {/* Map Frame */}
-        <div className="h-[500px] w-full relative">
+        <div className="h-[520px] w-full relative">
           {apiKey ? (
             <APIProvider apiKey={apiKey}>
               <Map
                 defaultCenter={{ lat: userCoords.lat, lng: userCoords.lng }}
-              center={{ lat: userCoords.lat, lng: userCoords.lng }}
-              defaultZoom={11}
-              mapId="DEMO_MAP_ID"
-              gestureHandling="greedy"
-              disableDefaultUI={false}
-              className="w-full h-full"
-              internalUsageAttributionIds={["gmp_mcp_codeassist_v1_aistudio"]}
-            >
-              {/* User Ping Marker */}
-              <AdvancedMarker position={{ lat: userCoords.lat, lng: userCoords.lng }}>
-                <div className="relative group cursor-pointer">
-                  <div className="w-10 h-10 rounded-full bg-red-600/30 animate-ping absolute inset-0" />
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-red-600 to-blue-600 text-white border-2 border-white shadow-xl flex items-center justify-center relative z-10">
-                    <Crosshair className="w-5 h-5 text-white" />
-                  </div>
-                </div>
-              </AdvancedMarker>
+                center={{ lat: userCoords.lat, lng: userCoords.lng }}
+                defaultZoom={11}
+                mapId="DEMO_MAP_ID"
+                gestureHandling="greedy"
+                disableDefaultUI={false}
+                className="w-full h-full"
+                internalUsageAttributionIds={['gmp_mcp_codeassist_v1_aistudio']}
+              >
+                {/* DirectionsRendererChild to draw Google Maps Directions API driving polyline */}
+                <DirectionsRendererChild
+                  origin={{ lat: userCoords.lat, lng: userCoords.lng }}
+                  destination={
+                    routedHospital && routedHospital.lat && routedHospital.lng
+                      ? { lat: routedHospital.lat, lng: routedHospital.lng }
+                      : null
+                  }
+                  onRouteComputed={setComputedRoute}
+                  onCalculatingStateChange={setIsCalculatingRoute}
+                  onError={setRouteError}
+                />
 
-              {/* Hospital Markers */}
-              {(activeTabFilter === 'all' || activeTabFilter === 'hospitals') &&
-                hospitalsWithDistance.map((h) => (
-                  <AdvancedMarker
-                    key={h.id}
-                    position={{ lat: h.lat, lng: h.lng }}
-                    onClick={() => {
-                      triggerHaptic('light');
-                      setSelectedEntity({
-                        type: 'hospital',
-                        data: h,
-                        distanceKm: h.distanceKm,
-                        driveMins: h.driveMins
-                      });
-                    }}
-                  >
-                    <Pin
-                      background={h.id === nearestHospital?.id ? '#10B981' : '#2563EB'}
-                      borderColor="#FFFFFF"
-                      glyphColor="#FFFFFF"
-                    >
-                      <HospitalIcon className="w-4 h-4 text-white" />
-                    </Pin>
-                  </AdvancedMarker>
-                ))}
-
-              {/* Medevac Base Markers */}
-              {(activeTabFilter === 'all' || activeTabFilter === 'medevac') &&
-                medevacWithDistance.map((mb) => (
-                  <AdvancedMarker
-                    key={mb.id}
-                    position={{ lat: mb.lat, lng: mb.lng }}
-                    onClick={() => {
-                      triggerHaptic('light');
-                      setSelectedEntity({
-                        type: 'medevac',
-                        data: mb,
-                        airDistanceKm: mb.airDistanceKm,
-                        flightEtaMins: mb.flightEtaMins
-                      });
-                    }}
-                  >
-                    <Pin background="#DC2626" borderColor="#FFFFFF" glyphColor="#FFFFFF">
-                      <Plane className="w-4 h-4 text-white" />
-                    </Pin>
-                  </AdvancedMarker>
-                ))}
-
-              {/* InfoWindow for Clicked Entity */}
-              {selectedEntity && (
-                <InfoWindow
-                  position={{
-                    lat: selectedEntity.data.lat,
-                    lng: selectedEntity.data.lng
-                  }}
-                  onCloseClick={() => setSelectedEntity(null)}
-                >
-                  <div className="p-2 space-y-2 max-w-xs text-slate-900">
-                    <div className="flex items-center gap-1.5 font-bold text-xs border-b pb-1.5">
-                      {selectedEntity.type === 'hospital' ? (
-                        <HospitalIcon className="w-4 h-4 text-emerald-600" />
-                      ) : (
-                        <Plane className="w-4 h-4 text-red-600" />
-                      )}
-                      <span className="truncate">{selectedEntity.data.name}</span>
+                {/* User Ping Marker */}
+                <AdvancedMarker position={{ lat: userCoords.lat, lng: userCoords.lng }}>
+                  <div className="relative group cursor-pointer">
+                    <div className="w-10 h-10 rounded-full bg-red-600/30 animate-ping absolute inset-0" />
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-red-600 to-blue-600 text-white border-2 border-white shadow-xl flex items-center justify-center relative z-10">
+                      <Crosshair className="w-5 h-5 text-white" />
                     </div>
+                  </div>
+                </AdvancedMarker>
 
-                    <p className="text-[11px] text-slate-600">
-                      {selectedEntity.type === 'hospital'
-                        ? selectedEntity.data.address
-                        : (selectedEntity.data as MedevacBase).base_location}
-                    </p>
+                {/* Hospital Markers */}
+                {(activeTabFilter === 'all' || activeTabFilter === 'hospitals') &&
+                  hospitalsWithDistance.map((h) => {
+                    const isRouted = routedHospital?.id === h.id;
+                    const isNearest = nearestHospital?.id === h.id;
 
-                    <div className="p-2 rounded-lg bg-slate-100 text-[11px] font-bold space-y-1">
+                    return (
+                      <AdvancedMarker
+                        key={h.id}
+                        position={{ lat: h.lat, lng: h.lng }}
+                        onClick={() => {
+                          triggerHaptic('light');
+                          setSelectedEntity({
+                            type: 'hospital',
+                            data: h,
+                            distanceKm: h.distanceKm,
+                            driveMins: h.driveMins
+                          });
+                        }}
+                      >
+                        <Pin
+                          background={isRouted ? '#9333EA' : isNearest ? '#10B981' : '#2563EB'}
+                          borderColor="#FFFFFF"
+                          glyphColor="#FFFFFF"
+                          scale={isRouted ? 1.25 : 1}
+                        >
+                          <HospitalIcon className="w-4 h-4 text-white" />
+                        </Pin>
+                      </AdvancedMarker>
+                    );
+                  })}
+
+                {/* Medevac Base Markers */}
+                {(activeTabFilter === 'all' || activeTabFilter === 'medevac') &&
+                  medevacWithDistance.map((mb) => (
+                    <AdvancedMarker
+                      key={mb.id}
+                      position={{ lat: mb.lat, lng: mb.lng }}
+                      onClick={() => {
+                        triggerHaptic('light');
+                        setSelectedEntity({
+                          type: 'medevac',
+                          data: mb,
+                          airDistanceKm: mb.airDistanceKm,
+                          flightEtaMins: mb.flightEtaMins
+                        });
+                      }}
+                    >
+                      <Pin background="#DC2626" borderColor="#FFFFFF" glyphColor="#FFFFFF">
+                        <Plane className="w-4 h-4 text-white" />
+                      </Pin>
+                    </AdvancedMarker>
+                  ))}
+
+                {/* InfoWindow for Clicked Entity */}
+                {selectedEntity && (
+                  <InfoWindow
+                    position={{
+                      lat: selectedEntity.data.lat,
+                      lng: selectedEntity.data.lng
+                    }}
+                    onCloseClick={() => setSelectedEntity(null)}
+                  >
+                    <div className="p-2 space-y-2 max-w-xs text-slate-900">
+                      <div className="flex items-center gap-1.5 font-bold text-xs border-b pb-1.5">
+                        {selectedEntity.type === 'hospital' ? (
+                          <HospitalIcon className="w-4 h-4 text-emerald-600" />
+                        ) : (
+                          <Plane className="w-4 h-4 text-red-600" />
+                        )}
+                        <span className="truncate">{selectedEntity.data.name}</span>
+                      </div>
+
+                      <p className="text-[11px] text-slate-600">
+                        {selectedEntity.type === 'hospital'
+                          ? selectedEntity.data.address
+                          : (selectedEntity.data as MedevacBase).base_location}
+                      </p>
+
+                      <div className="p-2 rounded-lg bg-slate-100 text-[11px] font-bold space-y-1">
+                        {selectedEntity.type === 'hospital' ? (
+                          <>
+                            <div className="flex justify-between">
+                              <span>Distance:</span>
+                              <span className="text-emerald-700">{selectedEntity.distanceKm.toFixed(1)} km</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Drive Time:</span>
+                              <span>~{selectedEntity.driveMins} mins</span>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="flex justify-between">
+                              <span>Air Distance:</span>
+                              <span className="text-red-700">{(selectedEntity as any).airDistanceKm.toFixed(1)} km</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Flight ETA:</span>
+                              <span className="text-red-700 font-extrabold">~{(selectedEntity as any).flightEtaMins} mins</span>
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Route Action inside InfoWindow */}
+                      {selectedEntity.type === 'hospital' && (
+                        <button
+                          onClick={() => {
+                            handleCalculateDirections(selectedEntity.data as Hospital);
+                            setSelectedEntity(null);
+                          }}
+                          className="w-full py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] flex items-center justify-center gap-1 shadow-xs cursor-pointer transition-colors"
+                        >
+                          <Route className="w-3 h-3 text-white" />
+                          <span>Calculate Fastest Driving Route</span>
+                        </button>
+                      )}
+
+                      {/* Phone Dial */}
                       {selectedEntity.type === 'hospital' ? (
-                        <>
-                          <div className="flex justify-between">
-                            <span>Distance:</span>
-                            <span className="text-emerald-700">{selectedEntity.distanceKm.toFixed(1)} km</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Drive Time:</span>
-                            <span>~{selectedEntity.driveMins} mins</span>
-                          </div>
-                        </>
+                        <a
+                          href={`tel:${selectedEntity.data.emergency}`}
+                          className="w-full py-1.5 rounded-lg bg-red-600 text-white font-bold text-[11px] flex items-center justify-center gap-1"
+                        >
+                          <PhoneCall className="w-3 h-3 text-white" />
+                          <span>Call {selectedEntity.data.emergency}</span>
+                        </a>
+                      ) : (selectedEntity.data as MedevacBase).hotline && !(selectedEntity.data as MedevacBase).hotline.includes('Not Available') ? (
+                        <a
+                          href={`tel:${(selectedEntity.data as MedevacBase).hotline}`}
+                          className="w-full py-1.5 rounded-lg bg-red-600 text-white font-bold text-[11px] flex items-center justify-center gap-1"
+                        >
+                          <PhoneCall className="w-3 h-3 text-white" />
+                          <span>Call {(selectedEntity.data as MedevacBase).hotline}</span>
+                        </a>
                       ) : (
-                        <>
-                          <div className="flex justify-between">
-                            <span>Air Distance:</span>
-                            <span className="text-red-700">{(selectedEntity as any).airDistanceKm.toFixed(1)} km</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Flight ETA:</span>
-                            <span className="text-red-700 font-extrabold">~{(selectedEntity as any).flightEtaMins} mins</span>
-                          </div>
-                        </>
+                        <div className="w-full py-1.5 rounded-lg bg-slate-200 text-slate-500 font-bold text-[11px] text-center">
+                          Offline / No Number
+                        </div>
                       )}
                     </div>
-
-                    <a
-                      href={`tel:${
-                        selectedEntity.type === 'hospital'
-                          ? selectedEntity.data.emergency
-                          : (selectedEntity.data as MedevacBase).hotline
-                      }`}
-                      className="w-full py-1.5 rounded-lg bg-red-600 text-white font-bold text-[11px] flex items-center justify-center gap-1"
-                    >
-                      <PhoneCall className="w-3 h-3 text-white" />
-                      <span>
-                        Call {selectedEntity.type === 'hospital' ? selectedEntity.data.emergency : (selectedEntity.data as MedevacBase).hotline}
-                      </span>
-                    </a>
-                  </div>
-                </InfoWindow>
-              )}
-            </Map>
-          </APIProvider>
-        ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900 text-white rounded-2xl p-6 space-y-3">
-            <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin" />
-            <span className="text-xs font-bold text-slate-300">Initializing Live Google Maps Radar...</span>
-          </div>
-        )}
+                  </InfoWindow>
+                )}
+              </Map>
+            </APIProvider>
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900 text-white rounded-2xl p-6 space-y-3">
+              <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin" />
+              <span className="text-xs font-bold text-slate-300">Initializing Live Google Maps Radar...</span>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Complete Distance Breakdown Tables */}
+      {/* Complete Distance & Route Breakdown Tables */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Tertiary Hospitals Distance Table */}
+        {/* Tertiary Hospitals Distance & Route Trigger Table */}
         <div className="p-5 rounded-3xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 shadow-md space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
               <Building2 className="w-4 h-4 text-emerald-600" />
-              <span>{language === 'np' ? 'नेपालका आपतकालीन अस्पतालहरू (दूरी अनुसार)' : 'Nepal Emergency Hospitals (Ranked by Distance)'}</span>
+              <span>{language === 'np' ? 'नेपालका आपतकालीन अस्पतालहरू (दूरी तथा रुट)' : 'Nepal Emergency Hospitals (Ranked by Distance)'}</span>
             </h3>
             <span className="text-[10px] font-bold text-slate-500">{hospitalsWithDistance.length} Facilities</span>
           </div>
 
-          <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 max-h-[380px] overflow-y-auto">
+          <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 max-h-[420px] overflow-y-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 dark:bg-slate-900 sticky top-0 border-b border-slate-200 dark:border-slate-800">
+              <thead className="bg-slate-50 dark:bg-slate-900 sticky top-0 border-b border-slate-200 dark:border-slate-800 z-10">
                 <tr>
                   <th className="p-3 text-slate-500 font-bold">Hospital Name</th>
                   <th className="p-3 text-slate-500 font-bold">Distance</th>
                   <th className="p-3 text-slate-500 font-bold">Drive ETA</th>
+                  <th className="p-3 text-slate-500 font-bold">Fastest Route</th>
                   <th className="p-3 text-slate-500 font-bold">Hotline</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
-                {hospitalsWithDistance.map((h, i) => (
-                  <tr key={h.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/60 transition-colors">
-                    <td className="p-3">
-                      <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                        {i === 0 && <span className="px-1.5 py-0.2 rounded-md bg-emerald-500 text-white text-[9px] font-black">NEAREST</span>}
-                        <span>{language === 'np' ? h.name_np : h.name}</span>
-                      </div>
-                      <div className="text-[10px] text-slate-500">{h.district} • {h.beds} Beds</div>
-                    </td>
-                    <td className="p-3 font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                      {h.distanceKm.toFixed(1)} km
-                    </td>
-                    <td className="p-3 font-mono font-bold text-slate-700 dark:text-slate-300">
-                      ~{h.driveMins} mins
-                    </td>
-                    <td className="p-3">
-                      <a
-                        href={`tel:${h.emergency}`}
-                        className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-red-600 hover:text-white font-bold text-[11px] text-slate-800 dark:text-slate-200 transition-all inline-flex items-center gap-1"
-                      >
-                        <PhoneCall className="w-3 h-3" />
-                        <span>Call</span>
-                      </a>
-                    </td>
-                  </tr>
-                ))}
+                {hospitalsWithDistance.map((h, i) => {
+                  const isCurrentRoute = routedHospital?.id === h.id;
+                  const isGatthaghar = h.id === 'hosp_020' || h.name.includes('Nagarik');
+                  const isHams = h.id === 'hosp_011' || h.name.includes('HAMS');
+
+                  return (
+                    <tr
+                      key={h.id}
+                      className={`transition-colors ${
+                        isCurrentRoute
+                          ? 'bg-blue-50 dark:bg-blue-950/40 font-bold'
+                          : 'hover:bg-slate-50 dark:hover:bg-slate-900/60'
+                      }`}
+                    >
+                      <td className="p-3">
+                        <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5 flex-wrap">
+                          {i === 0 && (
+                            <span className="px-1.5 py-0.2 rounded-md bg-emerald-500 text-white text-[9px] font-black">
+                              NEAREST
+                            </span>
+                          )}
+                          {isGatthaghar && (
+                            <span className="px-1.5 py-0.2 rounded-md bg-indigo-600 text-white text-[9px] font-black">
+                              BHAKTAPUR HUB
+                            </span>
+                          )}
+                          {isHams && (
+                            <span className="px-1.5 py-0.2 rounded-md bg-blue-600 text-white text-[9px] font-black">
+                              TRAUMA PARTNER
+                            </span>
+                          )}
+                          <span>{language === 'np' ? h.name_np : h.name}</span>
+                        </div>
+                        <div className="text-[10px] text-slate-500">
+                          {h.address} • {h.beds} Beds • 24/7 ICU
+                        </div>
+                      </td>
+
+                      <td className="p-3 font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                        {h.distanceKm.toFixed(1)} km
+                      </td>
+
+                      <td className="p-3 font-mono font-bold text-slate-700 dark:text-slate-300">
+                        ~{h.driveMins} mins
+                      </td>
+
+                      <td className="p-3">
+                        <button
+                          onClick={() => handleCalculateDirections(h)}
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-bold inline-flex items-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95 ${
+                            isCurrentRoute
+                              ? 'bg-blue-600 text-white ring-2 ring-blue-400'
+                              : 'bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-600 hover:text-white text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
+                          }`}
+                        >
+                          <Route className="w-3 h-3" />
+                          <span>{isCurrentRoute ? 'Routing...' : 'Route'}</span>
+                        </button>
+                      </td>
+
+                      <td className="p-3">
+                        <a
+                          href={`tel:${h.emergency}`}
+                          className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-red-600 hover:text-white font-bold text-[11px] text-slate-800 dark:text-slate-200 transition-all inline-flex items-center gap-1"
+                        >
+                          <PhoneCall className="w-3 h-3" />
+                          <span>Call</span>
+                        </a>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         </div>
 
-        {/* Medevac Airbases & Drone Hubs Table */}
+        {/* Medevac Airbases & Drones Table */}
         <div className="p-5 rounded-3xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 shadow-md space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
               <Radio className="w-4 h-4 text-red-600 animate-pulse" />
-              <span>{language === 'np' ? 'नेपाल सेना हेलिकप्टर र ड्रोन हब (दूरी अनुसार)' : 'Nepal Medevac Airbases & Drones (Ranked by Flight ETA)'}</span>
+              <span>{language === 'np' ? 'नेपाल सेना हेलिकप्टर र एयरबेस (दूरी अनुसार)' : 'Nepal Medevac Airbases (Ranked by Flight ETA)'}</span>
             </h3>
             <span className="text-[10px] font-bold text-slate-500">{medevacWithDistance.length} Airbases</span>
           </div>
 
-          <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 max-h-[380px] overflow-y-auto">
+          <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 max-h-[420px] overflow-y-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 dark:bg-slate-900 sticky top-0 border-b border-slate-200 dark:border-slate-800">
+              <thead className="bg-slate-50 dark:bg-slate-900 sticky top-0 border-b border-slate-200 dark:border-slate-800 z-10">
                 <tr>
-                  <th className="p-3 text-slate-500 font-bold">Airbase / Drone Hub</th>
-                  <th className="p-3 text-slate-500 font-bold">Air Line</th>
+                  <th className="p-3 text-slate-500 font-bold">Airbase / Hub</th>
+                  <th className="p-3 text-slate-500 font-bold">Air Distance</th>
                   <th className="p-3 text-slate-500 font-bold">Flight ETA</th>
                   <th className="p-3 text-slate-500 font-bold">Command</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
-                {medevacWithDistance.map((mb, i) => (
-                  <tr key={mb.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/60 transition-colors">
-                    <td className="p-3">
-                      <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                        {i === 0 && <span className="px-1.5 py-0.2 rounded-md bg-red-600 text-white text-[9px] font-black">NEAREST</span>}
-                        <span>{language === 'np' ? mb.name_np : mb.name}</span>
-                      </div>
-                      <div className="text-[10px] text-slate-500">{mb.aircraft} • {mb.base_location}</div>
-                    </td>
-                    <td className="p-3 font-mono font-bold text-red-600 dark:text-red-400">
-                      {mb.airDistanceKm.toFixed(1)} km
-                    </td>
-                    <td className="p-3 font-mono font-bold text-slate-700 dark:text-slate-300">
-                      ~{mb.flightEtaMins} mins
-                    </td>
-                    <td className="p-3">
-                      <a
-                        href={`tel:${mb.hotline}`}
-                        className="px-2.5 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-[11px] transition-all inline-flex items-center gap-1 shadow-sm"
-                      >
-                        <PhoneCall className="w-3 h-3" />
-                        <span>Dispatch</span>
-                      </a>
-                    </td>
-                  </tr>
-                ))}
+                {medevacWithDistance.map((mb, i) => {
+                  const isFlyDrone = mb.type.includes('Drone') || mb.name.includes('Fly');
+                  const hasValidPhone = mb.hotline && !mb.hotline.includes('Not Available');
+
+                  return (
+                    <tr key={mb.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/60 transition-colors">
+                      <td className="p-3">
+                        <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5 flex-wrap">
+                          {i === 0 && (
+                            <span className="px-1.5 py-0.2 rounded-md bg-red-600 text-white text-[9px] font-black">
+                              NEAREST
+                            </span>
+                          )}
+                          {isFlyDrone && (
+                            <span className="px-1.5 py-0.2 rounded-md bg-amber-500 text-black text-[9px] font-black">
+                              UNAVAILABLE
+                            </span>
+                          )}
+                          <span>{language === 'np' ? mb.name_np : mb.name}</span>
+                        </div>
+                        <div className="text-[10px] text-slate-500">
+                          {mb.aircraft} • {mb.base_location}
+                        </div>
+                      </td>
+
+                      <td className="p-3 font-mono font-bold text-red-600 dark:text-red-400">
+                        {mb.airDistanceKm.toFixed(1)} km
+                      </td>
+
+                      <td className="p-3 font-mono font-bold text-slate-700 dark:text-slate-300">
+                        ~{mb.flightEtaMins} mins
+                      </td>
+
+                      <td className="p-3">
+                        {hasValidPhone ? (
+                          <a
+                            href={`tel:${mb.hotline}`}
+                            className="px-2.5 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-[11px] transition-all inline-flex items-center gap-1 shadow-sm"
+                          >
+                            <PhoneCall className="w-3 h-3" />
+                            <span>Dispatch</span>
+                          </a>
+                        ) : (
+                          <span className="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-400 text-[10px] font-bold">
+                            Offline (No Phone)
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

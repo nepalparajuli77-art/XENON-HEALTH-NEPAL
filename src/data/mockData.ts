@@ -586,7 +586,9 @@ export const INITIAL_HOSPITALS: Hospital[] = [
     specialties: ["Gastroenterology", "Hepatology", "General Surgery"],
     open_247: true,
     rating: 4.5,
-    description: "Advanced healthcare institution renowned for gastroenterology and critical care."
+    lat: 27.7329,
+    lng: 85.3444,
+    description: "Advanced healthcare institution renowned for gastroenterology, emergency trauma, and critical care in Dhumbarahi."
   },
   {
     id: "hosp_012",
@@ -712,6 +714,8 @@ export const INITIAL_HOSPITALS: Hospital[] = [
     specialties: ["Orthopedics", "Trauma Care", "Urology", "Neurosurgery"],
     open_247: true,
     rating: 4.7,
+    lat: 27.6657,
+    lng: 85.3323,
     description: "Pioneering surgical hospital recognized across South Asia for orthopedic joint replacements and trauma surgery."
   },
   {
@@ -730,7 +734,29 @@ export const INITIAL_HOSPITALS: Hospital[] = [
     specialties: ["Infectious Diseases", "Rabies Prophylaxis (ARV)", "Snakebite Treatment", "Dengue & Fevers"],
     open_247: true,
     rating: 4.5,
+    lat: 27.6983,
+    lng: 85.3041,
     description: "Central national infectious disease center offering 24/7 rabies post-exposure vaccines and anti-snake venom."
+  },
+  {
+    id: "hosp_020",
+    name: "Nagarik Community Teaching Hospital",
+    name_np: "नागरिक सामुदायिक शिक्षण अस्पताल (गठ्ठाघर, भक्तपुर)",
+    address: "Gatthaghar, Madhyapur Thimi, Bhaktapur",
+    district: "Bhaktapur",
+    phone: "+977-01-6635444",
+    emergency: "+977-01-6635445",
+    email: "info@nagarikhospital.com.np",
+    website: "https://nagarikhospital.com.np",
+    type: "Teaching",
+    beds: 100,
+    icu: true,
+    specialties: ["Emergency & Trauma", "General Surgery", "Orthopedics", "Gynecology & Obstetrics", "Pediatrics", "Critical Care"],
+    open_247: true,
+    rating: 4.6,
+    lat: 27.6788,
+    lng: 85.3670,
+    description: "Premier tertiary multi-specialty community teaching hospital on Araniko Highway in Gatthaghar, Bhaktapur, providing 24/7 emergency trauma, ICU, and ambulance coordination."
   }
 ];
 
@@ -754,18 +780,18 @@ export const NEPAL_MEDEVAC_BASES: MedevacBase[] = [
   {
     id: "medevac_002",
     name: "DJI FlyCart 30 Medical Drone Dispatch Hub",
-    name_np: "DJI FlyCart 30 भारी मेडिकल ड्रोन हब",
+    name_np: "DJI FlyCart 30 भारी मेडिकल ड्रोन हब (हाल अनुपलब्ध)",
     type: "DJI FlyCart 30 Drone Cargo",
     base_location: "Central Medical Logistics Center, Kathmandu / Valley Hub",
     district: "Kathmandu",
     lat: 27.7172,
     lng: 85.3240,
-    hotline: "+977-01-5970102",
+    hotline: "Not Available (Offline)",
     operational_ceiling_m: 6000,
     aircraft: "DJI FlyCart 30 Heavy Payload Autonomous Medical Drone",
     avg_speed_kmh: 72,
-    description: "Autonomous heavy cargo medical drone delivering blood packs, snake antivenom, and critical emergency Rx up to 40kg payload.",
-    description_np: "४० किलोसम्म औषधी, रगत र एन्टिभेनम दुर्गम तथा सडकविहीन क्षेत्रमा द्रुत गतिमा एयर-ड्रप गर्ने स्वचालित ड्रोन।"
+    description: "Autonomous heavy cargo medical drone delivering blood packs, snake antivenom, and critical emergency Rx up to 40kg payload. (Currently unavailable — dispatch line offline, no active contact number).",
+    description_np: "४० किलोसम्म औषधी, रगत र एन्टिभेनम दुर्गम तथा सडकविहीन क्षेत्रमा द्रुत गतिमा एयर-ड्रप गर्ने स्वचालित ड्रोन (हाल सेवा उपलब्ध छैन, फोन नम्बर दर्ता नभएको)।"
   },
   {
     id: "medevac_003",

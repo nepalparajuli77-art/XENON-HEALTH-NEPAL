@@ -52,8 +52,8 @@ export const EmergencyView: React.FC<EmergencyViewProps> = ({
           ? 'नेपाली सेना हवाई उद्धार कमान्ड सेन्टर (+977-01-4246950) मा तत्काल अलर्ट पठाइयो। GPS समन्वय सक्रिय छ।'
           : 'Emergency Medevac flight dispatch request transmitted to Nepal Army Air Operations (+977-01-4246950). Stand by on frequency.'
         : language === 'np'
-          ? 'DJI FlyCart 30 रिमोट ड्रोन स्टेशन (+977-01-5970102) मा आपतकालीन औषधि तथा ब्लड प्याक ढुवानी समन्वय सुरु भयो।'
-          : 'Autonomous DJI FlyCart 30 medical drone logistics hub (+977-01-5970102) alerted for urgent payload dispatch.'
+          ? 'DJI Fly ड्रोन सेवा हाल उपलब्ध छैन (फोन नम्बर दर्ता नभएको)। कृपया १०२ वा नेपाली सेना हवाई उद्धार (+977-01-4246950) मा सम्पर्क गर्नुहोस्।'
+          : 'Fly medical cargo drone service is not available yet (dispatch line offline, no contact number). Please use 102 ambulance or Nepal Army Air Rescue (+977-01-4246950).'
     );
     setTimeout(() => setDispatchStatus(null), 6000);
   };

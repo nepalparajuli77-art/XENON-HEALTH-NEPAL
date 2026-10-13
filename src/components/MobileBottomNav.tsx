@@ -83,9 +83,9 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           icon: LayoutDashboard
         },
         {
-          id: 'records',
-          label: language === 'np' ? 'भाइटल' : 'Vitals & Rx',
-          icon: Activity
+          id: 'locationMedevac',
+          label: language === 'np' ? 'जीपीएस' : 'GPS Maps',
+          icon: Navigation
         },
         {
           id: 'xenon',
@@ -117,7 +117,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
       },
       {
         id: 'locationMedevac',
-        label: 'GPS Medevac',
+        label: language === 'np' ? 'जीपीएस' : 'GPS Maps',
         icon: Navigation
       },
       {

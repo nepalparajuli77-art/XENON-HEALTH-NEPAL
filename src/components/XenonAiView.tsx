@@ -503,16 +503,16 @@ export const XenonAiView: React.FC<XenonAiViewProps> = ({
         coords = { lat: 27.6966, lng: 85.3591 };
         steps = [
           'NEPAL ARMY AIR RESCUE: Call +977-01-4246950 or local CDO for immediate alpine/trauma medevac dispatch',
-          'DJI FLYCART 30 MEDICAL DRONE: Call +977-01-5970102 for emergency payload delivery',
+          'FLY MEDICAL DRONE: Currently not available yet (offline — no verified dispatch line)',
           'Provide precise GPS coordinates, LZ wind direction, and patient vitals'
         ];
         replyText = language === 'np'
-          ? `🚁 **नेपाली सेना हवाई उद्धार तथा DJI FlyCart 30 ड्रोन ढुवानी प्रोटोकल**\n\n` +
+          ? `🚁 **नेपाली सेना हवाई उद्धार निर्देशनालय**\n\n` +
             `१. **नेपाली सेना आपतकालीन हेलिकप्टर उद्धार हटलाइन:** **+977-01-4246950** (२४ सै घण्टा खुला)\n` +
-            `२. **DJI FlyCart 30 भारी मेडिकल ड्रोन हब हटलाइन:** **+977-01-5970102**`
-          : `🚁 **NEPAL ARMY EMERGENCY AIR MEDEVAC & DJI FLYCART 30 DRONE DISPATCH**\n\n` +
-            `1. **Nepal Army Air Rescue Hotline**: **+977-01-4246950**\n` +
-            `2. **DJI FlyCart Medical Drone Hotline**: **+977-01-5970102**`;
+            `२. **DJI Fly ड्रोन सेवा:** हाल उपलब्ध छैन (फोन नम्बर उपलब्ध नभएको / अफलाइन)`
+          : `🚁 **NEPAL ARMY EMERGENCY AIR MEDEVAC**\n\n` +
+            `1. **Nepal Army Air Rescue Hotline**: **+977-01-4246950** (Active 24/7)\n` +
+            `2. **Fly Drone Delivery**: Currently not available yet (offline — no dispatch number)`;
       } else {
         severity = 'urgent';
         spec = 'Internal Medicine & Family Health';

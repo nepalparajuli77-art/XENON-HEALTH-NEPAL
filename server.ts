@@ -1070,7 +1070,7 @@ app.get('/api/maps-key', (req, res) => {
   const key =
     process.env.VITE_GOOGLE_MAPS_API_KEY ||
     process.env.GOOGLE_MAPS_API_KEY ||
-    'AIzaSyD6u0oxrqxmqsOccNoG98UxZyLl78JQo1g';
+    '';
   res.json({ apiKey: key });
 });
 

@@ -138,6 +138,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
           shortLabel: 'SOS 102',
           icon: PhoneCall,
           alert: true
+        },
+        {
+          id: 'locationMedevac',
+          label: language === 'np' ? 'जीपीएस र गुगल म्याप्स' : 'GPS & Maps (Medevac Radar)',
+          shortLabel: 'GPS & Maps',
+          icon: Navigation,
+          badge: 'GPS'
         }
       ];
     }
@@ -163,6 +170,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
           shortLabel: 'SOS Monitor',
           icon: PhoneCall,
           alert: true
+        },
+        {
+          id: 'locationMedevac',
+          label: language === 'np' ? 'जीपीएस र गुगल म्याप्स' : 'GPS & Maps (Medevac Radar)',
+          shortLabel: 'GPS & Maps',
+          icon: Navigation,
+          badge: 'GPS'
         }
       ];
     }
@@ -200,6 +214,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
           label: language === 'np' ? 'अस्पताल तथा आईसीयू सूची' : 'Hospitals & ICU Directory',
           shortLabel: 'Hospitals',
           icon: Building2
+        },
+        {
+          id: 'locationMedevac',
+          label: language === 'np' ? 'जीपीएस र गुगल म्याप्स' : 'GPS & Google Maps (Radar)',
+          shortLabel: 'GPS & Maps',
+          icon: Navigation,
+          badge: 'GPS'
         },
         {
           id: 'lab',
@@ -259,8 +280,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       },
       {
         id: 'locationMedevac',
-        label: language === 'np' ? 'जीपीएस लोकेशन तथा एयर रेस्क्यु' : 'Location & Medevac Radar',
-        shortLabel: 'Medevac Radar',
+        label: language === 'np' ? 'जीपीएस र गुगल म्याप्स' : 'GPS & Maps (Medevac Radar)',
+        shortLabel: 'GPS & Maps',
         icon: Navigation,
         badge: 'GPS'
       },
