@@ -25,6 +25,7 @@ import { ChatModal } from './components/ChatModal';
 import { IssueRxModal } from './components/IssueRxModal';
 import { VideoRoomModal } from './components/VideoRoomModal';
 import { AuthModal } from './components/AuthModal';
+import { WorkspaceIntegrationsModal } from './components/WorkspaceIntegrationsModal';
 import { SyncStatusBar } from './components/SyncStatusBar';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -170,6 +171,14 @@ export default function App() {
     return INITIAL_USERS;
   });
 
+  const [hospitals, setHospitals] = useState<Hospital[]>(() => {
+    try {
+      const cached = localStorage.getItem('xenon_hospitals');
+      if (cached) return JSON.parse(cached);
+    } catch {}
+    return INITIAL_HOSPITALS;
+  });
+
   // Sync authoritative user database on mount and listen for real-time events
   useEffect(() => {
     api.getUsers().then((dbUsers) => {
@@ -264,7 +273,6 @@ export default function App() {
     return INITIAL_DOCTORS;
   });
 
-  const [hospitals] = useState<Hospital[]>(INITIAL_HOSPITALS);
   const [preselectedHospitalForMap, setPreselectedHospitalForMap] = useState<Hospital | null>(null);
 
   const handleNavigateToMap = (hospId?: string) => {
@@ -475,6 +483,10 @@ export default function App() {
   // Auth Modal state - Automatically opens when visiting without an active session
   const [authModalOpen, setAuthModalOpen] = useState<boolean>(() => !currentUser);
   const [authModalMode, setAuthModalMode] = useState<'login' | 'register-doctor' | 'register-patient'>('login');
+
+  // Google Workspace Modal State (Gmail & Contacts)
+  const [workspaceModalOpen, setWorkspaceModalOpen] = useState(false);
+  const [workspaceInitialTab, setWorkspaceInitialTab] = useState<'recovery' | 'notify' | 'contacts'>('recovery');
 
   // Notification Toast State
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -946,6 +958,10 @@ export default function App() {
           onLogout={handleLogout}
           onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
           onNotifyToast={showToast}
+          onOpenWorkspace={(tab) => {
+            setWorkspaceInitialTab(tab || 'recovery');
+            setWorkspaceModalOpen(true);
+          }}
         />
 
         {/* Offline-to-Online Background Sync Status Bar: STRICTLY ADMIN DEVELOPER ONLY */}
@@ -1101,6 +1117,14 @@ export default function App() {
               language={language}
               onOpenChat={handleOpenChat}
               onNavigateToMap={handleNavigateToMap}
+              onHospitalAdded={(newHospital) => {
+                setHospitals((prev) => [newHospital, ...prev.filter((h) => h.id !== newHospital.id)]);
+                showToast(
+                  language === 'np'
+                    ? `अस्पताल "${newHospital.name}" सफलतापूर्वक डाटाबेसमा दर्ता भयो!`
+                    : `Hospital "${newHospital.name}" added to database!`
+                );
+              }}
             />
           )}
 
@@ -1209,6 +1233,18 @@ export default function App() {
         language={language}
         isFirstVisit={false}
         currentUser={currentUser}
+      />
+
+      <WorkspaceIntegrationsModal
+        isOpen={workspaceModalOpen}
+        onClose={() => setWorkspaceModalOpen(false)}
+        language={language}
+        currentUser={currentUser}
+        onUpdateCurrentUser={(updated) => {
+          setCurrentUser(updated);
+          showToast('Profile updated!');
+        }}
+        initialTab={workspaceInitialTab}
       />
 
       {/* Native Thumb-Friendly Mobile Bottom Navigation Bar */}

@@ -267,6 +267,79 @@ const DirectionsRendererChild: React.FC<DirectionsRendererChildProps> = ({
   return null;
 };
 
+const MapTouchPanController: React.FC<{
+  panTarget: { lat: number; lng: number } | null;
+}> = ({ panTarget }) => {
+  const map = useMap();
+  const lastKey = useRef<string>('');
+
+  useEffect(() => {
+    if (!map || !panTarget || !panTarget.lat || !panTarget.lng) return;
+    const key = `${panTarget.lat.toFixed(4)},${panTarget.lng.toFixed(4)}`;
+    if (lastKey.current !== key) {
+      lastKey.current = key;
+      map.panTo(panTarget);
+    }
+  }, [map, panTarget]);
+
+  return null;
+};
+
+const MapTouchOverlayButtons: React.FC<{
+  onRecenterGPS: () => void;
+  onRecenterHospital?: () => void;
+  hasHospital: boolean;
+}> = ({ onRecenterGPS, onRecenterHospital, hasHospital }) => {
+  const map = useMap();
+
+  return (
+    <div className="absolute top-4 right-4 z-20 flex flex-col gap-2">
+      <div className="flex flex-col bg-white dark:bg-slate-900 rounded-xl shadow-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <button
+          type="button"
+          onClick={() => {
+            if (map) map.setZoom((map.getZoom() || 11) + 1);
+          }}
+          className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border-b border-slate-200 dark:border-slate-800 transition-colors cursor-pointer"
+          title="Zoom In"
+        >
+          <span className="text-base font-bold leading-none">+</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (map) map.setZoom((map.getZoom() || 11) - 1);
+          }}
+          className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+          title="Zoom Out"
+        >
+          <span className="text-base font-bold leading-none">-</span>
+        </button>
+      </div>
+
+      <button
+        type="button"
+        onClick={onRecenterGPS}
+        className="p-2.5 bg-white dark:bg-slate-900 rounded-xl shadow-lg border border-slate-200 dark:border-slate-800 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950 transition-colors flex items-center justify-center cursor-pointer"
+        title="Center GPS"
+      >
+        <Crosshair className="w-4 h-4" />
+      </button>
+
+      {hasHospital && (
+        <button
+          type="button"
+          onClick={onRecenterHospital}
+          className="p-2.5 bg-white dark:bg-slate-900 rounded-xl shadow-lg border border-slate-200 dark:border-slate-800 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950 transition-colors flex items-center justify-center cursor-pointer"
+          title="Center Hospital"
+        >
+          <HospitalIcon className="w-4 h-4" />
+        </button>
+      )}
+    </div>
+  );
+};
+
 export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
   language,
   onBookDoctor,
@@ -288,6 +361,7 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
     label: language === 'np' ? 'गठ्ठाघर, भक्तपुर (प्रारम्भिक स्थान)' : 'Gatthaghar, Bhaktapur (Initial)',
     district: 'Bhaktapur'
   });
+  const [panTarget, setPanTarget] = useState<{ lat: number; lng: number } | null>(null);
 
   // Location Search State
   const [locationSearchQuery, setLocationSearchQuery] = useState('');
@@ -1194,14 +1268,24 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
             <APIProvider apiKey={apiKey}>
               <Map
                 defaultCenter={{ lat: userCoords.lat, lng: userCoords.lng }}
-                center={{ lat: userCoords.lat, lng: userCoords.lng }}
                 defaultZoom={11}
                 mapId="DEMO_MAP_ID"
                 gestureHandling="greedy"
                 disableDefaultUI={false}
-                className="w-full h-full"
+                className="w-full h-full touch-pan-x touch-pan-y"
                 internalUsageAttributionIds={['gmp_mcp_codeassist_v1_aistudio']}
               >
+                {/* Touch Camera Controller & Floating Touch Zoom/Recenter Controls */}
+                <MapTouchPanController panTarget={panTarget} />
+                <MapTouchOverlayButtons
+                  onRecenterGPS={() => setPanTarget({ lat: userCoords.lat, lng: userCoords.lng })}
+                  onRecenterHospital={
+                    routedHospital && routedHospital.lat && routedHospital.lng
+                      ? () => setPanTarget({ lat: routedHospital.lat, lng: routedHospital.lng })
+                      : undefined
+                  }
+                  hasHospital={Boolean(routedHospital && routedHospital.lat && routedHospital.lng)}
+                />
                 {/* DirectionsRendererChild to draw Google Maps Directions API driving polyline */}
                 <DirectionsRendererChild
                   origin={{ lat: userCoords.lat, lng: userCoords.lng }}

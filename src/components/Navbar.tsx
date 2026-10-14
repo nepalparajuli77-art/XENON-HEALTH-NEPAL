@@ -24,7 +24,9 @@ import {
   FlaskConical,
   Share2,
   Check,
-  RotateCw
+  RotateCw,
+  Mail,
+  Users
 } from 'lucide-react';
 import { Language, User as UserType } from '../types';
 import { Logo } from './Logo';
@@ -42,6 +44,7 @@ interface NavbarProps {
   onLogout: () => void;
   onToggleSidebar?: () => void;
   onNotifyToast?: (msg: string) => void;
+  onOpenWorkspace?: (tab?: 'recovery' | 'notify' | 'contacts') => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -55,7 +58,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenAuth,
   onLogout,
   onToggleSidebar,
-  onNotifyToast
+  onNotifyToast,
+  onOpenWorkspace
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
@@ -219,6 +223,20 @@ export const Navbar: React.FC<NavbarProps> = ({
               <RotateCw className="w-3.5 h-3.5 text-blue-500" />
             </button>
 
+            {/* Google Workspace (Gmail & Contacts) Switcher */}
+            {onOpenWorkspace && (
+              <button
+                onClick={() => {
+                  triggerHaptic('medium');
+                  onOpenWorkspace('recovery');
+                }}
+                className="p-2 rounded-full bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 text-blue-600 dark:text-blue-400 text-xs border border-blue-200 dark:border-blue-900 transition-colors cursor-pointer"
+                title="Google Workspace (Gmail & Contacts)"
+              >
+                <Mail className="w-3.5 h-3.5" />
+              </button>
+            )}
+
             {/* User Profile Capsule or Sign In Trigger */}
             {currentUser ? (
               <div className="relative">
@@ -278,6 +296,31 @@ export const Navbar: React.FC<NavbarProps> = ({
                           <Code className="w-3.5 h-3.5" />
                           <span>Admin Console</span>
                         </button>
+                      )}
+
+                      {onOpenWorkspace && (
+                        <>
+                          <button
+                            onClick={() => {
+                              setUserDropdownOpen(false);
+                              onOpenWorkspace('recovery');
+                            }}
+                            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors text-left font-bold"
+                          >
+                            <Mail className="w-3.5 h-3.5" />
+                            <span>Gmail Recovery &amp; Alerts</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setUserDropdownOpen(false);
+                              onOpenWorkspace('contacts');
+                            }}
+                            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left"
+                          >
+                            <Users className="w-3.5 h-3.5 text-blue-500" />
+                            <span>Google Contacts</span>
+                          </button>
+                        </>
                       )}
 
                       <button

@@ -32,7 +32,7 @@ import {
   Layers,
   Crosshair
 } from 'lucide-react';
-import { APIProvider, Map, AdvancedMarker, InfoWindow, Pin } from '@vis.gl/react-google-maps';
+import { APIProvider, Map, AdvancedMarker, InfoWindow, Pin, useMap } from '@vis.gl/react-google-maps';
 import { Language, Hospital, MedevacBase } from '../types';
 import { INITIAL_HOSPITALS, NEPAL_MEDEVAC_BASES } from '../data/mockData';
 import { triggerHaptic } from '../utils/haptics';
@@ -54,6 +54,22 @@ interface XenonAiViewProps {
   onBookDoctor?: () => void;
   onNavigate?: (tab: string) => void;
 }
+
+const MapTouchController: React.FC<{ target: { lat: number; lng: number } | null }> = ({ target }) => {
+  const map = useMap();
+  const lastTarget = useRef<string>('');
+
+  useEffect(() => {
+    if (!map || !target || !target.lat || !target.lng) return;
+    const key = `${target.lat.toFixed(4)},${target.lng.toFixed(4)}`;
+    if (lastTarget.current !== key) {
+      lastTarget.current = key;
+      map.panTo(target);
+    }
+  }, [map, target]);
+
+  return null;
+};
 
 export const XenonAiView: React.FC<XenonAiViewProps> = ({
   language,
@@ -965,13 +981,14 @@ export const XenonAiView: React.FC<XenonAiViewProps> = ({
                 <APIProvider apiKey={mapsApiKey}>
                   <Map
                     defaultCenter={userLocation}
-                    center={userLocation}
                     defaultZoom={12}
                     mapId="DEMO_MAP_ID"
-                    gestureHandling={'greedy'}
-                    className="w-full h-full"
+                    gestureHandling="greedy"
+                    disableDefaultUI={false}
+                    className="w-full h-full touch-pan-x touch-pan-y"
                     internalUsageAttributionIds={["gmp_mcp_codeassist_v1_aistudio"]}
                   >
+                    <MapTouchController target={selectedFacility ? { lat: selectedFacility.lat, lng: selectedFacility.lng } : null} />
                   {/* User Geolocation Pin */}
                   <AdvancedMarker position={userLocation}>
                     <div className="relative flex items-center justify-center">
