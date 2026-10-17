@@ -8,10 +8,16 @@ import {
   type User,
 } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
-import firebaseConfig from '../../firebase-applet-config.json';
+import { firebaseConfig } from './firebaseConfig.ts';
 
-// Initialize Firebase client
-export const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+// Initialize Firebase client safely using environment-based configuration
+export const app = !getApps().length
+  ? initializeApp({
+      ...firebaseConfig,
+      apiKey: firebaseConfig.apiKey || 'dev-environment-key',
+    })
+  : getApp();
+
 export const auth = getAuth(app);
 export const firestore = getFirestore(app);
 

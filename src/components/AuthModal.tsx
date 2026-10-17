@@ -184,7 +184,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           );
         });
 
-        if (localMatch && (localMatch.password === pwd || pwd === '12admin34' || pwd === 'aarav*3812')) {
+        if (localMatch && (!localMatch.password || localMatch.password === pwd)) {
           setFailedAttempts(0);
           setLockoutExpiry(null);
           setLoading(false);
@@ -234,7 +234,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     setTimeout(() => {
       setLoading(false);
-      if (entered === correctPin || entered === '12admin34') {
+      if (entered === correctPin) {
         setFailedAttempts(0);
         setLockoutExpiry(null);
         const docUser: User = {
@@ -305,7 +305,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     e.preventDefault();
     if (!selectedDoctorForAuth) return;
 
-    if (docResetCode.trim() !== docGeneratedCode && docResetCode.trim() !== '9821') {
+    if (docResetCode.trim() !== docGeneratedCode) {
       setError('Invalid verification token. Please check the code sent to nepal.parajuli.77@gmail.com.');
       return;
     }

@@ -109,7 +109,7 @@ data class User(
     val fullName: String,
     val phone: String,
     val email: String,
-    val password: String = "1admin234",
+    val password: String = "",
     val bloodGroup: String? = null,
     val age: Int? = null,
     val gender: String? = null,

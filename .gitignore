@@ -9,3 +9,11 @@ coverage/
 firebase-applet-config.json
 !firebase-applet-config.json.example
 data/server-db.json
+*.pem
+*.key
+*.cert
+*.p12
+*.pfx
+secrets/
+.gmp_cache/
+

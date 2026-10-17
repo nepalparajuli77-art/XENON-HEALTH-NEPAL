@@ -8,7 +8,6 @@ export const INITIAL_USERS: User[] = [
     full_name: "Nepal Parajuli",
     phone: "+977-9841234567",
     email: "nepal.parajuli.77@gmail.com",
-    password: "aarav*3812",
     district: "Kathmandu",
     blood_group: "O+",
     age: 28,
@@ -21,8 +20,7 @@ export const INITIAL_USERS: User[] = [
     role: "developer",
     full_name: "Developer (Admin & Operations)",
     phone: "+977-9801234567",
-    email: "developer@xenonhealth.org.np",
-    password: "12admin34"
+    email: "developer@xenonhealth.org.np"
   }
 ];
 

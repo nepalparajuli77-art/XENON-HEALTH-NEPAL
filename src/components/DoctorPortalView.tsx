@@ -106,7 +106,7 @@ export const DoctorPortalView: React.FC<DoctorPortalViewProps> = ({
     if (!doctorToAuth) return;
 
     const correctPin = doctorToAuth.pin || '1234';
-    if (pinInput === correctPin || pinInput === '12admin34') {
+    if (pinInput === correctPin) {
       setSelectedDoctor(doctorToAuth);
       setDoctorToAuth(null);
       setPinError('');

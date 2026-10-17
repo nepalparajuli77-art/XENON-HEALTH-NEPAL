@@ -1,11 +1,11 @@
 {
   "projectId": "your-project-id",
   "appId": "your-app-id",
-  "apiKey": "YOUR_FIREBASE_API_KEY",
+  "apiKey": "your-api-key-placeholder",
   "authDomain": "your-project-id.firebaseapp.com",
   "storageBucket": "your-project-id.firebasestorage.app",
   "messagingSenderId": "your-sender-id",
   "measurementId": "",
-  "oAuthClientId": "your-oauth-client-id.apps.googleusercontent.com",
+  "oAuthClientId": "your-client-id-placeholder",
   "recaptchaSiteKey": ""
 }
