@@ -94,14 +94,14 @@ export const Navbar: React.FC<NavbarProps> = ({
         };
       case 'doctors':
       case 'doctor-dashboard':
-        return {
-          title: language === 'np' ? 'डाक्टर क्लिनिकल ड्यासबोर्ड' : 'Doctor Clinical Workspace',
-          subtitle: isDoctor ? 'Assigned Consultations & Patient Queue' : 'NMC Specialist Workspace'
-        };
       case 'book':
         return {
-          title: language === 'np' ? 'विशेषज्ञ डाक्टर बुकिङ' : 'Book Specialist Consultation',
-          subtitle: 'Verified Nepal Medical Council (NMC) Directory'
+          title: isDoctor
+            ? (language === 'np' ? 'डाक्टर क्लिनिकल ड्यासबोर्ड' : 'Doctor Clinical Workspace')
+            : (language === 'np' ? 'डाक्टर तथा NMC प्रमाणीकरण' : 'Doctors & NMC Verification'),
+          subtitle: isDoctor
+            ? 'Assigned Consultations & Patient Queue'
+            : 'Verified Nepal Medical Council (NMC) Directory & Consultations'
         };
       case 'doctor-settings':
         return {
@@ -479,15 +479,15 @@ export const Navbar: React.FC<NavbarProps> = ({
 
               <button
                 onClick={() => {
-                  setCurrentTab('book');
+                  setCurrentTab('doctors');
                   setMobileMenuOpen(false);
                 }}
                 className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold ${
-                  currentTab === 'book' ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900' : 'text-slate-700 dark:text-slate-300'
+                  currentTab === 'doctors' ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900' : 'text-slate-700 dark:text-slate-300'
                 }`}
               >
-                <Stethoscope className="w-4 h-4" />
-                <span>Book Specialist Doctor</span>
+                <ShieldCheck className="w-4 h-4" />
+                <span>Doctors &amp; NMC Verification</span>
               </button>
 
               <button

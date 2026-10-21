@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
-import { X, Calendar, Clock, Video, Building2, CheckCircle2, AlertTriangle, Wallet, CreditCard, ShieldAlert, WifiOff } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Calendar, Clock, Video, Building2, CheckCircle2, AlertTriangle, Wallet, CreditCard, ShieldAlert, WifiOff, Mail, Check, Send } from 'lucide-react';
 import { Doctor, Appointment, Language, User } from '../types';
 import { t } from '../data/mockData';
 import { isAppOnline, queueAppointmentForSync } from '../services/syncService';
 import { triggerHaptic } from '../utils/haptics';
+import { sendAppointmentConfirmationEmail } from '../services/gmailNotificationService';
+import { getCachedAccessToken, googleSignIn } from '../lib/firebase';
 
 interface BookModalProps {
   doctor: Doctor | null;
@@ -34,6 +36,17 @@ export const BookModal: React.FC<BookModalProps> = ({
   const [paymentMethod, setPaymentMethod] = useState<'esewa' | 'khalti' | 'counter'>('esewa');
   const [showSystemNotice, setShowSystemNotice] = useState(false);
   const [symptoms, setSymptoms] = useState('');
+
+  // Automated Email Notification State
+  const [patientEmail, setPatientEmail] = useState(currentUser.email || 'nepal.parajuli.77@gmail.com');
+  const [sendEmailNotification, setSendEmailNotification] = useState(true);
+  const [isConnectingGoogle, setIsConnectingGoogle] = useState(false);
+  const [googleConnected, setGoogleConnected] = useState(Boolean(getCachedAccessToken()));
+  const [emailStatusNote, setEmailStatusNote] = useState<string | null>(null);
+
+  useEffect(() => {
+    setGoogleConnected(Boolean(getCachedAccessToken()));
+  }, [isOpen]);
 
   const currentDoctor = doctors.find((d) => d.id === selectedDoctorId) || doctor || doctors[0];
 
@@ -84,8 +97,42 @@ export const BookModal: React.FC<BookModalProps> = ({
       });
     }
 
+    // Automated Email Notification via Gmail API
+    if (sendEmailNotification && patientEmail && patientEmail.trim()) {
+      const emailTarget = patientEmail.trim();
+      sendAppointmentConfirmationEmail(newApt, emailTarget).then((res) => {
+        if (res.success) {
+          console.log(`✅ Automated Gmail confirmation sent to ${emailTarget} (Message ID: ${res.messageId})`);
+        } else {
+          console.warn('Gmail API notification notice:', res.error);
+        }
+      }).catch((err) => {
+        console.warn('Error dispatching automated email:', err);
+      });
+    }
+
     onConfirmBooking(newApt);
     onClose();
+  };
+
+  const handleConnectGoogle = async () => {
+    try {
+      setIsConnectingGoogle(true);
+      setEmailStatusNote(null);
+      const res = await googleSignIn();
+      if (res?.accessToken) {
+        setGoogleConnected(true);
+        if (res.user.email) {
+          setPatientEmail(res.user.email);
+        }
+        setEmailStatusNote('✓ Google account connected! Automated Gmail notifications are active.');
+      }
+    } catch (e: any) {
+      console.warn('Google sign-in error:', e);
+      setEmailStatusNote('Failed to connect Google account. Please try again.');
+    } finally {
+      setIsConnectingGoogle(false);
+    }
   };
 
   const isOnline = isAppOnline();
@@ -319,6 +366,83 @@ export const BookModal: React.FC<BookModalProps> = ({
               rows={2}
               className="w-full p-3 rounded-2xl bg-[#F8FAFC] dark:bg-[#1E293B] border border-black/10 dark:border-white/10 text-black dark:text-white placeholder:text-black/40 dark:placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-red-600"
             />
+          </div>
+
+          {/* Automated Gmail Notification Card */}
+          <div className="p-3.5 rounded-2xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/60 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-600 text-white shadow-xs">
+                  <Mail className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="font-extrabold text-blue-950 dark:text-blue-200 text-xs flex items-center gap-1.5">
+                    <span>Automated Email Confirmation</span>
+                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-blue-200 dark:bg-blue-900 text-blue-800 dark:text-blue-300 font-mono font-bold">
+                      Gmail
+                    </span>
+                  </h4>
+                  <p className="text-[10px] text-blue-700/80 dark:text-blue-300/70">
+                    Sends full summary, video link, and checklist to patient
+                  </p>
+                </div>
+              </div>
+
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={sendEmailNotification}
+                  onChange={(e) => setSendEmailNotification(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-8 h-4.5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+
+            {sendEmailNotification && (
+              <div className="space-y-2 pt-1 border-t border-blue-100 dark:border-blue-900/40 animate-fade-in">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Patient Recipient Email:
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="email"
+                      value={patientEmail}
+                      onChange={(e) => setPatientEmail(e.target.value)}
+                      placeholder="patient@gmail.com"
+                      required={sendEmailNotification}
+                      className="w-full pl-9 pr-3 py-2 rounded-xl bg-white dark:bg-[#0F172A] border border-blue-200 dark:border-blue-800 text-xs text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    />
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-2 pt-0.5">
+                  {googleConnected ? (
+                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                      <span>Google Account authorized for automatic Gmail dispatch</span>
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleConnectGoogle}
+                      disabled={isConnectingGoogle}
+                      className="text-[11px] font-bold text-blue-700 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-200 flex items-center gap-1.5 cursor-pointer underline transition-colors"
+                    >
+                      <span>{isConnectingGoogle ? 'Connecting Google...' : 'Connect Google Account for Gmail sending'}</span>
+                    </button>
+                  )}
+                </div>
+
+                {emailStatusNote && (
+                  <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                    {emailStatusNote}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Fee Breakdown Capsule */}

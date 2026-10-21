@@ -1,0 +1,113 @@
+{
+  "entities": {
+    "users": {
+      "title": "User",
+      "description": "User account profiles, medical practitioner roles, and patient records",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique user or auth UID identifier" },
+        "name": { "type": "string", "description": "Full name of the user or practitioner" },
+        "email": { "type": "string", "format": "email", "description": "Verified email address" },
+        "role": { "type": "string", "enum": ["patient", "doctor", "admin", "paramedic"], "description": "Access control role" },
+        "phone": { "type": "string", "description": "Contact telephone number" },
+        "avatar": { "type": "string", "description": "Profile picture URL" },
+        "district": { "type": "string", "description": "Residential district in Nepal" },
+        "specialty": { "type": "string", "description": "Medical specialty if doctor" },
+        "nmcNumber": { "type": "string", "description": "Nepal Medical Council registration number" },
+        "createdAt": { "type": "string", "description": "ISO timestamp of account creation" },
+        "updatedAt": { "type": "string", "description": "ISO timestamp of profile update" }
+      },
+      "required": ["id", "name", "email", "role"]
+    },
+    "appointments": {
+      "title": "Appointment",
+      "description": "Telemedicine consultation bookings between patients and verified doctors",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Appointment document identifier" },
+        "patientId": { "type": "string", "description": "User UID of the patient" },
+        "patientName": { "type": "string", "description": "Full name of the patient" },
+        "doctorId": { "type": "string", "description": "User UID of the doctor" },
+        "doctorName": { "type": "string", "description": "Full name of the consulting doctor" },
+        "scheduledTime": { "type": "string", "description": "Scheduled appointment timestamp" },
+        "status": { "type": "string", "enum": ["scheduled", "in-progress", "completed", "cancelled"], "description": "Appointment status" },
+        "symptoms": { "type": "string", "description": "Patient reported symptoms or notes" },
+        "meetingUrl": { "type": "string", "description": "Video consultation room URL" },
+        "createdAt": { "type": "string", "description": "ISO timestamp of booking" }
+      },
+      "required": ["id", "patientId", "doctorId", "status"]
+    },
+    "prescriptions": {
+      "title": "Prescription",
+      "description": "Digitally signed medical prescriptions issued by NMC licensed practitioners",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Prescription identifier" },
+        "appointmentId": { "type": "string", "description": "Associated appointment identifier" },
+        "patientId": { "type": "string", "description": "Recipient patient user identifier" },
+        "doctorId": { "type": "string", "description": "Issuing doctor user identifier" },
+        "doctorName": { "type": "string", "description": "Doctor name" },
+        "nmcNumber": { "type": "string", "description": "Nepal Medical Council registration number" },
+        "diagnosis": { "type": "string", "description": "Clinical diagnosis" },
+        "instructions": { "type": "string", "description": "Dosage and intake instructions" },
+        "digitalSignature": { "type": "string", "description": "Cryptographic digital seal" },
+        "issuedAt": { "type": "string", "description": "ISO timestamp of issuance" }
+      },
+      "required": ["id", "patientId", "doctorId", "diagnosis"]
+    },
+    "emergency_requests": {
+      "title": "EmergencyRequest",
+      "description": "Medevac rescue and emergency hospital dispatch requests",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Emergency request identifier" },
+        "userId": { "type": "string", "description": "Requesting user identifier" },
+        "userPhone": { "type": "string", "description": "Caller emergency contact phone" },
+        "lat": { "type": "number", "description": "Geographical latitude" },
+        "lng": { "type": "number", "description": "Geographical longitude" },
+        "locationLabel": { "type": "string", "description": "Human readable address or landmark" },
+        "hospitalId": { "type": "string", "description": "Target hospital identifier" },
+        "hospitalName": { "type": "string", "description": "Target hospital name" },
+        "status": { "type": "string", "enum": ["pending", "dispatched", "en-route", "resolved"], "description": "Dispatch status" },
+        "createdAt": { "type": "string", "description": "ISO timestamp of request" }
+      },
+      "required": ["id", "lat", "lng", "status"]
+    },
+    "audit_logs": {
+      "title": "AuditLog",
+      "description": "Immutable security and audit trail logs",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique audit log identifier" },
+        "event": { "type": "string", "description": "Security or tamper event type" },
+        "actor": { "type": "string", "description": "Actor identifier or system component" },
+        "severity": { "type": "string", "enum": ["info", "warning", "critical"], "description": "Severity level" },
+        "details": { "type": "string", "description": "Event details description" },
+        "timestamp": { "type": "string", "description": "ISO event timestamp" }
+      },
+      "required": ["id", "event", "severity", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "users",
+      "description": "User account profiles and practitioner credentials"
+    },
+    "/appointments/{appointmentId}": {
+      "schema": "appointments",
+      "description": "Telemedicine consultation bookings"
+    },
+    "/prescriptions/{prescriptionId}": {
+      "schema": "prescriptions",
+      "description": "NMC verified digital prescriptions"
+    },
+    "/emergency_requests/{requestId}": {
+      "schema": "emergency_requests",
+      "description": "Emergency medevac and hospital dispatch requests"
+    },
+    "/audit_logs/{logId}": {
+      "schema": "audit_logs",
+      "description": "Immutable security audit logs"
+    }
+  }
+}

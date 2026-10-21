@@ -219,22 +219,21 @@ export const XenonAiView: React.FC<XenonAiViewProps> = ({
   // ============================================================================
   // MAPS SYSTEM: GOOGLE MAPS PLATFORM TRIAGE & FACILITY MARKERS
   // ============================================================================
+  const FALLBACK_MAPS_KEY = 'AIzaSyALom9O46yLbzkV_GOnAjOl6B6sUpODgbE';
   const [mapsApiKey, setMapsApiKey] = useState<string>(
-    () => (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY || ''
+    () => (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY || FALLBACK_MAPS_KEY
   );
 
   useEffect(() => {
-    if (!mapsApiKey) {
-      fetch('/api/maps-key')
-        .then((r) => r.json())
-        .then((data) => {
-          if (data?.apiKey) {
-            setMapsApiKey(data.apiKey);
-          }
-        })
-        .catch(() => {});
-    }
-  }, [mapsApiKey]);
+    fetch('/api/maps-key')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.apiKey) {
+          setMapsApiKey(data.apiKey);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number }>({
@@ -978,7 +977,7 @@ export const XenonAiView: React.FC<XenonAiViewProps> = ({
             {/* Google Map Container */}
             <div className="flex-1 w-full rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 min-h-[380px] sm:min-h-[440px] relative">
               {mapsApiKey ? (
-                <APIProvider apiKey={mapsApiKey}>
+                <APIProvider apiKey={mapsApiKey} libraries={['places', 'marker', 'routes', 'geometry']}>
                   <Map
                     defaultCenter={userLocation}
                     defaultZoom={12}

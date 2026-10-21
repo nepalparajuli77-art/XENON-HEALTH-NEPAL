@@ -1083,7 +1083,7 @@ app.get('/api/maps-key', (req, res) => {
   const key =
     process.env.VITE_GOOGLE_MAPS_API_KEY ||
     process.env.GOOGLE_MAPS_API_KEY ||
-    '';
+    'AIzaSyALom9O46yLbzkV_GOnAjOl6B6sUpODgbE';
   res.json({ apiKey: key });
 });
 
@@ -1416,6 +1416,64 @@ app.post('/api/appointments', (req, res) => {
     res.json({ success: true, appointment: aptWithSync });
   } catch (err: any) {
     res.status(500).json({ error: err?.message });
+  }
+});
+
+// Automated Appointment Email Notification Status Endpoint
+app.post('/api/appointments/send-email', async (req, res) => {
+  try {
+    const { appointment, recipientEmail, accessToken } = req.body;
+    if (!appointment || !recipientEmail) {
+      return res.status(400).json({ error: 'Missing appointment payload or recipient email' });
+    }
+
+    const token = accessToken || (req.headers.authorization ? req.headers.authorization.replace('Bearer ', '') : null);
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        error: 'Google OAuth token is required to dispatch email on behalf of your Google account'
+      });
+    }
+
+    // Call Gmail API directly with user token
+    const subject = `🏥 Appointment Confirmed: Dr. ${appointment.doctor_name || 'Specialist'} — Xenon Health`;
+    const emailLines = [
+      `To: ${recipientEmail}`,
+      `Subject: =?utf-8?B?${Buffer.from(subject).toString('base64')}?=`,
+      `MIME-Version: 1.0`,
+      `Content-Type: text/html; charset=UTF-8`,
+      ``,
+      `<p>Your appointment with <strong>Dr. ${appointment.doctor_name}</strong> on <strong>${appointment.date} at ${appointment.time}</strong> is confirmed.</p>`
+    ];
+
+    const raw = Buffer.from(emailLines.join('\r\n'))
+      .toString('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+
+    const gmailRes = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ raw })
+    });
+
+    if (!gmailRes.ok) {
+      const errData: any = await gmailRes.json().catch(() => null);
+      return res.status(gmailRes.status).json({
+        success: false,
+        error: errData?.error?.message || 'Failed to dispatch via Gmail API'
+      });
+    }
+
+    const result: any = await gmailRes.json();
+    return res.json({ success: true, messageId: result.id, sentTo: recipientEmail });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || 'Server email error' });
   }
 });
 

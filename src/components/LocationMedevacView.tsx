@@ -146,18 +146,41 @@ const SEARCHABLE_LOCATIONS: SearchableLocationItem[] = [
   { id: 'loc_hosp_om', name: 'Om Hospital (Chabahil)', nameNp: 'ओम हस्पिटल (चाबहिल)', category: 'hospital', lat: 27.7176, lng: 85.3503, district: 'Kathmandu', details: 'Surgical & Laparoscopy' }
 ];
 
-// Quick Select Chips (Kept for instant 1-click convenience)
+const FALLBACK_MAPS_KEY = 'AIzaSyALom9O46yLbzkV_GOnAjOl6B6sUpODgbE';
+
+// Helper to resolve reverse geocode or proximity to nearest known neighborhood/city
+const resolveLocationName = async (lat: number, lng: number, lang: Language): Promise<string> => {
+  // Proximity check against SEARCHABLE_LOCATIONS neighborhoods and cities
+  let bestMatch: { name: string; nameNp: string; dist: number } | null = null;
+  for (const loc of SEARCHABLE_LOCATIONS) {
+    const d = calculateHaversineDistance(lat, lng, loc.lat, loc.lng);
+    if (!bestMatch || d < bestMatch.dist) {
+      bestMatch = { name: loc.name, nameNp: loc.nameNp, dist: d };
+    }
+  }
+
+  if (bestMatch && bestMatch.dist <= 2.8) {
+    return lang === 'np' ? `📍 लाइभ: ${bestMatch.nameNp}` : `📍 Live: ${bestMatch.name}`;
+  }
+
+  // Fallback to high accuracy coordinates
+  return lang === 'np'
+    ? `📍 लाइभ जीपीएस (${lat.toFixed(4)}, ${lng.toFixed(4)})`
+    : `📍 Live Device GPS (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+};
+
+// Quick Select Chips (Neutral major hubs, Nagarik removed as default)
 const QUICK_SELECT_CHIPS = [
-  { name: 'Gatthaghar / Nagarik (Bhaktapur)', nameNp: 'गठ्ठाघर / नागरिक अस्पताल (भक्तपुर)', lat: 27.6788, lng: 85.3670, district: 'Bhaktapur' },
-  { name: 'HAMS / Dhumbarahi', nameNp: 'ह्याम्स / धुम्बाराही', lat: 27.7329, lng: 85.3444, district: 'Kathmandu' },
   { name: 'Kathmandu Central', nameNp: 'काठमाडौँ केन्द्र', lat: 27.7172, lng: 85.324, district: 'Kathmandu' },
   { name: 'Lalitpur / Patan', nameNp: 'पाटन / ललितपुर', lat: 27.6687, lng: 85.3204, district: 'Lalitpur' },
+  { name: 'New Baneshwor', nameNp: 'नयाँ बानेश्वर', lat: 27.6915, lng: 85.3420, district: 'Kathmandu' },
+  { name: 'Maharajgunj / Teaching', nameNp: 'महाराजगञ्ज / शिक्षण अस्पताल', lat: 27.7360, lng: 85.3303, district: 'Kathmandu' },
+  { name: 'Dhumbarahi / Ring Road', nameNp: 'धुम्बाराही / रिङरोड', lat: 27.7329, lng: 85.3444, district: 'Kathmandu' },
   { name: 'Koteshwor / Tinkune', nameNp: 'कोटेश्वर / तीनकुने', lat: 27.6782, lng: 85.3488, district: 'Kathmandu' },
+  { name: 'Bhaktapur Durbar Area', nameNp: 'भक्तपुर दरबार क्षेत्र', lat: 27.6710, lng: 85.4298, district: 'Bhaktapur' },
   { name: 'Pokhara / Kaski', nameNp: 'पोखरा / कास्की', lat: 28.2096, lng: 83.9856, district: 'Kaski' },
   { name: 'Chitwan / Bharatpur', nameNp: 'चितवन / भरतपुर', lat: 27.683, lng: 84.432, district: 'Chitwan' },
-  { name: 'Dharan / Eastern Hub', nameNp: 'धरान / पूर्वी क्षेत्र', lat: 26.8125, lng: 87.2835, district: 'Sunsari' },
-  { name: 'Lukla / Everest', nameNp: 'लुक्ला / खुम्बु', lat: 27.6869, lng: 86.729, district: 'Solukhumbu' },
-  { name: 'Manang / Alpine', nameNp: 'मनाङ / अन्नपूर्ण', lat: 28.6655, lng: 84.021, district: 'Manang' }
+  { name: 'Dharan / Eastern Hub', nameNp: 'धरान / पूर्वी क्षेत्र', lat: 26.8125, lng: 87.2835, district: 'Sunsari' }
 ];
 
 /**
@@ -269,18 +292,21 @@ const DirectionsRendererChild: React.FC<DirectionsRendererChildProps> = ({
 
 const MapTouchPanController: React.FC<{
   panTarget: { lat: number; lng: number } | null;
-}> = ({ panTarget }) => {
+  userCoords: { lat: number; lng: number };
+}> = ({ panTarget, userCoords }) => {
   const map = useMap();
   const lastKey = useRef<string>('');
 
   useEffect(() => {
-    if (!map || !panTarget || !panTarget.lat || !panTarget.lng) return;
-    const key = `${panTarget.lat.toFixed(4)},${panTarget.lng.toFixed(4)}`;
+    if (!map) return;
+    const target = panTarget || userCoords;
+    if (!target || !target.lat || !target.lng) return;
+    const key = `${target.lat.toFixed(4)},${target.lng.toFixed(4)}`;
     if (lastKey.current !== key) {
       lastKey.current = key;
-      map.panTo(panTarget);
+      map.panTo(target);
     }
-  }, [map, panTarget]);
+  }, [map, panTarget, userCoords.lat, userCoords.lng]);
 
   return null;
 };
@@ -354,13 +380,15 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
   const [gpsError, setGpsError] = useState<string | null>(null);
   const watchIdRef = useRef<number | null>(null);
 
-  // User Position State (Default to Gatthaghar/Bhaktapur corridor if GPS is loading)
+  // User Position State (Auto-detects live user location, neutral fallback while obtaining GPS)
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number; label: string; district?: string }>({
-    lat: 27.6788,
-    lng: 85.3670,
-    label: language === 'np' ? 'गठ्ठाघर, भक्तपुर (प्रारम्भिक स्थान)' : 'Gatthaghar, Bhaktapur (Initial)',
-    district: 'Bhaktapur'
+    lat: 27.7172,
+    lng: 85.3240,
+    label: language === 'np' ? 'लाइभ जीपीएस पत्ता लगाउँदै...' : 'Detecting your live location...',
+    district: 'Auto GPS'
   });
+  const [isLiveDetected, setIsLiveDetected] = useState(false);
+  const [mapLoadError, setMapLoadError] = useState(false);
   const [panTarget, setPanTarget] = useState<{ lat: number; lng: number } | null>(null);
 
   // Location Search State
@@ -387,23 +415,21 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
 
   const routePodRef = useRef<HTMLDivElement | null>(null);
 
-  // Reactive Google Maps API Key State
+  // Reactive Google Maps API Key State (with instant fallback demo key)
   const [apiKey, setApiKey] = useState<string>(
-    () => (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY || ''
+    () => (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY || FALLBACK_MAPS_KEY
   );
 
   useEffect(() => {
-    if (!apiKey) {
-      fetch('/api/maps-key')
-        .then((r) => r.json())
-        .then((data) => {
-          if (data?.apiKey) {
-            setApiKey(data.apiKey);
-          }
-        })
-        .catch(() => {});
-    }
-  }, [apiKey]);
+    fetch('/api/maps-key')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.apiKey) {
+          setApiKey(data.apiKey);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // If a preselected hospital was passed from HospitalsView, start routing immediately
   useEffect(() => {
@@ -445,27 +471,20 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
     }
 
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
+      async (pos) => {
         const { latitude, longitude, accuracy } = pos.coords;
         setGpsAccuracy(Math.round(accuracy));
         setPermissionStatus('granted');
         setIsLiveTracking(true);
+        setIsLiveDetected(true);
+        setPanTarget({ lat: latitude, lng: longitude });
 
-        // Detect if close to Gatthaghar / Bhaktapur or other known areas
-        const distToGatthaghar = calculateHaversineDistance(latitude, longitude, 27.6788, 85.3670);
-        const distToDhumbarahi = calculateHaversineDistance(latitude, longitude, 27.7329, 85.3444);
-
-        let areaName = `Live Device GPS (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`;
-        if (distToGatthaghar < 3) {
-          areaName = language === 'np' ? `लाइभ जीपीएस: गठ्ठाघर / ठिमी क्षेत्र` : `Live GPS: Gatthaghar / Thimi Sector`;
-        } else if (distToDhumbarahi < 3) {
-          areaName = language === 'np' ? `लाइभ जीपीएस: धुम्बाराही / रिङरोड` : `Live GPS: Dhumbarahi Sector`;
-        }
+        const resolvedLabel = await resolveLocationName(latitude, longitude, language);
 
         setUserCoords({
           lat: latitude,
           lng: longitude,
-          label: areaName,
+          label: resolvedLabel,
           district: 'Live Device GPS'
         });
 
@@ -479,17 +498,15 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
         }
 
         watchIdRef.current = navigator.geolocation.watchPosition(
-          (watchPos) => {
+          async (watchPos) => {
             const wLat = watchPos.coords.latitude;
             const wLng = watchPos.coords.longitude;
             setGpsAccuracy(Math.round(watchPos.coords.accuracy));
+            setPanTarget({ lat: wLat, lng: wLng });
             setUserCoords((prev) => ({
               ...prev,
               lat: wLat,
-              lng: wLng,
-              label: prev.label.startsWith('Live GPS')
-                ? prev.label
-                : `Live Device GPS (${wLat.toFixed(4)}, ${wLng.toFixed(4)})`
+              lng: wLng
             }));
           },
           (watchErr) => {
@@ -501,6 +518,10 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
       (err) => {
         console.warn('Geolocation permission error:', err);
         setPermissionStatus('denied');
+        setUserCoords((prev) => ({
+          ...prev,
+          label: language === 'np' ? 'काठमाडौँ केन्द्र (म्यानुअल छनोट)' : 'Kathmandu Valley Central (Manual Select)'
+        }));
         setGpsError(
           language === 'np'
             ? 'जीपीएस अनुमति प्राप्त भएन। कृपया ब्राउजरमा लोकेशन सेयरिङ अन गर्नुहोस् वा तलको खोज बाकसबाट आफ्नो टोल छान्नुहोस्।'
@@ -898,51 +919,60 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
         </div>
       </div>
 
-      {/* Gatthaghar Nagarik x HAMS Emergency Corridor Callout Bar */}
-      <div className="rounded-2xl p-4 bg-gradient-to-r from-blue-900/60 via-slate-900/90 to-indigo-950/70 border border-blue-500/30 text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-lg backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-600/30 border border-blue-400/40 flex items-center justify-center text-blue-300 shrink-0">
-            <ShieldCheck className="w-5 h-5 text-blue-400" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-black uppercase tracking-wider text-blue-300">
-                {language === 'np' ? 'गठ्ठाघर नागरिक x ह्याम्स इमर्जेन्सी कोरिडोर' : 'Gatthaghar Nagarik x HAMS Emergency Corridor'}
-              </span>
-              <span className="text-[10px] px-2 py-0.5 rounded-md bg-blue-500/20 text-blue-200 border border-blue-400/30 font-semibold">
-                Fast-Track Trauma Hubs
-              </span>
+      {/* Dynamic Auto-Detected Nearest Emergency Facility Callout Bar (Nagarik removed as hardcoded default) */}
+      {nearestHospital && (
+        <div className="rounded-2xl p-4 bg-gradient-to-r from-emerald-950/80 via-slate-900/95 to-blue-950/80 border-2 border-emerald-500/40 text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-xl backdrop-blur-md relative overflow-hidden">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-emerald-600/30 border border-emerald-400/50 flex items-center justify-center text-emerald-400 shrink-0">
+              <HospitalIcon className="w-6 h-6 text-emerald-400 animate-pulse" />
             </div>
-            <p className="text-[11px] text-slate-300 mt-0.5">
-              {language === 'np'
-                ? 'अरनिको हाइवे गठ्ठाघरको नागरिक अस्पताल र धुम्बाराहीको ह्याम्स अस्पताल दुवैको सिधा सडक रुट र २४/७ आपतकालीन सम्पर्क'
-                : 'Direct emergency route calculation for Nagarik Teaching Hospital (Gatthaghar) and HAMS Hospital (Dhumbarahi)'}
-            </p>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-500 text-white font-black uppercase tracking-wider">
+                  {language === 'np' ? '📍 तपाईंको सबैभन्दा नजिकको आपतकालीन अस्पताल' : '📍 Auto-Detected Closest Emergency Facility'}
+                </span>
+                <span className="text-[11px] font-mono font-bold text-emerald-300">
+                  {nearestHospital.distanceKm.toFixed(1)} km • ~{nearestHospital.driveMins} mins
+                </span>
+              </div>
+              <h2 className="text-sm font-black text-white mt-1">
+                {language === 'np' ? nearestHospital.name_np : nearestHospital.name}
+              </h2>
+              <p className="text-[11px] text-slate-300 mt-0.5">
+                {nearestHospital.address} • {nearestHospital.beds} Beds • 24/7 ICU & Emergency Trauma Hotline: <span className="text-emerald-400 font-bold">{nearestHospital.phone}</span>
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0 w-full md:w-auto">
+            <button
+              onClick={() => handleCalculateDirections(nearestHospital)}
+              className="flex-1 md:flex-initial px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-black flex items-center justify-center gap-1.5 transition-all shadow-lg shadow-emerald-900/40 cursor-pointer active:scale-95"
+            >
+              <Route className="w-4 h-4" />
+              <span>{language === 'np' ? 'नजिकको अस्पताल रुट हेर्नुहोस्' : 'Route to Closest'}</span>
+            </button>
+
+            <a
+              href={`tel:${nearestHospital.phone.replace(/[^0-9]/g, '')}`}
+              className="px-3.5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-95"
+            >
+              <PhoneCall className="w-4 h-4" />
+              <span className="hidden sm:inline">Call ER</span>
+            </a>
+
+            {hospitalsWithDistance[1] && (
+              <button
+                onClick={() => handleCalculateDirections(hospitalsWithDistance[1])}
+                className="px-3 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 border border-white/10 text-xs font-bold transition-all cursor-pointer"
+                title={hospitalsWithDistance[1].name}
+              >
+                <span>Alt: {hospitalsWithDistance[1].distanceKm.toFixed(1)} km</span>
+              </button>
+            )}
           </div>
         </div>
-
-        <div className="flex items-center gap-2 shrink-0 w-full md:w-auto">
-          {nagarikHospital && (
-            <button
-              onClick={() => handleCalculateDirections(nagarikHospital)}
-              className="flex-1 md:flex-initial px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer active:scale-95"
-            >
-              <Route className="w-3.5 h-3.5" />
-              <span>{language === 'np' ? 'नागरिक गठ्ठाघर रुट' : 'Route Nagarik (Gatthaghar)'}</span>
-            </button>
-          )}
-
-          {hamsHospital && (
-            <button
-              onClick={() => handleCalculateDirections(hamsHospital)}
-              className="flex-1 md:flex-initial px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer active:scale-95"
-            >
-              <Route className="w-3.5 h-3.5" />
-              <span>{language === 'np' ? 'ह्याम्स धुम्बाराही रुट' : 'Route HAMS (Dhumbarahi)'}</span>
-            </button>
-          )}
-        </div>
-      </div>
+      )}
 
       {/* Active Driving Route Pod (Google Maps Directions API Display) */}
       {routedHospital && (
@@ -1264,11 +1294,19 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
 
         {/* Map Frame */}
         <div className="h-[520px] w-full relative">
-          {apiKey ? (
-            <APIProvider apiKey={apiKey}>
+          {!mapLoadError ? (
+            <APIProvider
+              apiKey={apiKey || FALLBACK_MAPS_KEY}
+              libraries={['places', 'marker', 'routes', 'geometry']}
+              onLoad={() => setMapLoadError(false)}
+              onError={(err) => {
+                console.warn('Google Maps API load error:', err);
+                setMapLoadError(true);
+              }}
+            >
               <Map
                 defaultCenter={{ lat: userCoords.lat, lng: userCoords.lng }}
-                defaultZoom={11}
+                defaultZoom={12}
                 mapId="DEMO_MAP_ID"
                 gestureHandling="greedy"
                 disableDefaultUI={false}
@@ -1276,7 +1314,7 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
                 internalUsageAttributionIds={['gmp_mcp_codeassist_v1_aistudio']}
               >
                 {/* Touch Camera Controller & Floating Touch Zoom/Recenter Controls */}
-                <MapTouchPanController panTarget={panTarget} />
+                <MapTouchPanController panTarget={panTarget} userCoords={userCoords} />
                 <MapTouchOverlayButtons
                   onRecenterGPS={() => setPanTarget({ lat: userCoords.lat, lng: userCoords.lng })}
                   onRecenterHospital={
@@ -1456,9 +1494,48 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
               </Map>
             </APIProvider>
           ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900 text-white rounded-2xl p-6 space-y-3">
-              <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin" />
-              <span className="text-xs font-bold text-slate-300">Initializing Live Google Maps Radar...</span>
+            <div className="w-full h-full flex flex-col items-center justify-center bg-slate-950 text-white rounded-2xl p-6 relative overflow-hidden">
+              {/* Live interactive OpenStreetMap tile fallback iframe */}
+              <iframe
+                title="Emergency Radar Fallback Map"
+                className="w-full h-full absolute inset-0 opacity-80 pointer-events-auto"
+                src={`https://www.openstreetmap.org/export/embed.html?bbox=${userCoords.lng - 0.04}%2C${userCoords.lat - 0.03}%2C${userCoords.lng + 0.04}%2C${userCoords.lat + 0.03}&layer=mapnik&marker=${userCoords.lat}%2C${userCoords.lng}`}
+              />
+
+              {/* Foreground interactive card */}
+              <div className="relative z-10 max-w-md w-full p-4 rounded-2xl bg-slate-900/90 border border-blue-500/30 backdrop-blur-md shadow-2xl text-center space-y-3">
+                <div className="flex items-center justify-center gap-2 text-emerald-400 font-bold text-xs">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                  <span>{language === 'np' ? 'लाइभ आपतकालीन स्थान सक्रिय' : 'Live Emergency Location Active'}</span>
+                </div>
+                <h4 className="text-sm font-black text-white">{userCoords.label}</h4>
+                <p className="text-[11px] text-slate-300">
+                  {nearestHospital
+                    ? `${language === 'np' ? 'नजिकको अस्पताल:' : 'Nearest hospital:'} ${nearestHospital.name} (${nearestHospital.distanceKm.toFixed(1)} km, ~${nearestHospital.driveMins} mins)`
+                    : 'Calculating closest facility...'}
+                </p>
+
+                <div className="flex flex-col sm:flex-row items-center gap-2 pt-1">
+                  <a
+                    href={`https://www.google.com/maps/dir/?api=1&origin=${userCoords.lat},${userCoords.lng}&destination=${routedHospital ? `${routedHospital.lat},${routedHospital.lng}` : `${nearestHospital?.lat},${nearestHospital?.lng}`}&travelmode=driving`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-full sm:flex-1 py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md transition-all"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>Open in Google Maps</span>
+                  </a>
+                  <button
+                    onClick={() => {
+                      triggerHaptic('light');
+                      setMapLoadError(false);
+                    }}
+                    className="w-full sm:w-auto py-2 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 border border-white/20 text-xs font-bold transition-all cursor-pointer"
+                  >
+                    Retry Maps Engine
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>

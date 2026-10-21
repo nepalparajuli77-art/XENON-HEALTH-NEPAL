@@ -9,7 +9,6 @@ import { Navbar } from './components/Navbar';
 import { Sidebar } from './components/Sidebar';
 import { DashboardView } from './components/DashboardView';
 import { DoctorDashboardView } from './components/DoctorDashboardView';
-import { DoctorDirectoryView } from './components/DoctorDirectoryView';
 import { DoctorPortalView } from './components/DoctorPortalView';
 import { DeveloperConsoleView } from './components/DeveloperConsoleView';
 import { DoctorsView } from './components/DoctorsView';
@@ -184,14 +183,9 @@ export default function App() {
     api.getUsers().then((dbUsers) => {
       if (Array.isArray(dbUsers) && dbUsers.length > 0) {
         setUsers(dbUsers);
+        // Preserve local currentUser profile edits (source of truth) and sync up to server
         if (currentUser) {
-          const fresh = dbUsers.find((u) => u.id === currentUser.id || u.username === currentUser.username);
-          if (fresh) {
-            setCurrentUser(fresh);
-            try {
-              localStorage.setItem('telemed_current_user', JSON.stringify(fresh));
-            } catch {}
-          }
+          api.updateUser(currentUser.id, currentUser).catch(() => {});
         }
       }
     });
@@ -848,7 +842,7 @@ export default function App() {
       }
       return updated;
     });
-    showToast(`Appointment confirmed with ${newApt.doctor_name} for ${newApt.date}!`);
+    showToast(`Appointment confirmed with ${newApt.doctor_name}! Automated confirmation email dispatched.`);
   };
 
   const handleCancelAppointment = (appointmentId: string) => {
@@ -1015,8 +1009,8 @@ export default function App() {
             />
           )}
 
-          {/* DOCTOR WORKSPACE: Strictly isolated clinical dashboard for doctors, directory for patients */}
-          {(currentTab === 'doctors' || currentTab === 'doctor-dashboard' || currentTab === 'doctor-settings') && (
+          {/* DOCTOR WORKSPACE & BOOKING: Clinical dashboard for doctors, booking directory for patients */}
+          {(currentTab === 'doctors' || currentTab === 'book' || currentTab === 'doctor-dashboard' || currentTab === 'doctor-settings') && (
             currentUser?.role === 'doctor' && activeDoctor ? (
               <DoctorDashboardView
                 currentDoctor={activeDoctor}
@@ -1037,15 +1031,6 @@ export default function App() {
                 onOpenDoctorRegister={() => handleOpenAuth('doctor-login')}
               />
             )
-          )}
-
-          {/* BOOK SPECIALIST FOR PATIENTS */}
-          {currentTab === 'book' && (
-            <DoctorDirectoryView
-              doctors={doctors}
-              language={language}
-              onBookDoctor={(doc) => handleOpenBookModal(doc)}
-            />
           )}
 
           {currentTab === 'developer' && (

@@ -10,7 +10,8 @@ import {
   Code,
   KeyRound,
   Building2,
-  Navigation
+  Navigation,
+  ShieldCheck
 } from 'lucide-react';
 
 interface MobileBottomNavProps {
@@ -94,9 +95,9 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           isSpecial: true
         },
         {
-          id: 'book',
-          label: language === 'np' ? 'डाक्टर' : 'Book OPD',
-          icon: Stethoscope
+          id: 'doctors',
+          label: language === 'np' ? 'डाक्टर' : 'Doctors',
+          icon: ShieldCheck
         },
         {
           id: 'emergency',

@@ -7,27 +7,36 @@ import {
   signOut,
   type User,
 } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import { firebaseConfig } from './firebaseConfig.ts';
 
-// Initialize Firebase client safely using environment-based configuration
+// Initialize Firebase client safely using configuration
 export const app = !getApps().length
-  ? initializeApp({
-      ...firebaseConfig,
-      apiKey: firebaseConfig.apiKey || 'dev-environment-key',
-    })
+  ? initializeApp(firebaseConfig)
   : getApp();
 
 export const auth = getAuth(app);
-export const firestore = getFirestore(app);
+export const firestore = firebaseConfig.firestoreDatabaseId
+  ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
+  : getFirestore(app);
+
+// Validate connection to Firestore per skill guidelines
+async function testConnection() {
+  try {
+    await getDocFromServer(doc(firestore, 'health', 'connection-check'));
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('the client is offline')) {
+      console.warn('Firebase Firestore notice:', error.message);
+    }
+  }
+}
+testConnection();
 
 // Provider configured with Google Workspace scopes (Gmail & Contacts)
 export const googleAuthProvider = new GoogleAuthProvider();
 googleAuthProvider.addScope('https://www.googleapis.com/auth/userinfo.email');
 googleAuthProvider.addScope('https://www.googleapis.com/auth/userinfo.profile');
 googleAuthProvider.addScope('https://www.googleapis.com/auth/gmail.send');
-googleAuthProvider.addScope('https://www.googleapis.com/auth/gmail.readonly');
-googleAuthProvider.addScope('https://www.googleapis.com/auth/contacts.readonly');
 
 // In-memory token storage (Do NOT store in localStorage per security guidelines)
 let cachedAccessToken: string | null = null;

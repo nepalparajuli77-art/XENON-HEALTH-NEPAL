@@ -197,12 +197,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           badge: 'Daily'
         },
         {
-          id: 'book',
-          label: language === 'np' ? 'विशेषज्ञ डाक्टर बुकिङ' : 'Book Specialist Doctor',
-          shortLabel: 'Book OPD',
-          icon: Stethoscope
-        },
-        {
           id: 'doctors',
           label: language === 'np' ? 'डाक्टर तथा NMC प्रमाणीकरण' : 'Doctors & NMC Verification',
           shortLabel: 'NMC Verify',
