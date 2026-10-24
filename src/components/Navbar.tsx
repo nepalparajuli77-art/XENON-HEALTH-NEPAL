@@ -228,10 +228,10 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 onClick={() => {
                   triggerHaptic('medium');
-                  onOpenWorkspace('recovery');
+                  onOpenWorkspace('notify');
                 }}
                 className="p-2 rounded-full bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 text-blue-600 dark:text-blue-400 text-xs border border-blue-200 dark:border-blue-900 transition-colors cursor-pointer"
-                title="Google Workspace (Gmail & Contacts)"
+                title="Google Workspace (Gmail Telemedicine Alerts)"
               >
                 <Mail className="w-3.5 h-3.5" />
               </button>
@@ -303,12 +303,12 @@ export const Navbar: React.FC<NavbarProps> = ({
                           <button
                             onClick={() => {
                               setUserDropdownOpen(false);
-                              onOpenWorkspace('recovery');
+                              onOpenWorkspace('notify');
                             }}
                             className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors text-left font-bold"
                           >
                             <Mail className="w-3.5 h-3.5" />
-                            <span>Gmail Recovery &amp; Alerts</span>
+                            <span>Gmail Telemedicine Alerts</span>
                           </button>
                           <button
                             onClick={() => {

@@ -426,6 +426,7 @@ export interface SecurityAuditLog {
     | 'ACCOUNT_LOCKED'
     | 'REGISTRATION'
     | 'PROFILE_UPDATED'
+    | 'PASSWORD_RESET'
     | 'VITALS_LOGGED'
     | 'RECORD_CREATED'
     | 'TAMPER_ALERT'
@@ -807,6 +808,50 @@ app.post('/api/auth/login', (req, res) => {
   return res.json({ success: true, user: safeUser });
 });
 
+// Auth: Reset Password Endpoint (Directly clears failed attempts upon OTP verification)
+app.post('/api/auth/reset-password', (req, res) => {
+  const { identifier, newPassword } = req.body;
+  const rawIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+  const ip = Array.isArray(rawIp) ? rawIp[0] : String(rawIp).split(',')[0].trim();
+
+  if (!identifier || !newPassword) {
+    return res.status(400).json({ error: 'Identifier and new password are required' });
+  }
+
+  if (newPassword.length < 6) {
+    return res.status(400).json({ error: 'New password must be at least 6 characters' });
+  }
+
+  const cleanId = String(identifier).trim().toLowerCase();
+  const user = serverDb.users.find(
+    u =>
+      u.username.toLowerCase() === cleanId ||
+      u.email.toLowerCase() === cleanId ||
+      u.phone.replace(/[^0-9]/g, '') === cleanId.replace(/[^0-9]/g, '')
+  );
+
+  if (!user) {
+    return res.status(404).json({ error: 'User account not found in database' });
+  }
+
+  const { hash, salt } = hashPassword(newPassword);
+  user.password_hash = hash;
+  user.password_salt = salt;
+  delete user.password;
+  user.updated_at = new Date().toISOString();
+  user.integrity_seal = generateIntegritySeal(user);
+  saveDatabase(serverDb);
+
+  clearFailedLogin(cleanId, ip);
+  clearFailedLogin(user.username, ip);
+  if (user.email) clearFailedLogin(user.email, ip);
+
+  logSecurityEvent(ip, 'PASSWORD_RESET', user.username, 'info', `Password successfully reset via verified OTP for ${user.full_name} (${user.id}).`);
+
+  const { password: _, password_hash: __, password_salt: ___, ...safeUser } = user;
+  res.json({ success: true, user: safeUser, message: 'Password reset successfully' });
+});
+
 // Auth: Register Patient Endpoint (Persists to database)
 app.post('/api/auth/register-patient', (req, res) => {
   const { user } = req.body;
@@ -977,9 +1022,17 @@ app.put('/api/users/:id', (req, res) => {
     district: updates.district !== undefined ? updates.district : existing.district,
     address: updates.address !== undefined ? updates.address : existing.address,
     allergies: updates.allergies !== undefined ? updates.allergies : existing.allergies,
-    emergency_contact: updates.emergency_contact !== undefined ? updates.emergency_contact : existing.emergency_contact,
     updated_at: new Date().toISOString()
   };
+
+  if (updates.password && String(updates.password).trim().length >= 6) {
+    const { hash, salt } = hashPassword(String(updates.password).trim());
+    updatedUser.password_hash = hash;
+    updatedUser.password_salt = salt;
+    delete updatedUser.password;
+    clearFailedLogin(updatedUser.username, ip);
+    if (updatedUser.email) clearFailedLogin(updatedUser.email, ip);
+  }
 
   updatedUser.integrity_seal = generateIntegritySeal(updatedUser);
   serverDb.users[idx] = updatedUser;

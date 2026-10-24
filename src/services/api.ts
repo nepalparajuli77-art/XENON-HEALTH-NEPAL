@@ -188,6 +188,24 @@ class ApiService {
     }
   }
 
+  async resetPassword(identifier: string, newPassword: string): Promise<{ success: boolean; user?: User; error?: string }> {
+    try {
+      const res = await fetch(`${this.baseUrl}/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier, newPassword })
+      });
+      const data = await res.json();
+      if (res.ok && data.success && data.user) {
+        this.syncUserToLocalCaches(data.user);
+        return { success: true, user: data.user };
+      }
+      return { success: false, error: data.error || 'Failed to reset password' };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Failed to connect to password reset service' };
+    }
+  }
+
   // --------------------------------------------------------------------------
   // VITALS TELEMETRY SERVICES
   // --------------------------------------------------------------------------

@@ -34,9 +34,15 @@ export const WorkspaceIntegrationsModal: React.FC<WorkspaceIntegrationsModalProp
   language,
   currentUser,
   onUpdateCurrentUser,
-  initialTab = 'recovery'
+  initialTab = 'notify'
 }) => {
   const [activeTab, setActiveTab] = useState<'recovery' | 'notify' | 'contacts'>(initialTab);
+
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab(initialTab);
+    }
+  }, [isOpen, initialTab]);
 
   // Recovery State
   const [recoveryEmail, setRecoveryEmail] = useState(currentUser?.email || '');
@@ -220,19 +226,6 @@ export const WorkspaceIntegrationsModal: React.FC<WorkspaceIntegrationsModalProp
         <div className="flex items-center gap-2 mt-4 p-1 rounded-2xl bg-slate-100 dark:bg-slate-800">
           <button
             type="button"
-            onClick={() => setActiveTab('recovery')}
-            className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-              activeTab === 'recovery'
-                ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-            }`}
-          >
-            <KeyRound className="w-4 h-4" />
-            <span>Account Recovery</span>
-          </button>
-
-          <button
-            type="button"
             onClick={() => setActiveTab('notify')}
             className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
               activeTab === 'notify'
@@ -241,7 +234,7 @@ export const WorkspaceIntegrationsModal: React.FC<WorkspaceIntegrationsModalProp
             }`}
           >
             <Send className="w-4 h-4" />
-            <span>Notify Patient</span>
+            <span>Telemedicine Alerts</span>
           </button>
 
           <button
@@ -254,7 +247,20 @@ export const WorkspaceIntegrationsModal: React.FC<WorkspaceIntegrationsModalProp
             }`}
           >
             <Users className="w-4 h-4" />
-            <span>Google Contacts</span>
+            <span>Emergency Contacts</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('recovery')}
+            className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              activeTab === 'recovery'
+                ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+            }`}
+          >
+            <KeyRound className="w-4 h-4" />
+            <span>Password Reset</span>
           </button>
         </div>
 

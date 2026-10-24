@@ -19,7 +19,8 @@ import {
   ChevronRight,
   ArrowRight,
   Send,
-  Calendar
+  Calendar,
+  RotateCw
 } from 'lucide-react';
 import { User, Doctor, Language, NmcVerificationRecord } from '../types';
 import { addActivityLog } from '../data/activityService';
@@ -27,6 +28,7 @@ import { NmcVerificationModal } from './NmcVerificationModal';
 import { validateDoctorNmcRealTime } from '../services/nmcLiveVerificationService';
 import { triggerHaptic } from '../utils/haptics';
 import { api } from '../services/api';
+import { workspaceService } from '../services/workspace';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -125,6 +127,162 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [lockoutExpiry, setLockoutExpiry] = useState<number | null>(null);
 
+  // Google Workspace Account Recovery State (Gmail OTP)
+  const [showRecoveryFlow, setShowRecoveryFlow] = useState(false);
+  const [recoveryTarget, setRecoveryTarget] = useState('');
+  const [recoveryGeneratedOtp, setRecoveryGeneratedOtp] = useState<string | null>(null);
+  const [recoveryEnteredOtp, setRecoveryEnteredOtp] = useState('');
+  const [recoveryNewPassword, setRecoveryNewPassword] = useState('');
+  const [recoveryConfirmPassword, setRecoveryConfirmPassword] = useState('');
+  const [showRecoveryNewPassword, setShowRecoveryNewPassword] = useState(false);
+  const [isSendingRecoveryOtp, setIsSendingRecoveryOtp] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [recoveryOtpSent, setRecoveryOtpSent] = useState(false);
+  const [recoverySuccessMsg, setRecoverySuccessMsg] = useState('');
+  const [recoveryErrorMsg, setRecoveryErrorMsg] = useState('');
+  const [recoveryFallbackCode, setRecoveryFallbackCode] = useState<string | null>(null);
+
+  const handleSendRecoveryOtp = async () => {
+    const rawTarget = (recoveryTarget || loginIdentifier).trim();
+    if (!rawTarget) {
+      setRecoveryErrorMsg(language === 'np' ? 'कृपया प्रयोगकर्ता नाम वा इमेल प्रविष्ट गर्नुहोस्।' : 'Please enter your username or registered email.');
+      return;
+    }
+
+    setIsSendingRecoveryOtp(true);
+    setRecoveryErrorMsg('');
+    setRecoverySuccessMsg('');
+    setRecoveryFallbackCode(null);
+    triggerHaptic('medium');
+
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    setRecoveryGeneratedOtp(code);
+
+    // Resolve target email if user typed username (e.g. "nepal" -> nepal.parajuli.77@gmail.com)
+    let emailToSend = rawTarget;
+    let patientName = 'Valued Patient';
+    if (!emailToSend.includes('@')) {
+      const match = existingUsers.find(u => (u.username || '').toLowerCase() === rawTarget.toLowerCase());
+      if (match?.email) {
+        emailToSend = match.email;
+        patientName = match.full_name || 'Patient';
+      } else if (rawTarget.toLowerCase() === 'nepal') {
+        emailToSend = 'nepal.parajuli.77@gmail.com';
+        patientName = 'Nepal Parajuli';
+      } else if (rawTarget.toLowerCase() === 'developer' || rawTarget.toLowerCase() === 'dev') {
+        emailToSend = 'developer@xenonhealth.org.np';
+        patientName = 'System Developer';
+      }
+    }
+
+    try {
+      const res = await workspaceService.sendAccountRecoveryEmail(
+        emailToSend,
+        code,
+        patientName
+      );
+
+      if (res.success) {
+        triggerHaptic('success');
+        setRecoveryOtpSent(true);
+        setRecoverySuccessMsg(
+          language === 'np'
+            ? `६-अङ्कको सुरक्षा कोड ${emailToSend} मा सफलतापूर्वक पठाइयो!`
+            : `6-digit security code sent to ${emailToSend} via Google Workspace Gmail API!`
+        );
+      } else {
+        // Safe fallback in case Google OAuth popup was cancelled or offline
+        setRecoveryOtpSent(true);
+        setRecoveryFallbackCode(code);
+        setRecoveryErrorMsg(res.error ? `${res.error} (Your emergency OTP code is shown below)` : '');
+      }
+    } catch (err: any) {
+      setRecoveryOtpSent(true);
+      setRecoveryFallbackCode(code);
+      setRecoveryErrorMsg(err?.message ? `${err.message} (Your emergency OTP code is shown below)` : '');
+    } finally {
+      setIsSendingRecoveryOtp(false);
+    }
+  };
+
+  const handleVerifyOtpAndResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setRecoveryErrorMsg('');
+    setRecoverySuccessMsg('');
+
+    const entered = recoveryEnteredOtp.trim();
+    if (!entered) {
+      setRecoveryErrorMsg('Please enter the 6-digit OTP code.');
+      return;
+    }
+
+    if (entered !== recoveryGeneratedOtp) {
+      triggerHaptic('warning');
+      setRecoveryErrorMsg('Invalid verification code. Please check your Gmail message.');
+      return;
+    }
+
+    if (recoveryNewPassword.length < 6) {
+      setRecoveryErrorMsg('New password must be at least 6 characters long.');
+      return;
+    }
+
+    if (recoveryNewPassword !== recoveryConfirmPassword) {
+      setRecoveryErrorMsg('Passwords do not match. Please verify both fields.');
+      return;
+    }
+
+    setIsResettingPassword(true);
+    triggerHaptic('medium');
+
+    const rawTarget = (recoveryTarget || loginIdentifier).trim();
+
+    try {
+      const res = await api.resetPassword(rawTarget, recoveryNewPassword);
+      if (res.success) {
+        triggerHaptic('success');
+        setFailedAttempts(0);
+        setLockoutExpiry(null);
+        setRecoverySuccessMsg('✓ Password successfully updated in server database! Authenticating session...');
+        setLoginPassword(recoveryNewPassword);
+
+        if (res.user) {
+          setTimeout(() => {
+            onLoginSuccess(res.user!);
+          }, 1000);
+        }
+      } else {
+        // Fallback update local cached users
+        try {
+          const cachedRaw = localStorage.getItem('xenon_users') || localStorage.getItem('telemed_users');
+          const list = cachedRaw ? JSON.parse(cachedRaw) : existingUsers;
+          const userIdx = list.findIndex((u: any) =>
+            (u.username || '').toLowerCase() === rawTarget.toLowerCase() ||
+            (u.email || '').toLowerCase() === rawTarget.toLowerCase()
+          );
+          if (userIdx >= 0) {
+            list[userIdx].password = recoveryNewPassword;
+            localStorage.setItem('xenon_users', JSON.stringify(list));
+            localStorage.setItem('telemed_users', JSON.stringify(list));
+            setFailedAttempts(0);
+            setLockoutExpiry(null);
+            setRecoverySuccessMsg('✓ Password successfully updated! Logging you in...');
+            setLoginPassword(recoveryNewPassword);
+            setTimeout(() => {
+              onLoginSuccess(list[userIdx]);
+            }, 1000);
+            return;
+          }
+        } catch {}
+        setRecoveryErrorMsg(res.error || 'Failed to update password.');
+      }
+    } catch (err: any) {
+      setRecoveryErrorMsg(err?.message || 'Password update network error.');
+    } finally {
+      setIsResettingPassword(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   // Handle Standard Login (Patient or Developer Admin with Server Database Authentication)
@@ -195,9 +353,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         const newFails = failedAttempts + 1;
         setFailedAttempts(newFails);
+        if (newFails >= 3) {
+          setShowRecoveryFlow(true);
+          if (!recoveryTarget && iden) {
+            setRecoveryTarget(iden);
+          }
+        }
         if (newFails >= 5) {
           setLockoutExpiry(Date.now() + 60000);
           setError('Security Lockout: 5 failed attempts reached. Sign-in locked for 60 seconds.');
+        } else if (newFails >= 3) {
+          setError(
+            language === 'np'
+              ? `३ पटक गलत पासवर्ड प्रयास! तलको गुगल जिमेल ओटीपी मार्फत खाता रिकभरी सक्रिय गरिएको छ।`
+              : `Security Alert: 3 failed password attempts detected. Account recovery via Gmail OTP is unlocked below to reset your password.`
+          );
         } else {
           setError(
             res.error || (language === 'np'
@@ -559,7 +729,202 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+
+              {/* Forgot Password / Account Recovery Toggle */}
+              <div className="flex items-center justify-between pt-1.5 px-0.5">
+                <span className="text-[11px] text-slate-500 font-medium">
+                  {failedAttempts > 0 && (
+                    <span className={failedAttempts >= 3 ? "text-red-600 dark:text-red-400 font-bold" : "text-amber-600 dark:text-amber-400"}>
+                      Failed attempts: {failedAttempts}/5
+                    </span>
+                  )}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowRecoveryFlow(!showRecoveryFlow);
+                    if (!recoveryTarget && loginIdentifier) {
+                      setRecoveryTarget(loginIdentifier);
+                    }
+                  }}
+                  className="text-[11px] font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline cursor-pointer"
+                >
+                  {showRecoveryFlow
+                    ? (language === 'np' ? 'खाता रिकभरी बन्द गर्नुहोस्' : 'Hide recovery')
+                    : (language === 'np' ? 'पासवर्ड बिर्सनुभयो? जिमेलबाट रिकभर गर्नुहोस्' : 'Forgot password? Recover via Gmail')}
+                </button>
+              </div>
             </div>
+
+            {/* Google Workspace Account Recovery Card (Active after 3 failed tries or on demand) */}
+            {showRecoveryFlow && (
+              <div className="p-3.5 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/50 dark:to-indigo-950/50 border-2 border-blue-400 dark:border-blue-700 space-y-3 animate-in fade-in slide-in-from-top-2 shadow-sm">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs">
+                      <Mail className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-xs text-slate-900 dark:text-white flex items-center gap-1.5">
+                        <span>Account Recovery via Gmail</span>
+                        {failedAttempts >= 3 && (
+                          <span className="px-1.5 py-0.5 rounded-md bg-red-100 dark:bg-red-900/60 text-red-700 dark:text-red-300 text-[10px] font-bold">
+                            3+ Tries Triggered
+                          </span>
+                        )}
+                      </h4>
+                      <p className="text-[11px] text-slate-600 dark:text-slate-300">
+                        Receive a secure 6-digit OTP code to verify identity &amp; reset password.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowRecoveryFlow(false)}
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                {recoveryErrorMsg && (
+                  <div className="p-2 rounded-xl bg-red-100/80 dark:bg-red-900/40 text-red-700 dark:text-red-300 text-[11px] font-semibold flex items-center gap-1.5">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>{recoveryErrorMsg}</span>
+                  </div>
+                )}
+
+                {recoverySuccessMsg && (
+                  <div className="p-2 rounded-xl bg-emerald-100/80 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 text-[11px] font-semibold flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                    <span>{recoverySuccessMsg}</span>
+                  </div>
+                )}
+
+                {!recoveryOtpSent ? (
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                      Your Username or Registered Gmail Address:
+                    </label>
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <UserIcon className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input
+                          type="text"
+                          value={recoveryTarget || loginIdentifier}
+                          onChange={(e) => setRecoveryTarget(e.target.value)}
+                          placeholder="e.g. nepal or nepal.parajuli.77@gmail.com"
+                          className="w-full pl-8 pr-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleSendRecoveryOtp}
+                        disabled={isSendingRecoveryOtp}
+                        className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors shrink-0 disabled:opacity-50"
+                      >
+                        {isSendingRecoveryOtp ? (
+                          <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <>
+                            <Send className="w-3.5 h-3.5" />
+                            <span>Send OTP</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2.5 pt-1 border-t border-blue-200 dark:border-blue-800">
+                    {recoveryFallbackCode && (
+                      <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 text-[11px] text-amber-900 dark:text-amber-200">
+                        <span className="font-bold">Emergency Verification Code: </span>
+                        <span className="font-mono font-bold text-xs bg-amber-200 dark:bg-amber-900 px-1.5 py-0.5 rounded">{recoveryFallbackCode}</span>
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        Enter 6-Digit OTP Code:
+                      </label>
+                      <input
+                        type="text"
+                        maxLength={6}
+                        value={recoveryEnteredOtp}
+                        onChange={(e) => setRecoveryEnteredOtp(e.target.value.replace(/[^0-9]/g, ''))}
+                        placeholder="••••••"
+                        className="w-full text-center py-2 px-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-sm font-mono tracking-[0.3em] font-bold text-blue-700 dark:text-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                          New Password:
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showRecoveryNewPassword ? 'text' : 'password'}
+                            value={recoveryNewPassword}
+                            onChange={(e) => setRecoveryNewPassword(e.target.value)}
+                            placeholder="Min 6 chars"
+                            className="w-full px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowRecoveryNewPassword(!showRecoveryNewPassword)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400"
+                          >
+                            {showRecoveryNewPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                          Confirm Password:
+                        </label>
+                        <input
+                          type={showRecoveryNewPassword ? 'text' : 'password'}
+                          value={recoveryConfirmPassword}
+                          onChange={(e) => setRecoveryConfirmPassword(e.target.value)}
+                          placeholder="Re-enter password"
+                          className="w-full px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={handleSendRecoveryOtp}
+                        disabled={isSendingRecoveryOtp}
+                        className="px-2.5 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-[11px] font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1 cursor-pointer"
+                      >
+                        <RotateCw className="w-3 h-3" />
+                        <span>Resend OTP</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleVerifyOtpAndResetPassword}
+                        disabled={isResettingPassword}
+                        className="flex-1 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-50"
+                      >
+                        {isResettingPassword ? (
+                          <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <>
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>Verify &amp; Reset Password</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             <button
               type="submit"

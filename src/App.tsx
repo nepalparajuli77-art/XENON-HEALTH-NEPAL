@@ -480,7 +480,7 @@ export default function App() {
 
   // Google Workspace Modal State (Gmail & Contacts)
   const [workspaceModalOpen, setWorkspaceModalOpen] = useState(false);
-  const [workspaceInitialTab, setWorkspaceInitialTab] = useState<'recovery' | 'notify' | 'contacts'>('recovery');
+  const [workspaceInitialTab, setWorkspaceInitialTab] = useState<'recovery' | 'notify' | 'contacts'>('notify');
 
   // Notification Toast State
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -953,7 +953,7 @@ export default function App() {
           onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
           onNotifyToast={showToast}
           onOpenWorkspace={(tab) => {
-            setWorkspaceInitialTab(tab || 'recovery');
+            setWorkspaceInitialTab(tab || 'notify');
             setWorkspaceModalOpen(true);
           }}
         />
