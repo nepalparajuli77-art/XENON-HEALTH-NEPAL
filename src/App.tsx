@@ -30,6 +30,7 @@ import { MobileBottomNav } from './components/MobileBottomNav';
 import { motion, AnimatePresence } from 'framer-motion';
 import { initBackgroundSync } from './services/syncService';
 import { api } from './services/api';
+import { logout as firebaseLogout } from './lib/firebase';
 import {
   INITIAL_DOCTORS,
   INITIAL_HOSPITALS,
@@ -229,7 +230,6 @@ export default function App() {
       window.removeEventListener('xenon-user-updated', handleExternalUserUpdate);
       window.removeEventListener('xenon-hospitals-updated', handleExternalHospitalsUpdate);
     };
-    return () => window.removeEventListener('xenon-user-updated', handleExternalUserUpdate);
   }, []);
 
   // Track whether site has already been operated
@@ -474,8 +474,8 @@ export default function App() {
   const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [activeVideoAppointment, setActiveVideoAppointment] = useState<Appointment | null>(null);
 
-  // Auth Modal state - Automatically opens when visiting without an active session
-  const [authModalOpen, setAuthModalOpen] = useState<boolean>(() => !currentUser);
+  // Auth Modal state - Opens on demand or when accessing protected features
+  const [authModalOpen, setAuthModalOpen] = useState<boolean>(() => Boolean(initialUrl.authMode));
   const [authModalMode, setAuthModalMode] = useState<'login' | 'register-doctor' | 'register-patient'>('login');
 
   // Google Workspace Modal State (Gmail & Contacts)
@@ -805,11 +805,11 @@ export default function App() {
     } catch (e) {
       console.warn(e);
     }
+    firebaseLogout().catch(() => {});
     setCurrentTab('xenon');
-    setAuthModalMode('login');
-    setAuthModalOpen(true);
-    syncUrlWithState('xenon', { authMode: 'login', lang: language });
-    showToast('Signed out successfully. Please sign in or register to continue.');
+    setAuthModalOpen(false);
+    syncUrlWithState('xenon', { lang: language });
+    showToast('Signed out successfully.');
   };
 
   // Handlers

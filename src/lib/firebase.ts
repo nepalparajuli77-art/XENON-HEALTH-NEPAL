@@ -1,24 +1,41 @@
-import { initializeApp, getApps, getApp } from 'firebase/app';
+import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import {
   getAuth,
   signInWithPopup,
   GoogleAuthProvider,
   onAuthStateChanged,
   signOut,
+  type Auth,
   type User,
 } from 'firebase/auth';
-import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import { getFirestore, doc, getDocFromServer, type Firestore } from 'firebase/firestore';
 import { firebaseConfig } from './firebaseConfig.ts';
 
-// Initialize Firebase client safely using configuration
-export const app = !getApps().length
+// Initialize Firebase client safely using verified configuration
+export const app: FirebaseApp = !getApps().length
   ? initializeApp(firebaseConfig)
   : getApp();
 
-export const auth = getAuth(app);
-export const firestore = firebaseConfig.firestoreDatabaseId
-  ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
-  : getFirestore(app);
+export const auth: Auth = (() => {
+  try {
+    return getAuth(app);
+  } catch (error) {
+    console.warn('Firebase Auth initialization warning:', error);
+    // Return safe proxy/stub or re-attempt
+    return getAuth(app);
+  }
+})();
+
+export const firestore: Firestore = (() => {
+  try {
+    return firebaseConfig.firestoreDatabaseId
+      ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
+      : getFirestore(app);
+  } catch (error) {
+    console.warn('Firestore initialization warning:', error);
+    return getFirestore(app);
+  }
+})();
 
 // Validate connection to Firestore per skill guidelines
 async function testConnection() {
@@ -46,6 +63,10 @@ export const initAuth = (
   onAuthSuccess?: (user: User, token: string) => void,
   onAuthFailure?: () => void
 ) => {
+  if (!auth) {
+    if (onAuthFailure) onAuthFailure();
+    return () => {};
+  }
   return onAuthStateChanged(auth, async (user: User | null) => {
     if (user) {
       try {
@@ -62,6 +83,9 @@ export const initAuth = (
 };
 
 export const googleSignIn = async (): Promise<{ user: User; accessToken: string; idToken: string } | null> => {
+  if (!auth) {
+    throw new Error('Firebase Auth is not available.');
+  }
   try {
     isSigningIn = true;
     const result = await signInWithPopup(auth, googleAuthProvider);
@@ -87,6 +111,8 @@ export const getCachedAccessToken = (): string | null => {
 };
 
 export const logout = async () => {
-  await signOut(auth);
+  if (auth) {
+    await signOut(auth);
+  }
   cachedAccessToken = null;
 };
