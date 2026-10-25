@@ -146,8 +146,6 @@ const SEARCHABLE_LOCATIONS: SearchableLocationItem[] = [
   { id: 'loc_hosp_om', name: 'Om Hospital (Chabahil)', nameNp: 'ओम हस्पिटल (चाबहिल)', category: 'hospital', lat: 27.7176, lng: 85.3503, district: 'Kathmandu', details: 'Surgical & Laparoscopy' }
 ];
 
-const FALLBACK_MAPS_KEY = 'AIzaSyALom9O46yLbzkV_GOnAjOl6B6sUpODgbE';
-
 // Helper to resolve reverse geocode or proximity to nearest known neighborhood/city
 const resolveLocationName = async (lat: number, lng: number, lang: Language): Promise<string> => {
   // Proximity check against SEARCHABLE_LOCATIONS neighborhoods and cities
@@ -415,9 +413,9 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
 
   const routePodRef = useRef<HTMLDivElement | null>(null);
 
-  // Reactive Google Maps API Key State (with instant fallback demo key)
+  // Reactive Google Maps API Key State
   const [apiKey, setApiKey] = useState<string>(
-    () => (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY || FALLBACK_MAPS_KEY
+    () => (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY || ''
   );
 
   useEffect(() => {
@@ -1296,7 +1294,7 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
         <div className="h-[520px] w-full relative">
           {!mapLoadError ? (
             <APIProvider
-              apiKey={apiKey || FALLBACK_MAPS_KEY}
+              apiKey={apiKey || (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY || ''}
               libraries={['places', 'marker', 'routes', 'geometry']}
               onLoad={() => setMapLoadError(false)}
               onError={(err) => {

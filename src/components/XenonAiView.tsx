@@ -219,9 +219,8 @@ export const XenonAiView: React.FC<XenonAiViewProps> = ({
   // ============================================================================
   // MAPS SYSTEM: GOOGLE MAPS PLATFORM TRIAGE & FACILITY MARKERS
   // ============================================================================
-  const FALLBACK_MAPS_KEY = 'AIzaSyALom9O46yLbzkV_GOnAjOl6B6sUpODgbE';
   const [mapsApiKey, setMapsApiKey] = useState<string>(
-    () => (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY || FALLBACK_MAPS_KEY
+    () => (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY || ''
   );
 
   useEffect(() => {
