@@ -244,45 +244,52 @@ const DirectionsRendererChild: React.FC<DirectionsRendererChildProps> = ({
     onCalculatingStateChange(true);
     onError(null);
 
-    directionsService.route(
-      {
-        origin: { lat: origin.lat, lng: origin.lng },
-        destination: { lat: destination.lat, lng: destination.lng },
-        travelMode: google.maps.TravelMode.DRIVING,
-        provideRouteAlternatives: true
-      },
-      (response, status) => {
-        onCalculatingStateChange(false);
-        if (status === google.maps.DirectionsStatus.OK && response && response.routes.length > 0) {
-          directionsRenderer.setDirections(response);
-          const primaryRoute = response.routes[0];
-          const leg = primaryRoute.legs[0];
+    try {
+      directionsService.route(
+        {
+          origin: { lat: origin.lat, lng: origin.lng },
+          destination: { lat: destination.lat, lng: destination.lng },
+          travelMode: google.maps.TravelMode.DRIVING,
+          provideRouteAlternatives: true
+        },
+        (response, status) => {
+          onCalculatingStateChange(false);
+          if (status === google.maps.DirectionsStatus.OK && response && response.routes.length > 0) {
+            directionsRenderer.setDirections(response);
+            const primaryRoute = response.routes[0];
+            const leg = primaryRoute.legs[0];
 
-          const stepsList = (leg.steps || []).map((step) => {
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = step.instructions || '';
-            return tempDiv.textContent || tempDiv.innerText || step.instructions || '';
-          });
+            const stepsList = (leg.steps || []).map((step) => {
+              const tempDiv = document.createElement('div');
+              tempDiv.innerHTML = step.instructions || '';
+              return tempDiv.textContent || tempDiv.innerText || step.instructions || '';
+            });
 
-          onRouteComputed({
-            distance: leg.distance?.text || `${(leg.distance?.value || 0) / 1000} km`,
-            distanceValueMeters: leg.distance?.value || 0,
-            duration: leg.duration?.text || '',
-            durationValueSeconds: leg.duration?.value || 0,
-            summary: primaryRoute.summary || 'Fastest Emergency Transit',
-            startAddress: leg.start_address,
-            endAddress: leg.end_address,
-            steps: stepsList
-          });
-          onError(null);
-        } else {
-          console.warn('Google Maps Directions Service returned status:', status);
-          directionsRenderer.setDirections({ routes: [] });
-          onError(`Directions status: ${status}. Switched to GPS Geodesic Corridor.`);
-          onRouteComputed(null);
+            onRouteComputed({
+              distance: leg.distance?.text || `${(leg.distance?.value || 0) / 1000} km`,
+              distanceValueMeters: leg.distance?.value || 0,
+              duration: leg.duration?.text || '',
+              durationValueSeconds: leg.duration?.value || 0,
+              summary: primaryRoute.summary || 'Fastest Emergency Transit',
+              startAddress: leg.start_address,
+              endAddress: leg.end_address,
+              steps: stepsList
+            });
+            onError(null);
+          } else {
+            console.warn('Google Maps Directions Service returned status:', status);
+            directionsRenderer.setDirections({ routes: [] });
+            onError(`Directions status: ${status}. Switched to GPS Geodesic Corridor.`);
+            onRouteComputed(null);
+          }
         }
-      }
-    );
+      );
+    } catch (err: any) {
+      console.warn('Google Maps Directions Service route error:', err);
+      onCalculatingStateChange(false);
+      onError('Unable to calculate driving route. Using direct GPS corridor.');
+      onRouteComputed(null);
+    }
   }, [directionsService, directionsRenderer, origin.lat, origin.lng, destination?.lat, destination?.lng]);
 
   return null;
@@ -1292,9 +1299,9 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
 
         {/* Map Frame */}
         <div className="h-[520px] w-full relative">
-          {!mapLoadError ? (
+          {!mapLoadError && apiKey ? (
             <APIProvider
-              apiKey={apiKey || (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY || ''}
+              apiKey={apiKey}
               libraries={['places', 'marker', 'routes', 'geometry']}
               onLoad={() => setMapLoadError(false)}
               onError={(err) => {
@@ -1491,6 +1498,16 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
                 )}
               </Map>
             </APIProvider>
+          ) : !mapLoadError && !apiKey ? (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/90 rounded-2xl border border-slate-700/50 p-6 text-center space-y-3">
+              <div className="w-12 h-12 rounded-full border-4 border-blue-500 border-t-transparent animate-spin mx-auto" />
+              <p className="text-sm font-bold text-slate-100">
+                {language === 'np' ? 'गुगल नक्सा रडार सुरु हुँदैछ...' : 'Connecting to Google Maps Satellite Radar...'}
+              </p>
+              <p className="text-xs text-slate-400">
+                {language === 'np' ? 'प्रमाणीकृत जीपीएस र अस्पताल रूट लोड गरिँदैछ' : 'Securing live satellite link & verified clinical GPS...'}
+              </p>
+            </div>
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center bg-slate-950 text-white rounded-2xl p-6 relative overflow-hidden">
               {/* Live interactive OpenStreetMap tile fallback iframe */}

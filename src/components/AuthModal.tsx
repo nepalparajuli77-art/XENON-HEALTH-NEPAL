@@ -75,6 +75,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   }, [isOpen, initialMode]);
 
+  if (!isOpen) return null;
+
   // Standard Login state
   const [loginIdentifier, setLoginIdentifier] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
@@ -1054,11 +1056,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
               <button
                 type="button"
-                onClick={onClose}
-                className="w-full py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-between transition-colors border border-slate-200 dark:border-slate-700 cursor-pointer"
+                onClick={() => {
+                  triggerHaptic('light');
+                  onClose();
+                }}
+                className="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-between transition-all border border-slate-200 dark:border-slate-700 cursor-pointer hover:scale-[1.01] active:scale-[0.98] group"
               >
                 <span>{language === 'np' ? 'अहिले नै ब्राउज गर्नुहोस् (अतिथि)' : 'Explore as Guest'}</span>
-                <span className="underline">Browse Platform →</span>
+                <span className="underline group-hover:no-underline transition-all">Browse Platform →</span>
               </button>
             </div>
 

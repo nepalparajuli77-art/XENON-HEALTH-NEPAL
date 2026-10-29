@@ -1,4 +1,4 @@
-import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
+import { initializeApp, getApps, deleteApp, type FirebaseApp } from 'firebase/app';
 import {
   getAuth,
   signInWithPopup,
@@ -12,17 +12,33 @@ import { getFirestore, doc, getDocFromServer, type Firestore } from 'firebase/fi
 import { firebaseConfig } from './firebaseConfig.ts';
 
 // Initialize Firebase client safely using verified configuration
-export const app: FirebaseApp = !getApps().length
-  ? initializeApp(firebaseConfig)
-  : getApp();
+export const app: FirebaseApp = (() => {
+  const existingApps = getApps();
+  if (existingApps.length > 0) {
+    const defaultApp = existingApps[0];
+    if (defaultApp.options && defaultApp.options.apiKey === firebaseConfig.apiKey) {
+      return defaultApp;
+    }
+    try {
+      deleteApp(defaultApp);
+    } catch {
+      // Continue to initialize
+    }
+  }
+  return initializeApp(firebaseConfig);
+})();
 
-export const auth: Auth = (() => {
+export const auth: Auth | null = (() => {
   try {
+    const key = app?.options?.apiKey || firebaseConfig.apiKey;
+    if (!key || typeof key !== 'string' || key.includes(':') || key.length < 10) {
+      console.warn('Firebase API key is invalid or not configured.');
+      return null;
+    }
     return getAuth(app);
   } catch (error) {
     console.warn('Firebase Auth initialization warning:', error);
-    // Return safe proxy/stub or re-attempt
-    return getAuth(app);
+    return null;
   }
 })();
 
@@ -39,6 +55,9 @@ export const firestore: Firestore = (() => {
 
 // Validate connection to Firestore per skill guidelines
 async function testConnection() {
+  if (!firebaseConfig.projectId || !firebaseConfig.apiKey) {
+    return;
+  }
   try {
     await getDocFromServer(doc(firestore, 'health', 'connection-check'));
   } catch (error) {

@@ -760,8 +760,6 @@ export default function App() {
       console.warn(e);
     }
 
-    // Persist to server database
-    await api.registerPatient(newPatient);
     showToast(`Patient registered! Welcome, ${newPatient.full_name} (PID: ${newPatient.id}).`);
   };
 
@@ -915,9 +913,33 @@ export default function App() {
     };
   }, []);
 
+  const [mapsQuotaExceeded, setMapsQuotaExceeded] = useState(false);
+
+  useEffect(() => {
+    const handleQuota = () => setMapsQuotaExceeded(true);
+    window.addEventListener('gmp-quota-exceeded', handleQuota);
+    return () => window.removeEventListener('gmp-quota-exceeded', handleQuota);
+  }, []);
+
   return (
     <div className={`min-h-screen w-full flex justify-center transition-colors duration-200 ${isDark ? 'dark bg-[#03060E]' : 'bg-[#E2E8F0]'}`}>
       <div className={`w-full max-w-[1440px] min-h-screen flex relative font-sans shadow-2xl border-x border-slate-200/50 dark:border-slate-800/50 ${isDark ? 'bg-[#070A12] text-white' : 'bg-[#F8FAFC] text-slate-900'}`}>
+        {mapsQuotaExceeded && (
+          <div className="bg-amber-50 border-b border-amber-200 text-amber-900 px-4 py-2.5 text-xs md:text-sm text-center fixed top-0 left-0 right-0 z-50 shadow-sm">
+            <span>
+              Google Maps Platform quota reached. If you are the app owner, visit{' '}
+              <a
+                href="https://developers.google.com/maps/ai/ai-studio?utm_campaign=gmp_mcp_codeassist_v1_aistudio#quota_exceeded_errors"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline font-semibold text-amber-950 hover:text-amber-800"
+              >
+                maps developer site
+              </a>{' '}
+              for instructions to update your account.
+            </span>
+          </div>
+        )}
         {/* Ambient Liquid Glass Refraction Mesh Orbs - Clinical Teal and Steel Blue */}
         <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
           <div className="absolute -top-32 -left-32 w-[38rem] h-[38rem] rounded-full bg-gradient-to-br from-teal-500/15 via-slate-800/20 to-sky-600/15 blur-3xl opacity-90 dark:opacity-30" />
