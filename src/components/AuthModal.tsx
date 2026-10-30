@@ -317,8 +317,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }
     } catch (err: any) {
       console.warn('Google Sign In error:', err);
-      if (err?.code !== 'auth/popup-closed-by-user') {
-        setError(err?.message || 'Firebase Google Sign-In was cancelled or unavailable.');
+      const msg = String(err?.message || '');
+      if (err?.code === 'auth/popup-closed-by-user') {
+        setError(language === 'np' ? 'गुगल लगइन पपअप बन्द गरियो। कृपया प्रयोगकर्ता नाम वा डाक्टर लगइन प्रयोग गर्नुहोस्।' : 'Google Sign-In popup was closed. Please use direct username sign-in or Doctor/Patient registration below.');
+      } else if (msg.includes('403') || msg.includes('access_denied') || msg.includes('unauthorized-domain') || err?.code === 'auth/unauthorized-domain') {
+        setError(language === 'np'
+          ? 'गुगल लगइन पूर्व-प्रमाणित डोमेनका लागि सीमित छ। कृपया साझो प्रयोगकर्ता नाम (उदा: nepal वा developer) वा "डाक्टर लगइन" / "बिरामी दर्ता" प्रयोग गर्नुहोस्!'
+          : 'Google OAuth is in test mode for this app domain. Please sign in directly with Username/Password (e.g. nepal or developer) or click "Enter as Doctor" / "Register" below!');
+      } else {
+        setError(msg || (language === 'np' ? 'गुगल लगइन अस्थायी रूपमा उपलब्ध छैन। कृपया सीधा लगइन गर्नुहोस्।' : 'Google Sign-In is unavailable. Please sign in directly below.'));
       }
     } finally {
       setIsGoogleSigningIn(false);

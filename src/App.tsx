@@ -557,7 +557,10 @@ export default function App() {
       }
     }
 
-    if (initialUrl.authMode && !currentUser) {
+    if (!currentUser) {
+      setAuthModalMode(initialUrl.authMode || 'login');
+      setAuthModalOpen(true);
+    } else if (initialUrl.authMode) {
       setAuthModalMode(initialUrl.authMode);
       setAuthModalOpen(true);
     }
@@ -566,10 +569,10 @@ export default function App() {
     syncUrlWithState(currentTab, {
       replace: true,
       doctorId: initialUrl.doctorId,
-      authMode: initialUrl.authMode,
+      authMode: !currentUser ? (initialUrl.authMode || 'login') : initialUrl.authMode,
       lang: language
     });
-  }, []);
+  }, [currentUser]);
 
   // Dynamic URL: Synchronize with browser Back and Forward navigation (popstate)
   useEffect(() => {
@@ -581,7 +584,10 @@ export default function App() {
       if (parsed.lang && parsed.lang !== language) {
         setLanguage(parsed.lang);
       }
-      if (parsed.authMode) {
+      if (!currentUser) {
+        setAuthModalMode(parsed.authMode || 'login');
+        setAuthModalOpen(true);
+      } else if (parsed.authMode) {
         setAuthModalMode(parsed.authMode);
         setAuthModalOpen(true);
       } else {
@@ -597,7 +603,7 @@ export default function App() {
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [currentTab, language, doctors]);
+  }, [currentTab, language, doctors, currentUser]);
 
   // Protected Navigation Interceptor: Automatically triggers AuthModal when accessing private account tabs
   const handleSelectTab = (tab: string) => {
