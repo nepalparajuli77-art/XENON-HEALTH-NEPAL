@@ -9,7 +9,16 @@ import { createServer as createViteServer } from 'vite';
 dotenv.config();
 
 const app = express();
-const PORT = 3000;
+
+function resolvePort(): number {
+  const portIdx = process.argv.indexOf('--port');
+  if (portIdx !== -1 && process.argv[portIdx + 1]) {
+    const parsed = parseInt(process.argv[portIdx + 1], 10);
+    if (!isNaN(parsed) && parsed > 0) return parsed;
+  }
+  return 3000;
+}
+const PORT = resolvePort();
 
 // ============================================================================
 // MAXIMUM SECURITY PACK: HEADERS, BRUTE-FORCE SHIELD, SANITIZATION & LIMITS
@@ -2119,9 +2128,25 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
+  const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`Xenon Health server running on http://0.0.0.0:${PORT}`);
   });
+
+  server.on('error', (err: any) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`Port ${PORT} is already in use. Ensure previous instances are terminated.`);
+    } else {
+      console.error('Server listen error:', err);
+    }
+  });
+
+  const shutdown = () => {
+    server.close(() => {
+      process.exit(0);
+    });
+  };
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
 }
 
 startServer();
