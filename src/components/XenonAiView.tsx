@@ -242,28 +242,38 @@ export const XenonAiView: React.FC<XenonAiViewProps> = ({
   const [isLocating, setIsListeningLoc] = useState(false);
   const [selectedFacility, setSelectedFacility] = useState<Hospital | MedevacBase | null>(null);
 
-  // Get user GPS location
+  // Get user GPS location with resilient 2-phase fallback
   const handleDetectUserLocation = () => {
-    if (!navigator.geolocation) {
+    if (typeof window === 'undefined' || !navigator || !navigator.geolocation) {
       console.warn('Geolocation is not supported by your browser.');
       return;
     }
     setIsListeningLoc(true);
     triggerHaptic('medium');
+
+    const handleSuccess = (pos: GeolocationPosition) => {
+      setUserLocation({
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude
+      });
+      setIsListeningLoc(false);
+      triggerHaptic('success');
+    };
+
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setUserLocation({
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude
-        });
-        setIsListeningLoc(false);
-        triggerHaptic('success');
+      handleSuccess,
+      () => {
+        // Fallback to low-accuracy network positioning
+        navigator.geolocation.getCurrentPosition(
+          handleSuccess,
+          (err) => {
+            console.warn('Geolocation error:', err);
+            setIsListeningLoc(false);
+          },
+          { enableHighAccuracy: false, timeout: 6000 }
+        );
       },
-      (err) => {
-        console.warn('Geolocation error:', err);
-        setIsListeningLoc(false);
-      },
-      { timeout: 10000, enableHighAccuracy: true }
+      { timeout: 5000, enableHighAccuracy: true }
     );
   };
 

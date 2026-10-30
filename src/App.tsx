@@ -104,13 +104,19 @@ export default function App() {
           key.startsWith('telemed_') ||
           key.startsWith('xenon_')
         ) {
-          if (key !== 'xenon_auto_backups_history' && key !== 'xenon_theme') {
+          if (
+            key !== 'xenon_auto_backups_history' &&
+            key !== 'xenon_theme' &&
+            key !== 'telemed_current_user' &&
+            key !== 'telemed_site_operated' &&
+            key !== 'xenon_logged_doctor_id'
+          ) {
             if (backupTimeout) clearTimeout(backupTimeout);
             backupTimeout = setTimeout(() => {
               import('./services/backupService').then(({ captureBackupSnapshot }) => {
                 captureBackupSnapshot('Auto-Save', `System snapshot secured after saving "${key}"`);
               });
-            }, 600);
+            }, 1000);
           }
         }
       };

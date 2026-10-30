@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   X,
   Lock,
@@ -75,8 +75,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   }, [isOpen, initialMode]);
 
-  if (!isOpen) return null;
-
   // Standard Login state
   const [loginIdentifier, setLoginIdentifier] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
@@ -129,6 +127,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [lockoutExpiry, setLockoutExpiry] = useState<number | null>(null);
+  const [isGoogleSigningIn, setIsGoogleSigningIn] = useState(false);
 
   // Google Workspace Account Recovery State (Gmail OTP)
   const [showRecoveryFlow, setShowRecoveryFlow] = useState(false);
@@ -285,8 +284,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setIsResettingPassword(false);
     }
   };
-
-  const [isGoogleSigningIn, setIsGoogleSigningIn] = useState(false);
 
   const handleGoogleSignIn = async () => {
     try {
@@ -620,13 +617,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  const filteredDoctors = doctors.filter(
-    (d) =>
-      d.name.toLowerCase().includes(doctorSearch.toLowerCase()) ||
-      d.specialty.toLowerCase().includes(doctorSearch.toLowerCase()) ||
-      d.nmc_number.toLowerCase().includes(doctorSearch.toLowerCase()) ||
-      d.hospital.toLowerCase().includes(doctorSearch.toLowerCase())
-  );
+  const filteredDoctors = useMemo(() => {
+    const q = doctorSearch.trim().toLowerCase();
+    if (!q) return doctors;
+    return doctors.filter(
+      (d) =>
+        d.name.toLowerCase().includes(q) ||
+        d.specialty.toLowerCase().includes(q) ||
+        d.nmc_number.toLowerCase().includes(q) ||
+        d.hospital.toLowerCase().includes(q)
+    );
+  }, [doctors, doctorSearch]);
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4 sm:p-6">

@@ -91,15 +91,27 @@ export const HospitalsView: React.FC<HospitalsViewProps> = ({
   };
 
   const handleDetectGPS = () => {
-    if (navigator.geolocation) {
+    if (typeof window !== 'undefined' && navigator && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           setFormLat(pos.coords.latitude.toFixed(4));
           setFormLng(pos.coords.longitude.toFixed(4));
         },
         () => {
-          alert('GPS permission not available. Please enter coordinates manually.');
-        }
+          // Low accuracy network fallback
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              setFormLat(pos.coords.latitude.toFixed(4));
+              setFormLng(pos.coords.longitude.toFixed(4));
+            },
+            () => {
+              setFormLat('27.7172');
+              setFormLng('85.3240');
+            },
+            { enableHighAccuracy: false, timeout: 6000 }
+          );
+        },
+        { enableHighAccuracy: true, timeout: 5000 }
       );
     }
   };

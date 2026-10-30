@@ -457,7 +457,7 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Request Live GPS Location Permission & Start Real-Time Tracking
+  // Request Live GPS Location Permission & Start Real-Time Tracking with resilient 2-phase fallback
   const requestLiveLocation = (silent = false) => {
     if (!silent) {
       triggerHaptic('medium');
@@ -465,7 +465,7 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
     setPermissionStatus('requesting');
     setGpsError(null);
 
-    if (!navigator.geolocation) {
+    if (typeof window === 'undefined' || !navigator || !navigator.geolocation) {
       setPermissionStatus('denied');
       setGpsError(
         language === 'np'
@@ -475,39 +475,38 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
       return;
     }
 
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const { latitude, longitude, accuracy } = pos.coords;
-        setGpsAccuracy(Math.round(accuracy));
-        setPermissionStatus('granted');
-        setIsLiveTracking(true);
-        setIsLiveDetected(true);
-        setPanTarget({ lat: latitude, lng: longitude });
+    const handlePosSuccess = async (pos: GeolocationPosition) => {
+      const { latitude, longitude, accuracy } = pos.coords;
+      setGpsAccuracy(Math.round(accuracy));
+      setPermissionStatus('granted');
+      setIsLiveTracking(true);
+      setIsLiveDetected(true);
+      setPanTarget({ lat: latitude, lng: longitude });
 
-        const resolvedLabel = await resolveLocationName(latitude, longitude, language);
+      const resolvedLabel = await resolveLocationName(latitude, longitude, language);
 
-        setUserCoords({
-          lat: latitude,
-          lng: longitude,
-          label: resolvedLabel,
-          district: 'Live Device GPS'
-        });
+      setUserCoords({
+        lat: latitude,
+        lng: longitude,
+        label: resolvedLabel,
+        district: 'Live Device GPS'
+      });
 
-        if (!silent) {
-          triggerHaptic('success');
-        }
+      if (!silent) {
+        triggerHaptic('success');
+      }
 
-        // Setup real-time watchPosition for continuous live location sharing
-        if (watchIdRef.current !== null) {
-          navigator.geolocation.clearWatch(watchIdRef.current);
-        }
+      // Setup real-time watchPosition for continuous live location updates with resilient low-accuracy mode
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+      }
 
+      try {
         watchIdRef.current = navigator.geolocation.watchPosition(
-          async (watchPos) => {
+          (watchPos) => {
             const wLat = watchPos.coords.latitude;
             const wLng = watchPos.coords.longitude;
             setGpsAccuracy(Math.round(watchPos.coords.accuracy));
-            setPanTarget({ lat: wLat, lng: wLng });
             setUserCoords((prev) => ({
               ...prev,
               lat: wLat,
@@ -515,25 +514,64 @@ export const LocationMedevacView: React.FC<LocationMedevacViewProps> = ({
             }));
           },
           (watchErr) => {
-            console.warn('Live watchPosition error:', watchErr);
+            console.warn('Live watchPosition notice:', watchErr);
           },
-          { enableHighAccuracy: true, maximumAge: 5000, timeout: 12000 }
+          { enableHighAccuracy: false, maximumAge: 10000, timeout: 15000 }
         );
-      },
+      } catch (wErr) {
+        console.warn('Could not start watchPosition:', wErr);
+      }
+    };
+
+    const handleFallbackAttempt = () => {
+      // Phase 2: Fallback to low-accuracy network/IP/Wi-Fi positioning (succeeds in iframes and virtualized containers)
+      navigator.geolocation.getCurrentPosition(
+        handlePosSuccess,
+        (fallbackErr) => {
+          console.warn('Geolocation low-accuracy fallback error:', fallbackErr);
+          const isDenied = fallbackErr.code === 1;
+          setPermissionStatus(isDenied ? 'denied' : 'prompt');
+          setUserCoords((prev) => ({
+            ...prev,
+            label: language === 'np' ? 'काठमाडौँ केन्द्र (डिफल्ट जीपीएस)' : 'Kathmandu Valley Central (Default GPS)'
+          }));
+          setGpsError(
+            isDenied
+              ? (language === 'np'
+                  ? 'जीपीएस अनुमति अस्वीकार गरिएको छ। तलको खोज बाकस वा प्रमुख टोलहरूबाट स्थान चयन गर्नुहोस्।'
+                  : 'Live GPS permission denied. Please allow location access in your browser or select your neighborhood below.')
+              : (language === 'np'
+                  ? 'जीपीएस संकेत प्राप्त भएन। काठमाडौँ केन्द्रलाई आधार मानिएको छ।'
+                  : 'GPS signal timed out. Switched to Kathmandu valley central coordinates.')
+          );
+        },
+        { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
+      );
+    };
+
+    // Phase 1: Try high accuracy first with 5000ms timeout
+    navigator.geolocation.getCurrentPosition(
+      handlePosSuccess,
       (err) => {
-        console.warn('Geolocation permission error:', err);
-        setPermissionStatus('denied');
-        setUserCoords((prev) => ({
-          ...prev,
-          label: language === 'np' ? 'काठमाडौँ केन्द्र (म्यानुअल छनोट)' : 'Kathmandu Valley Central (Manual Select)'
-        }));
-        setGpsError(
-          language === 'np'
-            ? 'जीपीएस अनुमति प्राप्त भएन। कृपया ब्राउजरमा लोकेशन सेयरिङ अन गर्नुहोस् वा तलको खोज बाकसबाट आफ्नो टोल छान्नुहोस्।'
-            : 'Live GPS permission denied or timed out. Please allow location access or search your neighborhood below.'
-        );
+        console.warn('High accuracy geolocation timed out or unavailable, trying low accuracy fallback:', err);
+        if (err.code === 1) {
+          // User explicitly denied
+          setPermissionStatus('denied');
+          setUserCoords((prev) => ({
+            ...prev,
+            label: language === 'np' ? 'काठमाडौँ केन्द्र (म्यानुअल छनोट)' : 'Kathmandu Valley Central (Manual Select)'
+          }));
+          setGpsError(
+            language === 'np'
+              ? 'जीपीएस अनुमति रोकिएको छ। तलका प्रमुख टोल वा अस्पतालहरूबाट तुरुन्त चयन गर्नुहोस्।'
+              : 'Location permission denied. Please pick your neighborhood or hospital below.'
+          );
+          return;
+        }
+        // Timeout (3) or unavailable (2) -> try Phase 2 low accuracy
+        handleFallbackAttempt();
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 5000, maximumAge: 30000 }
     );
   };
 
